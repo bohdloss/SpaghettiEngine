@@ -5,7 +5,7 @@ import org.lwjgl.glfw.GLFWImage;
 import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.glfw.GLFWWindowSizeCallback;
 
-public class GameWindow implements Tickable{
+public final class GameWindow implements Tickable{
 
 //Static fields and methods
 
@@ -214,6 +214,6 @@ public void setIcon(GLFWImage icon, GLFWImage iconSmall) {
 }
 
 @Override
-public void tick(float delta) {}
+public void update(float delta) {}
 
 }
