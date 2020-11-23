@@ -1,9 +1,10 @@
 package com.spaghettiengine.core;
 
-import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.*;
 
 import org.lwjgl.glfw.GLFW;
+
+import com.spaghettiengine.utils.Utils;
 
 public final class Game {
 
@@ -11,10 +12,71 @@ public final class Game {
 	//in the same java process
 	private static ArrayList<Game> games = new ArrayList<Game>();
 	private static HashMap<Long, Integer> links = new HashMap<Long, Integer>();
+	private static boolean stop;
 	
-	public static void init() {
+	static {
+		init();
+	}
+	
+	private static void init() {
+		stop=false;
 		GLFW.glfwInit();
+		new Thread() {
+			public void run() {
+				while(!stop) {
+					Utils.sleep(1);
+					
+					//This makes sure windows can be interacted with
+					GameWindow.pollEvents();
+					
+					//Detect soft-blocked game instances
+					//and call the stop method
+					try {
+						
+						games.forEach(game -> {
+							if(!game.isStopped() && game.isDead()) {
+								game.stop();
+							}
+						});
+						
+					} catch(ConcurrentModificationException e) {}
+				}
+			}
+		}.start();
 	}	
+	
+	//Stop all instances
+	private static void stopAll() {
+		for(int i = 0; i < games.size(); i++) {
+			Game current = games.get(i);
+			if(!current.isStopped()) {
+				current.stop();
+			}
+		}
+		
+		stop=true;
+	}
+	
+	//Wait for all instances to finish
+	private static void waitAll() {
+		while(true) {
+			Utils.sleep(1);
+			boolean found=false;
+			for(int i = 0; i < games.size(); i++) {
+				Game current = games.get(i);
+				if(current!=null && !current.isStopped()) found=true;
+			}
+			if(!found) return;
+		}
+	}
+	
+	//Main thread idle
+	public static void idle() {
+		waitAll();
+		stopAll();
+	}
+	
+	//Static Thread-based methods
 	
 	public static Game getGame() {
 		Long id = Thread.currentThread().getId();
@@ -27,107 +89,157 @@ public final class Game {
 		return null;
 	}
 	
-	public static FunctionDispatcher getDispatcher() {
-		Game game = getGame();
-		if(game!=null) {
-			return game.dispatcher;
-		}
-		return null;
-	}
-	
-	public static GameWindow getWindow() {
-		Game game = getGame();
-		if(game!=null) {
-			return game.window;
-		}
-		return null;
-	}
-	
-	public static Updater getUpdater() {
-		Game game = getGame();
-		if(game!=null) {
-			return game.updater;
-		}
-		return null;
-	}
-	
-	public static Renderer getRenderer() {
-		Game game = getGame();
-		if(game!=null) {
-			return game.renderer;
-		}
-		return null;
-	}
-	
 	//Instance globals
-	private FunctionDispatcher dispatcher;
-	private GameWindow window;
+	protected FunctionDispatcher dispatcher;
+	protected GameWindow window;
 	
-	private Updater updater;
-	private Renderer renderer;
+	protected Updater updater;
+	protected Renderer renderer;
 
-	private int index;
+	protected int index;
+	protected boolean stopped;
+	
+	protected Level activeLevel;
+	protected long tick = 25;
 	
 	//Constructors using custom classes
-	public Game(GameWindow window, Class<? extends Updater> updater, Class<? extends Renderer> renderer) throws Exception {
+	public Game(Class<? extends Updater> updater, Class<? extends Renderer> renderer) throws Exception {
 		this.dispatcher = new FunctionDispatcher(Thread.currentThread().getId());
-		this.window=window;
 		
 		games.add(this);
 		this.index = games.indexOf(this);
 		
 		if(updater != null) {
 			this.updater = updater.getConstructor(Game.class).newInstance(this);
-			links.put(this.updater.getId(), index);
+			registerThread(this.updater);
 		}
 		if(renderer != null) {
 			this.renderer = renderer.getConstructor(Game.class).newInstance(this);
-			links.put(1l, index);
+			registerThread(this.renderer);
+			window = new GameWindow(this);
 		}
 	}
 	
-	public void registerThread(long id) {
+	//Stop all child threads and flag this game instance as stopped
+	public void stop() {
+		if(window != null) window.destroy();
+		if(updater != null) {
+			updater.terminate();
+			updater.waitTerminate();
+		}
+		if(renderer != null) {
+			renderer.terminate();
+			renderer.waitTerminate();
+		}
+		
+		stopped=true;
+		System.out.println("Stopped "+index);
+	}
+	
+	public boolean isStopped() {
+		return stopped;
+	}
+	
+	//Linking/Unlinking of threads to this game instance
+	
+	public void registerThread(Thread t) {
+		long id = t.getId();
 		if(links.get(id) == null) {
 			links.put(id, index);
 		}
 	}
 	
 	public void registerThread() {
-		long id = Thread.currentThread().getId();
-		registerThread(id);
+		registerThread(Thread.currentThread());
 	}
 	
-	public void unregisterThread(long id) {
+	public void unregisterThread(Thread t) {
+		long id = t.getId();
 		if(links.get(id) != null && links.get(id) == index) {
 			links.remove(id);
 		}
 	}
 	
 	public void unregisterThread() {
-		long id = Thread.currentThread().getId();
-		unregisterThread(id);
+		unregisterThread(Thread.currentThread());
 	}
 	
-	public void begin() {
-		if(updater!=null) updater.start();
-		if(window!=null) window.setVisible(true);
-		
-		loop();
-	}
-
-	private void loop() {
-		while(true) {
-			dispatcher.computeEvents();
-			GameWindow.pollEvents();
-			
-			if(renderer!=null) renderer.update(0);
-			
-			if(window!=null) {
-				window.update(0);
-				window.swap();
-				if(window.shouldClose()) break;
-			}
+	//Start all child threads
+	public void begin() throws Exception{
+		if(updater != null) {
+			updater.start();
+			updater.waitInit();
 		}
+		
+		if(renderer != null) {
+			renderer.start();
+			renderer.waitInit();
+		}
+		System.out.println("Started "+index);
+	}
+	
+	//Getters
+	
+	public Renderer getRenderer() {
+		return renderer;
+	}
+	
+	public Updater getUpdater() {
+		return updater;
+	}
+	
+	public FunctionDispatcher getFunctionDispatcher() {
+		return dispatcher;
+	}
+	
+	public GameWindow getWindow() {
+		return window;
+	}
+	
+	public boolean isHeadless() {
+		return window == null || renderer == null;
+	}
+	
+	public boolean isDead() {
+		boolean updNull = updater == null;
+		boolean renderNull = renderer == null;
+		
+		if(updNull && renderNull) return true;
+		
+		if(!updNull && updater.stopped()) {
+			return true;
+		}
+		if(!renderNull && renderer.stopped()) {
+			return true;
+		}
+		
+		return false;
+	}
+	
+	public int getIndex() {
+		return index;
+	}
+	
+	public long getTick() {
+		return tick;
+	}
+	
+	public void setTick(long tick) {
+		this.tick = tick;
+	}
+	
+	public float getTickMultiplier(float delta) {
+		return delta / (float) tick;
+	}
+	
+	public Level getActiveLevel() {
+		return activeLevel;
+	}
+	
+	public void detachLevel() {
+		if(activeLevel == null) return;
+		
+		
 	}
 	
 }

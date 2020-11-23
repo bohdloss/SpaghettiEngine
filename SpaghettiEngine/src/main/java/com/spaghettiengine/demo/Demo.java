@@ -2,15 +2,16 @@ package com.spaghettiengine.demo;
 
 import com.spaghettiengine.core.*;
 
-public class Demo {
+public class Demo extends Thread{
 
 	public static void main(String[] args) {
 		
 		try {
 			
-			Game.init();
-			Game game = new Game(new GameWindow(), Updater.class, Renderer.class);
+			Game game = new Game(Updater.class, Renderer.class);
 			game.begin();
+			
+			Game.idle();
 			
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -18,4 +19,15 @@ public class Demo {
 		
 	}
 
+	public void run() {
+		try {
+			Game game2 = new Game(Updater.class, Renderer.class);
+			game2.begin();
+			game2.getWindow().setTitle("die");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		
+	}
+	
 }

@@ -1,16 +1,16 @@
 package com.spaghettiengine.core;
 
-public class Updater extends Thread implements Tickable {
+public class Updater extends CoreComponent {
 
-	protected Game source;
-	
 	public Updater(Game source) {
-		this.source=source;
-	}
-	
-	@Override
-	public void update(float delta) {
-		
+		super(source);
 	}
 
+	@Override
+	protected void loopEvents() {
+		if(source.getActiveLevel() != null) {
+			source.getActiveLevel().update(0);
+		}
+	}
+	
 }
