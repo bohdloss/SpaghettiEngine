@@ -16,6 +16,7 @@ The best way would be to use eclipse and:
 - Add this repository
 - Clone it
 - Import the project (or check the import option when cloning)
+
 Spoiler ahead: it's still not ready and literally can't do anything other than display a black window
 most of the work is being done in the backend and because of this it's not visible
 
