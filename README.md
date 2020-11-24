@@ -7,6 +7,7 @@ Spaghetti engine is an open source personal project, and its main purpose is wra
 Its dependencies are:
 - [LWJGL 3.2.3](https://github.com/LWJGL/lwjgl3)
 - [JOML 1.9.25](https://github.com/JOML-CI/JOML)
+
 Every dependency is included in the pom.xml file
 
 ### How to set it up
