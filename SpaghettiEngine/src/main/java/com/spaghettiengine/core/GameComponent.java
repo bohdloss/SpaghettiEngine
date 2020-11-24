@@ -12,24 +12,31 @@ public abstract class GameComponent implements Tickable, Renderable {
 	
 	private static long staticId=0;
 	
-	private static final void rebuildHierarchy(GameComponent caller, GameComponent child) {
-		child.parent.parent = caller;
+	private static final void rebuildHierarchy(int iteration, GameComponent caller, GameComponent child) {
+		
+		if(caller.level != child.level) {
+			if(child.level != null && child.hierarchy == 0) {
+				child.level.removeComponent(child.id);
+			} else if(child.hierarchy != 0 && iteration == 0) {
+				if(child.parent != null) {
+					child.parent.removeChild(child.id);
+				}
+			}
+		}
+		
+		child.parent = caller;
 		child.hierarchy = caller.hierarchy + 1;
 		
-		Object[] obj = child.children.entrySet().toArray();
-		for(Object current : obj) {
-			@SuppressWarnings("unchecked") Entry<Long, GameComponent> entry = (Entry<Long, GameComponent>) current;
-			GameComponent element = entry.getValue();
-			
-			rebuildHierarchy(child, element);
-		}
+		child.children.forEach((id, childComponent)->{
+			rebuildHierarchy(iteration+1, child, childComponent);
+		});
 		
 	}
 	
 		//Instance methods and fields
 	
 	private int hierarchy; //This identifies how deep this component is in the hierarchy
-	private long id; //This uniquely identifies any component
+	private final long id; //This uniquely identifies any component
 	private Level level;
 	private GameComponent parent;
 	private LinkedHashMap<Long, GameComponent> children = new LinkedHashMap<Long, GameComponent>();
@@ -41,19 +48,22 @@ public abstract class GameComponent implements Tickable, Renderable {
 		this.parent = parent;
 		this.id = staticId++;
 		
-		if(parent == null) hierarchy = 0;
-		else hierarchy = parent.hierarchy + 1;
-		
-		this.level.ordered.put(this.id, this);
+		if(parent == null) {
+			level.addComponent(this);
+			hierarchy = 0;
+		}
+		else {
+			parent.addChild(this);
+		}
 		
 		rebuildListNeeded();
 	}
 	
-	public final void addChildren(GameComponent component) {
+	public final void addChild(GameComponent component) {
 		if(component.parent == this) return;
 		if(component == this) return;
 		
-		rebuildHierarchy(this, component);
+		rebuildHierarchy(0, this, component);
 		
 		children.put(component.id, component);
 		
@@ -82,10 +92,23 @@ public abstract class GameComponent implements Tickable, Renderable {
 		return children.get(id);
 	}
 	
+	//Remove just detaches a child component
+	
 	public final void removeChild(long id) {
-		children.remove(id);
+		GameComponent removed = children.remove(id);
+		
+		if(removed != null) {
+			removed.parent = null;
+		}
 		
 		rebuildListNeeded();
+	}
+	
+	//delete does the same by calling destroy();
+	
+	public final void deleteChild(long id) {
+		GameComponent get = children.get(id);
+		if(get != null) get.destroy();
 	}
 	
 	public final int getChildrenAmount() {
@@ -96,11 +119,18 @@ public abstract class GameComponent implements Tickable, Renderable {
 		return parent;
 	}
 	
-	public final void clearChildren() {
-		children.forEach((key, component)->{
-			component.destroy();
-		});
+	//Removes all children
+	
+	public final void removeChildren() {
 		children.clear();
+	}
+	
+	//Destroys all children
+	
+	public final void deleteChildren() {
+		children.forEach((id, child)->{
+			child.destroy();
+		});
 	}
 	
 	public final Level getLevel() {
@@ -112,17 +142,17 @@ public abstract class GameComponent implements Tickable, Renderable {
 	}
 	
 	public final void destroy() {
-		level.ordered.remove(this.id);
-		id = -1;
+		if(level != null) level.removeComponent(id);
+		if(parent != null) parent.removeChild(id);
 		hierarchy = -1;
 		level = null;
 		parent = null;
-		clearChildren();
+		deleteChildren();
 		children = null;
 	}
 	
 	public final boolean isDestroyed() {
-		return id == -1 || hierarchy == -1 || level == null || children == null;
+		return hierarchy == -1 || level == null || children == null;
 	}
 	
 	public final GameComponent getBase() {
@@ -275,9 +305,11 @@ public abstract class GameComponent implements Tickable, Renderable {
 	protected Vector2d gravityMultiplier = new Vector2d(1,1);
 	protected Vector2d gravityOverride = new Vector2d();
 	
-	protected boolean hasCollision = true;
-	protected Vector2d size = new Vector2d(1,1);
-	protected double mass = 10;
+	protected void physicsUpdate(float multiplier) {
+		
+	}
+	
+	
 	
 	//Interface methods
 	
@@ -287,18 +319,17 @@ public abstract class GameComponent implements Tickable, Renderable {
 	public final void update(float delta) {
 		if(hasPhysics) physicsUpdate(Game.getGame().getTickMultiplier(delta));
 		
-		fixedUpdate(delta);
+		//TODO Detect if this is a server or client instance
+		clientUpdate(delta);
 		
 		children.forEach((id, component)->{
 			component.update(delta);
 		});
 	}
 	
-	public void fixedUpdate(float delta) {}
+	public void clientUpdate(float delta) {}
+	public void serverUpdate(float delta) {}
 	
-	protected void physicsUpdate(float multiplier) {
-		
-	}
 	
 	@Override
 	public void render(Matrix4d projection) {

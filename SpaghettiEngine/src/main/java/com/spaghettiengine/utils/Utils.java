@@ -1,7 +1,9 @@
 package com.spaghettiengine.utils;
 
-public class Utils {
+public final class Utils {
 
+	private Utils() {}
+	
 	public static void sleep(long ms) {
 		try {
 			Thread.sleep(ms);

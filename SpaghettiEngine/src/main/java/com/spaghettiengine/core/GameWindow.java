@@ -67,7 +67,12 @@ public final class GameWindow {
 				self.height = height;
 				
 				Camera c = source.getActiveLevel().activeCamera;
-				if(c!=null) c.setOrtho(width, height);
+				if(c!=null) {
+					c.setOrtho(width, height);
+					c.calcScale();
+				}
+				
+				
 			}
 		});
 		gatherSize();
