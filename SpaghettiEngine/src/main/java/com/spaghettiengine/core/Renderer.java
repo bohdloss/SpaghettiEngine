@@ -6,14 +6,12 @@ import static org.lwjgl.opengl.GL11.*;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.opengl.GLCapabilities;
 
-import com.spaghettiengine.render.*;
-
 public class Renderer extends CoreComponent {
-	
+
 	protected GameWindow window;
 	protected GLCapabilities glCapabilities;
 	protected FunctionDispatcher dispatcher;
-	
+
 	public Renderer(Game source) {
 		super(source);
 	}
@@ -31,23 +29,21 @@ public class Renderer extends CoreComponent {
 		glDisable(GL_DEPTH_TEST);
 		glDisable(GL_LIGHTING);
 		GLFW.glfwSwapInterval(0);
-		
+
 		super.init();
 	}
-	
+
 	@Override
 	protected void loopEvents() {
-		if (window.shouldClose()) terminate();
+		if (window.shouldClose()) {
+			terminate();
+		}
 		dispatcher.computeEvents();
 		glClear(GL_COLOR_BUFFER_BIT);
-		
-		
-		
+
 		window.swap();
 	}
-	
-	//Getters and setters
-	
-	
-	
+
+	// Getters and setters
+
 }

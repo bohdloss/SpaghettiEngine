@@ -9,54 +9,55 @@ public abstract class CoreComponent extends Thread {
 	private boolean init;
 
 	public CoreComponent(Game source) {
-		this.source=source;
+		this.source = source;
 	}
-	
+
 	protected void init() {
-		//Your custom initialization code here, then call super.init()
-		init=true;
+		// Your custom initialization code here, then call super.init()
+		init = true;
 	}
-	
+
 	public final void terminate() {
-		stop=true;
+		stop = true;
 	}
-	
+
 	public final void waitInit() {
-		while(!initialized()) {
+		while (!initialized()) {
 			Utils.sleep(1);
 		}
 	}
-	
+
 	public final void waitTerminate() {
-		while(!stopped()) {
+		while (!stopped()) {
 			Utils.sleep(1);
 		}
 	}
-	
+
+	@Override
 	public final void run() {
 		try {
 			init();
-			while(!stop) {
+			while (!stop) {
 				Utils.sleep(1);
 				loopEvents();
 			}
-			stop=true;
-		} catch(Throwable t) {
-			System.out.println("Critical uncaught error in game "+source.getIndex()+":");
+			stop = true;
+		} catch (Throwable t) {
+			System.out.println("Critical uncaught error in game " + source.getIndex() + ":");
 			t.printStackTrace();
 		}
 	}
-	
-	protected abstract void loopEvents(); //Your custom loop code here!
-	
-	//Getters
-	
+
+	protected abstract void loopEvents(); // Your custom loop code here!
+
+	// Getters
+
 	public final boolean stopped() {
 		return stop && !isAlive() && init;
 	}
-	
+
 	public final boolean initialized() {
 		return init;
 	}
-	
+
 }

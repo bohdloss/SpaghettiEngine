@@ -8,9 +8,9 @@ public class Updater extends CoreComponent {
 
 	@Override
 	protected void loopEvents() {
-		if(source.getActiveLevel() != null) {
+		if (source.getActiveLevel() != null) {
 			source.getActiveLevel().update(0);
 		}
 	}
-	
+
 }

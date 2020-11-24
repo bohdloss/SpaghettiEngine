@@ -8,13 +8,13 @@ import javax.imageio.ImageIO;
 public final class ResourceLoader {
 
 	/*
-	 * Utility class that abstracts the loading
-	 * of various file types into objects
+	 * Utility class that abstracts the loading of various file types into objects
 	 * such as images, binary and text files
 	 */
-	
-	private ResourceLoader() {}
-	
+
+	private ResourceLoader() {
+	}
+
 	public static final byte[] loadBinary(String location) throws Throwable {
 		InputStream stream = null;
 		try {
@@ -24,22 +24,26 @@ public final class ResourceLoader {
 			stream.close();
 			return bin;
 		} finally {
-			if(stream != null) stream.close();
+			if (stream != null) {
+				stream.close();
+			}
 		}
 	}
-	
+
 	public static final String loadText(String location) throws Throwable {
 		return new String(loadBinary(location));
 	}
-	
+
 	public static final BufferedImage loadImage(String location) throws Throwable {
 		InputStream stream = null;
 		try {
 			stream = ResourceLoader.class.getResourceAsStream(location);
 			return ImageIO.read(stream);
 		} finally {
-			if(stream != null) stream.close();
+			if (stream != null) {
+				stream.close();
+			}
 		}
 	}
-	
+
 }
