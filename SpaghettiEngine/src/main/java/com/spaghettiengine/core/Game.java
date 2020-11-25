@@ -13,6 +13,7 @@ public final class Game {
 	private static ArrayList<Game> games = new ArrayList<>();
 	private static HashMap<Long, Integer> links = new HashMap<>();
 	private static boolean stop;
+	private static boolean stopOnNoActivity;
 
 	static {
 		init();
@@ -30,25 +31,38 @@ public final class Game {
 					// This makes sure windows can be interacted with
 					GameWindow.pollEvents();
 
-					// Detect soft-blocked game instances
-					// and call the stop method
 					try {
 
-						games.forEach(game -> {
+						boolean found = false;
+						for (Game game : games) {
+							// Detect soft-blocked instances and stop()
 							if (!game.isStopped() && game.isDead()) {
 								game.stop();
 							}
-						});
 
-					} catch (ConcurrentModificationException e) {
+							// Detect if all games are stopped
+							// and if the stopOnNoActivity flag
+							// is on then end this thread;
+							if (!game.isStopped()) {
+								found = true;
+							}
+						}
+						;
+
+						if (!found && stopOnNoActivity) {
+							stop = true;
+						}
+
+					} catch (Exception e) {
 					}
+
 				}
 			}
 		}.start();
 	}
 
 	// Stop all instances
-	private static void stopAll() {
+	public static void stopAll() {
 		for (Game current : games) {
 			if (!current.isStopped()) {
 				current.stop();
@@ -59,7 +73,7 @@ public final class Game {
 	}
 
 	// Wait for all instances to finish
-	private static void waitAll() {
+	public static void waitAll() {
 		while (true) {
 			Utils.sleep(1);
 			boolean found = false;
@@ -74,10 +88,9 @@ public final class Game {
 		}
 	}
 
-	// Main thread idle
+	// Free the main thread
 	public static void idle() {
-		waitAll();
-		stopAll();
+		stopOnNoActivity = true;
 	}
 
 	// Static Thread-based methods

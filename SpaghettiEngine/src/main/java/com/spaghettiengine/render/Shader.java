@@ -26,24 +26,34 @@ public final class Shader {
 			throw new IllegalArgumentException("Invalid type or null source");
 		}
 
+		// Create usable shader id
 		id = GL20.glCreateShader(type);
-		GL20.glShaderSource(id, source);
-		GL20.glCompileShader(id);
 
-		if (GL20.glGetShaderi(id, GL20.GL_COMPILE_STATUS) == GL11.GL_FALSE) {
+		try {
+
+			GL20.glShaderSource(id, source);
+			GL20.glCompileShader(id);
+
+			if (GL20.glGetShaderi(id, GL20.GL_COMPILE_STATUS) == GL11.GL_FALSE) {
+				throw new IllegalArgumentException("Compiler error: " + GL20.glGetShaderInfoLog(id));
+			}
+
+		} catch (Throwable t) {
+
+			// Clean up first
 			delete();
-			throw new IllegalArgumentException("Compiler error: " + GL20.glGetShaderInfoLog(id));
+
+			// Then throw
+			throw t;
+
 		}
 	}
 
 	public void delete() {
-		if (deleted) {
-			return;
+		if (!deleted) {
+			GL20.glDeleteShader(id);
+			deleted = true;
 		}
-
-		GL20.glDeleteShader(id);
-
-		deleted = true;
 	}
 
 	public int getId() {

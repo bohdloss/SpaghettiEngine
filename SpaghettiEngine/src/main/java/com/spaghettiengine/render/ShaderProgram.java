@@ -2,6 +2,7 @@ package com.spaghettiengine.render;
 
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
+import java.util.HashMap;
 
 import org.joml.*;
 import org.lwjgl.opengl.GL11;
@@ -16,37 +17,64 @@ public final class ShaderProgram {
 
 	// cache
 	private FloatBuffer mat4 = FloatBuffer.allocate(16);
-	private IntBuffer currentBuffer = IntBuffer.allocate(1);
+
+	// keep track of valid uniform locations
+	private HashMap<String, Integer> locations = new HashMap<>();
 
 	public ShaderProgram(Shader... shaders) {
-		id = GL20.glCreateProgram();
 
-		for (Shader shader : shaders) {
-			if (shader.isDeleted()) {
-				throw new IllegalArgumentException("Deleted shader");
+		// Get a usable id for this s-program
+		this.id = GL20.glCreateProgram();
+
+		try {
+
+			// Link all shaders
+			for (Shader shader : shaders) {
+				if (shader.isDeleted()) {
+					throw new IllegalArgumentException("Deleted shader");
+				}
+				GL20.glAttachShader(id, shader.getId());
 			}
-			GL20.glAttachShader(id, shader.getId());
+
+			// Basic attribs
+			GL20.glBindAttribLocation(id, 0, "vertices");
+			GL20.glBindAttribLocation(id, 1, "textures");
+
+			// Perform linking and check if it worked
+			GL20.glLinkProgram(id);
+
+			if (GL20.glGetProgrami(id, GL20.GL_LINK_STATUS) == GL11.GL_FALSE) {
+				throw new IllegalArgumentException("Linker error: " + GL20.glGetProgramInfoLog(id));
+			}
+
+			// Perform validation and check if it worked
+			GL20.glValidateProgram(id);
+
+			if (GL20.glGetProgrami(id, GL20.GL_VALIDATE_STATUS) == GL11.GL_FALSE) {
+				throw new IllegalArgumentException("Validator error: " + GL20.glGetProgramInfoLog(id));
+			}
+
+		} catch (Throwable t) {
+
+			// In case an error occurs, avoid leaking memory
+			delete();
+
+			// Pass the throwable back up the stack
+			throw t;
+
+		} finally {
+
+			// Whatever happens, shaders should be detached
+			for (Shader shader : shaders) {
+				GL20.glDetachShader(id, shader.getId());
+			}
+
 		}
-
-		GL20.glBindAttribLocation(id, 0, "vertices");
-		GL20.glBindAttribLocation(id, 1, "textures");
-
-		GL20.glLinkProgram(id);
-
-		if (GL20.glGetProgrami(id, GL20.GL_LINK_STATUS) == GL11.GL_FALSE) {
-			throw new IllegalArgumentException("Linker error: " + GL20.glGetProgramInfoLog(id));
-		}
-
-		GL20.glValidateProgram(id);
-
-		if (GL20.glGetProgrami(id, GL20.GL_VALIDATE_STATUS) == GL11.GL_FALSE) {
-			throw new IllegalArgumentException("Validator error: " + GL20.glGetProgramInfoLog(id));
-		}
-
 	}
 
 	public void use() {
 		GL20.glUseProgram(id);
+
 	}
 
 	public void delete() {
@@ -56,6 +84,10 @@ public final class ShaderProgram {
 		}
 	}
 
+	public boolean isDeleted() {
+		return deleted;
+	}
+
 	public int getId() {
 		return id;
 	}
@@ -63,15 +95,18 @@ public final class ShaderProgram {
 	// These are the most commonly used uniform methods and so are on top
 
 	private int getUniformLocation(String name) {
-		int loc = GL20.glGetUniformLocation(id, name);
-		if (loc == -1) {
-			throw new IllegalArgumentException("Uniform not found");
+		if (locations.containsKey(name)) {
+			// Check if the location is cached
+			return locations.get(name);
+		} else {
+			// Find the location and cache it
+			int loc = GL20.glGetUniformLocation(id, name);
+			if (loc == -1) {
+				throw new IllegalArgumentException("Invalid uniform name");
+			}
+			locations.put(name, loc);
+			return loc;
 		}
-		GL11.glGetIntegerv(GL20.GL_CURRENT_PROGRAM, currentBuffer);
-		if (currentBuffer.get(0) != id) {
-			throw new IllegalStateException("Cannot change uniforms of inactive shader program");
-		}
-		return loc;
 	}
 
 	public void setMat4Uniform(String name, Matrix4d value) {

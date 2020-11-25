@@ -46,4 +46,8 @@ public final class ResourceLoader {
 		}
 	}
 
+	public static final InputStream getStream(String location) {
+		return ResourceLoader.class.getResourceAsStream(location);
+	}
+
 }
