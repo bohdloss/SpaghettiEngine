@@ -73,7 +73,7 @@ public class Texture {
 		this(parseImage(img), img.getWidth(), img.getHeight());
 	}
 
-	public void bind(int sampler) {
+	public void use(int sampler) {
 		if (sampler >= 0 && sampler <= 31) {
 			GL13.glActiveTexture(GL13.GL_TEXTURE0 + sampler);
 			GL11.glBindTexture(GL11.GL_TEXTURE_2D, id);

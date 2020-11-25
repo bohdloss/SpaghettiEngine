@@ -10,6 +10,7 @@ import org.lwjgl.opengl.GL20;
 
 public final class ShaderProgram {
 
+	public static final ShaderProgram DEFAULT_SHADER = null; // TODO
 	private static final String PROJECTION = "projection";
 
 	protected final int id;
@@ -116,6 +117,10 @@ public final class ShaderProgram {
 	}
 
 	public void setProjection(Matrix4d projection) {
+		setMat4Uniform(PROJECTION, projection);
+	}
+
+	public void setProjection(Matrix4f projection) {
 		setMat4Uniform(PROJECTION, projection);
 	}
 
