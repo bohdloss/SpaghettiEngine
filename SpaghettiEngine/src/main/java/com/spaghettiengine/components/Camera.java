@@ -1,4 +1,4 @@
-package com.spaghettiengine.render;
+package com.spaghettiengine.components;
 
 import org.joml.Matrix4f;
 

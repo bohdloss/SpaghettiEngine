@@ -5,7 +5,7 @@ import java.util.HashMap;
 
 import org.joml.Vector2d;
 
-import com.spaghettiengine.render.*;
+import com.spaghettiengine.components.Camera;
 
 public class Level implements Tickable {
 

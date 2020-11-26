@@ -347,9 +347,13 @@ public abstract class GameComponent implements Tickable, Renderable {
 
 	@Override
 	public void render(Matrix4d projection) {
-		cache = projection.translate(relativePos.x, relativePos.y, 0.0).rotate(rotation, 0, 0, 1).scale(scale.x,
-				scale.y, 1);
+		cache.set(projection);
+		cache.translate(relativePos.x, relativePos.y, 0).rotate(rotation, 0, 0, 1).scale(scale.x, scale.y, 1);
 		renderUpdate();
+
+		children.forEach((id, component) -> {
+			component.render(cache);
+		});
 	}
 
 	public void renderUpdate() {
