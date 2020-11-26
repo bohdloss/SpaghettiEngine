@@ -4,6 +4,7 @@ import java.util.*;
 
 import org.lwjgl.glfw.GLFW;
 
+import com.spaghettiengine.utils.FunctionDispatcher;
 import com.spaghettiengine.utils.Utils;
 
 public final class Game {
@@ -109,7 +110,8 @@ public final class Game {
 	// Instance globals
 	protected FunctionDispatcher dispatcher;
 	protected GameWindow window;
-
+	protected AssetManager assetManager;
+	
 	protected Updater updater;
 	protected Renderer renderer;
 
@@ -121,7 +123,7 @@ public final class Game {
 
 	// Constructors using custom classes
 	public Game(Class<? extends Updater> updater, Class<? extends Renderer> renderer) throws Exception {
-		this.dispatcher = new FunctionDispatcher(Thread.currentThread().getId());
+		this.dispatcher = new FunctionDispatcher();
 
 		games.add(this);
 		this.index = games.indexOf(this);
@@ -134,6 +136,7 @@ public final class Game {
 			this.renderer = renderer.getConstructor(Game.class).newInstance(this);
 			registerThread(this.renderer);
 			window = new GameWindow(this);
+			assetManager = new AssetManager(this);
 		}
 	}
 
@@ -185,15 +188,23 @@ public final class Game {
 
 	// Start all child threads
 	public void begin() throws Exception {
+		// First start all threads
 		if (updater != null) {
 			updater.start();
-			updater.waitInit();
 		}
-
 		if (renderer != null) {
 			renderer.start();
+		}
+		
+		// Then wait for initialization
+		
+		if(updater != null) {
+			updater.waitInit();
+		}
+		if(renderer != null) {
 			renderer.waitInit();
 		}
+		
 		System.out.println("Started " + index);
 	}
 
@@ -257,11 +268,32 @@ public final class Game {
 		return activeLevel;
 	}
 
+	public long getUpdaterId() {
+		return updater.getId();
+	}
+	
+	public long getRendererId() {
+		return renderer.getId();
+	}
+	
+	public AssetManager getAssetManager() {
+		return assetManager;
+	}
+	
 	public void detachLevel() {
 		if (activeLevel == null) {
 			return;
 		}
-
+		activeLevel.source = null;
+		activeLevel = null;
 	}
-
+	
+	public void attachLevel(Level level) {
+		if(activeLevel != null) {
+			return;
+		}
+		activeLevel = level;
+		activeLevel.source = this;
+	}
+	
 }

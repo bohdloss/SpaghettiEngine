@@ -5,6 +5,7 @@ import java.nio.IntBuffer;
 import java.util.HashMap;
 
 import org.joml.*;
+import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL20;
 
@@ -17,7 +18,7 @@ public final class ShaderProgram {
 	private boolean deleted;
 
 	// cache
-	private FloatBuffer mat4 = FloatBuffer.allocate(16);
+	private FloatBuffer mat4 = BufferUtils.createFloatBuffer(16);
 
 	// keep track of valid uniform locations
 	private HashMap<String, Integer> locations = new HashMap<>();

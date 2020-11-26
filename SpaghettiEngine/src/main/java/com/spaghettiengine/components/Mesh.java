@@ -8,13 +8,20 @@ public class Mesh extends GameComponent {
 	protected Model model;
 	protected Material material;
 
-	public Mesh(Level level, GameComponent parent) {
+	public Mesh(Level level, GameComponent parent, Model model, Material material) {
 		super(level, parent);
+		this.model = model;
+		this.material = material;
 	}
 
+	public Mesh(Level level, GameComponent parent) {
+		this(level, parent, (Model)null, (Material)null);
+	}
+	
 	@Override
 	public void renderUpdate() {
 		material.use();
+		material.setProjection(cache);
 		model.render();
 	}
 

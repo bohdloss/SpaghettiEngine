@@ -45,7 +45,6 @@ public abstract class GameComponent implements Tickable, Renderable {
 
 	public GameComponent(Level level, GameComponent parent) {
 		this.level = level;
-		this.parent = parent;
 		this.id = staticId++;
 
 		if (parent == null) {
@@ -147,6 +146,7 @@ public abstract class GameComponent implements Tickable, Renderable {
 	}
 
 	public final void destroy() {
+		onDestroy();
 		if (level != null) {
 			level.removeComponent(id);
 		}
@@ -160,6 +160,8 @@ public abstract class GameComponent implements Tickable, Renderable {
 		children = null;
 	}
 
+	protected void onDestroy() {}
+	
 	public final boolean isDestroyed() {
 		return hierarchy == -1 || level == null || children == null;
 	}
@@ -323,7 +325,7 @@ public abstract class GameComponent implements Tickable, Renderable {
 
 	// Interface methods
 
-	protected Matrix4d cache;
+	protected Matrix4d cache = new Matrix4d();
 
 	@Override
 	public final void update(float delta) {
@@ -339,10 +341,21 @@ public abstract class GameComponent implements Tickable, Renderable {
 		});
 	}
 
-	public void clientUpdate(float delta) {
-	}
-
 	public void serverUpdate(float delta) {
+		// WARNING: NONE of the code in this method
+		// should EVER try to interact with render code
+		// or other object that require a opngGL context
+		// as it will trigger an exception or, in the worst
+		// scenario, a SIGSEGV (Segmentation fault)
+		// shutting down a whole server
+		// (Which might even be a dedicated server as a whole)
+	}
+	
+	public void clientUpdate(float delta) {
+		// Here doing such things may still cause
+		// exceptions or weird and hard to debug errors
+		// so by design it is best not to include such
+		// code in update methods
 	}
 
 	@Override

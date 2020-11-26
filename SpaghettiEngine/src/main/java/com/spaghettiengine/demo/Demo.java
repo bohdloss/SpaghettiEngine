@@ -8,7 +8,8 @@ public class Demo extends Thread {
 
 		try {
 
-			Game game = new Game(Updater.class, Renderer.class);
+			Game game = new Game(MyUpdater.class, Renderer.class);
+			game.getWindow().setSizeLimit(2, 2, 2000, 2000);
 			game.begin();
 
 			Game.idle();

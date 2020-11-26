@@ -6,6 +6,8 @@ import static org.lwjgl.opengl.GL11.*;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.opengl.GLCapabilities;
 
+import com.spaghettiengine.utils.FunctionDispatcher;
+
 public class Renderer extends CoreComponent {
 
 	protected GameWindow window;
@@ -41,6 +43,10 @@ public class Renderer extends CoreComponent {
 		dispatcher.computeEvents();
 		glClear(GL_COLOR_BUFFER_BIT);
 
+		if(source.activeLevel != null) {
+			source.activeLevel.render();
+		}
+		
 		window.swap();
 	}
 

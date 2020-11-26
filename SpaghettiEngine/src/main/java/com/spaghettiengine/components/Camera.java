@@ -1,6 +1,7 @@
 package com.spaghettiengine.components;
 
-import org.joml.Matrix4f;
+import org.joml.Matrix4d;
+import org.joml.Vector2d;
 
 import com.spaghettiengine.core.*;
 
@@ -9,17 +10,20 @@ public class Camera extends GameComponent {
 	// Instace fields
 
 	protected double scale;
-	protected double yFov;
-	protected double xFov;
+	protected double fov = 10;
 	protected double targetRatio = 1.7777777777777777;
 
-	protected Matrix4f projection;
-
+	protected Matrix4d projection;
+	protected Matrix4d cache;
+	protected Vector2d position;
+	
 	protected int width, height;
-
+	
 	public Camera(Level level, GameComponent parent, int width, int height) {
 		super(level, parent);
-		projection = new Matrix4f();
+		projection = new Matrix4d();
+		cache = new Matrix4d();
+		position = new Vector2d();
 		setOrtho(width, height);
 	}
 
@@ -27,42 +31,64 @@ public class Camera extends GameComponent {
 		projection.identity().setOrtho2D(-width / 2, width / 2, -height / 2, height / 2);
 		this.width = width;
 		this.height = height;
+		calcScale();
 	}
 
 	public void calcScale() {
-
-		int win_w = width, win_h = height;
-
-		double aspectRatio = (double) win_w / (double) win_h;
-
-		double result = aspectRatio <= targetRatio ? win_w / xFov : (win_h / targetRatio) / yFov;
-
-		scale = result;
-
+		int usedVal = min((int)((double)width/targetRatio), height);
+		scale = usedVal / fov;
 	}
 
-	public double getyFov() {
-		return yFov;
+	private int min(int a, int b) {
+		return a < b ? a : b;
+	}
+	
+	public double getFov() {
+		return fov;
 	}
 
-	public void setyFov(double yFov) {
-		this.yFov = yFov;
+	public void setFov(double fov) {
+		this.fov = fov;
+		calcScale();
 	}
-
-	public double getxFov() {
-		return xFov;
-	}
-
-	public void setxFov(double xFov) {
-		this.xFov = xFov;
-	}
-
+	
 	public double getTargetRatio() {
 		return targetRatio;
 	}
 
 	public void setTargetRatio(double targetRatio) {
 		this.targetRatio = targetRatio;
+		calcScale();
 	}
 
+	public void setX(double x) {
+		position.x = x;
+	}
+	
+	public void setY(double y) {
+		position.y = y;
+	}
+	
+	public double getX() {
+		return position.x;
+	}
+	
+	public double getY() {
+		return position.y;
+	}
+	
+	@Override
+	public void onDestroy() {
+		if(getLevel().getActiveCamera() == this) {
+			getLevel().detachCamera();
+		}
+	}
+	
+	public Matrix4d getProjection() {
+		cache.set(projection);
+		cache.translate(position.x, position.y, 0);
+		cache.scale(scale);
+		return cache;
+	}
+	
 }

@@ -7,6 +7,7 @@ import org.lwjgl.glfw.GLFWWindowSizeCallback;
 import org.lwjgl.opengl.GL11;
 
 import com.spaghettiengine.components.Camera;
+import com.spaghettiengine.utils.Function;
 
 public final class GameWindow {
 
@@ -69,23 +70,21 @@ public final class GameWindow {
 				self.width = width;
 				self.height = height;
 
-				Camera c = source.getActiveLevel().activeCamera;
-				if (c != null) {
-					c.setOrtho(width, height);
-					c.calcScale();
-				}
-
-				Function<Object> queue = new Function<Object>() {
-
-					@Override
-					public Object execute() throws Throwable {
-						GL11.glViewport(0, 0, self.width, self.height);
-						return null;
+				Level l = source.getActiveLevel();
+				if(l != null) {
+					Camera c = l.activeCamera;
+					if (c != null) {
+						c.setOrtho(width, height);
+						c.calcScale();
 					}
+				}
+				
+				Function queue = new Function(() -> {
+					GL11.glViewport(0, 0, self.width, self.height);
+					return null;
+				});
 
-				};
-
-				source.getFunctionDispatcher().queue(queue, true);
+				source.getFunctionDispatcher().queue(queue, self.source.getRendererId(), true);
 
 			}
 		});

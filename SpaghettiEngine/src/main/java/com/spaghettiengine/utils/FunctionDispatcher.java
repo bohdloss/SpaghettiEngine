@@ -1,4 +1,4 @@
-package com.spaghettiengine.core;
+package com.spaghettiengine.utils;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -10,30 +10,28 @@ public final class FunctionDispatcher {
 	// This can be useful for example when another thread needs to perform OpenGL
 	// calls
 
-	private HashMap<Long, Function<Object>> calls = new HashMap<>();
+	private HashMap<Long, Function> calls = new HashMap<>();
 	private HashMap<Long, Object> returnValues = new HashMap<>();
 	private List<Long> hasReturn = new ArrayList<>();
 	private HashMap<Long, Throwable> exceptions = new HashMap<>();
 	private List<Long> hasException = new ArrayList<>();
 	private List<Long> ignoreReturn = new ArrayList<>();
 
-	private final long executingThread;
-
-	public FunctionDispatcher(long executingThread) {
-		this.executingThread = executingThread;
+	private ArrayList<Long> removeCache = new ArrayList<>();
+	
+	public synchronized long queue(Function function, long thread) {
+		return queue(function, thread, false);
 	}
 
-	public synchronized long queue(Function<Object> function) {
-		return queue(function, false);
-	}
-
-	public synchronized long queue(Function<Object> function, boolean ignoreReturnValue) {
+	public synchronized long queue(Function function, long thread, boolean ignoreReturnValue) {
+		function.thread = thread;
+		
 		if (ignoreReturnValue) {
 			ignoreReturn.add(function.getId());
 		}
 
-		long thread = Thread.currentThread().getId();
-		if (thread == executingThread) {
+		long cur = Thread.currentThread().getId();
+		if (cur == function.thread) {
 			processFunction(function.getId(), function);
 		} else {
 			calls.put(function.getId(), function);
@@ -43,11 +41,7 @@ public final class FunctionDispatcher {
 
 	public Object waitReturnValue(long funcId) throws Throwable {
 		while (!hasReturnValue(funcId) && !hasException(funcId)) {
-			try {
-				Thread.sleep(0);
-			} catch (Exception e) {
-				e.printStackTrace();
-			}
+			Utils.sleep(1);
 		}
 		return getReturnValue(funcId);
 	}
@@ -73,24 +67,33 @@ public final class FunctionDispatcher {
 	}
 
 	public synchronized void computeEvents() {
+		removeCache.clear();
+		long thread = Thread.currentThread().getId();
+		
 		calls.forEach((id, function) -> {
-			processFunction(id, function);
+			if(function.thread == thread) {
+				processFunction(id, function);
+				removeCache.add(id);
+			}
 		});
-		calls.clear();
+		
+		removeCache.forEach(id -> {
+			calls.remove(id);
+		});
 	}
 
-	private synchronized void processFunction(long id, Function<Object> function) {
+	private synchronized void processFunction(long id, Function function) {
 		try {
 			Object ret = function.execute();
 			if (!ignoreReturn.contains(id)) {
 				returnValues.put(id, ret);
 				hasReturn.add(id);
-			} else {
-				ignoreReturn.remove(id);
 			}
 		} catch (Throwable e) {
 			hasException.add(id);
 			exceptions.put(id, e);
+		} finally {
+			ignoreReturn.remove(id);
 		}
 	}
 
