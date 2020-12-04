@@ -19,6 +19,20 @@ public final class FunctionDispatcher {
 
 	private ArrayList<Long> removeCache = new ArrayList<>();
 	
+	private long defaultId;
+	
+	public synchronized void setDefaultId(long id) {
+		defaultId = id;
+	}
+	
+	public synchronized long getDefaultId() {
+		return defaultId;
+	}
+	
+	public synchronized long queue(Function function) {
+		return queue(function, defaultId);
+	}
+	
 	public synchronized long queue(Function function, long thread) {
 		return queue(function, thread, false);
 	}

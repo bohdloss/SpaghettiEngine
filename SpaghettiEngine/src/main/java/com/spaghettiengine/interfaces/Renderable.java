@@ -1,4 +1,4 @@
-package com.spaghettiengine.core;
+package com.spaghettiengine.interfaces;
 
 import org.joml.Matrix4d;
 

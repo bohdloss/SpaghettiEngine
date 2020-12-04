@@ -1,7 +1,7 @@
 package com.spaghettiengine.components;
 
 import org.joml.Matrix4d;
-import org.joml.Vector2d;
+import org.joml.Vector3d;
 
 import com.spaghettiengine.core.*;
 
@@ -15,20 +15,22 @@ public class Camera extends GameComponent {
 
 	protected Matrix4d projection;
 	protected Matrix4d cache;
-	protected Vector2d position;
 	
 	protected int width, height;
+	
+	// Cache
+	private Vector3d vecC = new Vector3d();
 	
 	public Camera(Level level, GameComponent parent, int width, int height) {
 		super(level, parent);
 		projection = new Matrix4d();
 		cache = new Matrix4d();
-		position = new Vector2d();
 		setOrtho(width, height);
 	}
 
 	public void setOrtho(int width, int height) {
-		projection.identity().setOrtho2D(-width / 2, width / 2, -height / 2, height / 2);
+		// This makes sure depth testing works correctly for multi-layer rendering
+		projection.identity().setOrtho(-width / 2, width / 2, -height / 2, height / 2, -1000, 1000);
 		this.width = width;
 		this.height = height;
 		calcScale();
@@ -60,22 +62,6 @@ public class Camera extends GameComponent {
 		this.targetRatio = targetRatio;
 		calcScale();
 	}
-
-	public void setX(double x) {
-		position.x = x;
-	}
-	
-	public void setY(double y) {
-		position.y = y;
-	}
-	
-	public double getX() {
-		return position.x;
-	}
-	
-	public double getY() {
-		return position.y;
-	}
 	
 	@Override
 	public void onDestroy() {
@@ -85,8 +71,9 @@ public class Camera extends GameComponent {
 	}
 	
 	public Matrix4d getProjection() {
+		getWorldPosition(vecC);
 		cache.set(projection);
-		cache.translate(position.x, position.y, 0);
+		cache.translate(-vecC.x, -vecC.y, 0);
 		cache.scale(scale);
 		return cache;
 	}

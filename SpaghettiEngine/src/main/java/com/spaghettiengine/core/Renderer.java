@@ -14,6 +14,9 @@ public class Renderer extends CoreComponent {
 	protected GLCapabilities glCapabilities;
 	protected FunctionDispatcher dispatcher;
 
+	protected int fps;
+	protected long lastCheck;
+	
 	public Renderer(Game source) {
 		super(source);
 	}
@@ -28,8 +31,8 @@ public class Renderer extends CoreComponent {
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		glDisable(GL_CULL_FACE);
-		glDisable(GL_DEPTH_TEST);
-		glDisable(GL_LIGHTING);
+		glEnable(GL_DEPTH_TEST);
+		glEnable(GL_LIGHTING);
 		GLFW.glfwSwapInterval(0);
 
 		super.init();
@@ -41,13 +44,21 @@ public class Renderer extends CoreComponent {
 			terminate();
 		}
 		dispatcher.computeEvents();
-		glClear(GL_COLOR_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
 		if(source.activeLevel != null) {
 			source.activeLevel.render();
 		}
 		
 		window.swap();
+		
+		fps++;
+		
+		if(System.currentTimeMillis() >= lastCheck + 1000) {
+			System.out.println(fps + " FPS");
+			fps = 0;
+			lastCheck = System.currentTimeMillis();
+		}
 	}
 
 	// Getters and setters

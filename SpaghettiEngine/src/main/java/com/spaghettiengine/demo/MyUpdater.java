@@ -1,5 +1,7 @@
 package com.spaghettiengine.demo;
 
+import org.lwjgl.opengl.GL20;
+
 import com.spaghettiengine.components.Camera;
 import com.spaghettiengine.components.Mesh;
 import com.spaghettiengine.core.*;
@@ -107,11 +109,13 @@ public class MyUpdater extends Updater {
 	protected void loopEvents() {
 		super.loopEvents();
 		i+=0.001;
-		level.getComponent(1).setYScale(Math.cos(i)*3);
+		level.getComponent(1).setRotation(-i);
 		GameComponent gc = level.getComponent(3);
 		gc.setRelativeX(Math.cos(i)*2);
 		gc.setRelativeY(Math.sin(i)*0.5);
 		gc.setYScale((Math.cos(i+0.3)+1.2)*0.5);
+		
+		level.getComponent(2).setRotation(i);
 	}
 	
 }

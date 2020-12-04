@@ -7,6 +7,7 @@ import org.joml.Matrix4d;
 import org.joml.Vector2d;
 
 import com.spaghettiengine.components.Camera;
+import com.spaghettiengine.interfaces.Tickable;
 
 public class Level implements Tickable {
 

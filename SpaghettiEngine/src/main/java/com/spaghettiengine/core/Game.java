@@ -2,8 +2,6 @@ package com.spaghettiengine.core;
 
 import java.util.*;
 
-import org.lwjgl.glfw.GLFW;
-
 import com.spaghettiengine.utils.FunctionDispatcher;
 import com.spaghettiengine.utils.Utils;
 
@@ -11,55 +9,18 @@ public final class Game {
 
 	// Support for multiple instances of the engine
 	// in the same java process
-	private static ArrayList<Game> games = new ArrayList<>();
-	private static HashMap<Long, Integer> links = new HashMap<>();
-	private static boolean stop;
-	private static boolean stopOnNoActivity;
-
+	protected static ArrayList<Game> games = new ArrayList<>();
+	protected static HashMap<Long, Integer> links = new HashMap<>();
+	protected static Handler handler;
+	
 	static {
 		init();
 	}
 
 	private static void init() {
-		stop = false;
-		GLFW.glfwInit();
-		new Thread() {
-			@Override
-			public void run() {
-				while (!stop) {
-					Utils.sleep(1);
-
-					// This makes sure windows can be interacted with
-					GameWindow.pollEvents();
-
-					try {
-
-						boolean found = false;
-						for (Game game : games) {
-							// Detect soft-blocked instances and stop()
-							if (!game.isStopped() && game.isDead()) {
-								game.stop();
-							}
-
-							// Detect if all games are stopped
-							// and if the stopOnNoActivity flag
-							// is on then end this thread;
-							if (!game.isStopped()) {
-								found = true;
-							}
-						}
-						;
-
-						if (!found && stopOnNoActivity) {
-							stop = true;
-						}
-
-					} catch (Exception e) {
-					}
-
-				}
-			}
-		}.start();
+		if(handler != null) handler.stop = true;
+		handler = new Handler();
+		handler.start();
 	}
 
 	// Stop all instances
@@ -70,7 +31,7 @@ public final class Game {
 			}
 		}
 
-		stop = true;
+		handler.stop = true;
 	}
 
 	// Wait for all instances to finish
@@ -91,7 +52,7 @@ public final class Game {
 
 	// Free the main thread
 	public static void idle() {
-		stopOnNoActivity = true;
+		handler.stopOnNoActivity = true;
 	}
 
 	// Static Thread-based methods

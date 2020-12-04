@@ -1,4 +1,4 @@
-package com.spaghettiengine.core;
+package com.spaghettiengine.interfaces;
 
 public interface Tickable {
 

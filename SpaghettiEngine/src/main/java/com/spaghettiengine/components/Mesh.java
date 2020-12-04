@@ -21,7 +21,7 @@ public class Mesh extends GameComponent {
 	@Override
 	public void renderUpdate() {
 		material.use();
-		material.setProjection(cache);
+		material.setProjection(matCache);
 		model.render();
 	}
 
