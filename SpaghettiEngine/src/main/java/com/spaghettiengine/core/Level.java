@@ -39,23 +39,23 @@ public class Level implements Tickable {
 	public final void deleteComponent(long id) {
 		ordered.get(id).destroy();
 	}
-	
+
 	public final GameComponent getComponent(long id) {
 		return ordered.get(id);
 	}
-	
+
 	public final int getComponentAmount() {
 		return components.size();
 	}
-	
+
 	public final int getActualComponentAmount() {
 		return ordered.size();
 	}
-	
+
 	@Override
 	public void update(float delta) {
 		components.forEach(component -> {
-			if(component.relativePos.y < killY) {
+			if (component.relativePos.y < killY) {
 				component.destroy();
 			} else {
 				component.update(delta);
@@ -63,29 +63,28 @@ public class Level implements Tickable {
 		});
 	}
 
-	public void render() {
-		if(activeCamera == null) return;
+	public void render(Matrix4d projection) {
 		components.forEach(component -> {
-			component.render(activeCamera.getProjection());
+			component.render(projection);
 		});
 	}
 
 	public Camera getActiveCamera() {
 		return activeCamera;
 	}
-	
+
 	public void detachCamera() {
-		if(activeCamera == null) {
+		if (activeCamera == null) {
 			return;
 		}
 		activeCamera = null;
 	}
-	
+
 	public void attachCamera(Camera camera) {
-		if(activeCamera != null || camera.getLevel() != this) {
+		if (activeCamera != null || camera.getLevel() != this) {
 			return;
 		}
 		activeCamera = camera;
 	}
-	
+
 }

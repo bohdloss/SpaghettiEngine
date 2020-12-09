@@ -2,20 +2,21 @@ package com.spaghettiengine.core;
 
 import org.lwjgl.glfw.GLFW;
 
-import com.spaghettiengine.utils.*;
+import com.spaghettiengine.utils.FunctionDispatcher;
+import com.spaghettiengine.utils.Utils;
 
 public final class Handler extends Thread {
 
 	protected boolean stop;
 	protected boolean stopOnNoActivity;
 	protected FunctionDispatcher dispatcher;
-	
+
 	public Handler() {
 		GLFW.glfwInit();
 		dispatcher = new FunctionDispatcher();
 		dispatcher.setDefaultId(getId());
 	}
-	
+
 	@Override
 	public void run() {
 		while (!stop) {
@@ -30,7 +31,7 @@ public final class Handler extends Thread {
 				boolean found = false;
 				for (Game game : Game.games) {
 					// Detect soft-blocked instances and stop()
-					if (!game.isStopped() && game.isDead()) {
+					if (!game.isStopped() && game.isInit() && game.isDead()) {
 						game.stop();
 					}
 
@@ -52,5 +53,5 @@ public final class Handler extends Thread {
 
 		}
 	}
-	
+
 }

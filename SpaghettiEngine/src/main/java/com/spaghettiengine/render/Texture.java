@@ -36,6 +36,16 @@ public class Texture {
 	private boolean deleted;
 	protected int width, height;
 
+	protected void setParameters(ByteBuffer buffer, int width, int height) {
+		GL11.glBindTexture(GL11.GL_TEXTURE_2D, id);
+
+		GL11.glTexParameterf(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_NEAREST);
+		GL11.glTexParameterf(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_NEAREST);
+
+		GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, GL11.GL_RGBA, width, height, 0, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE,
+				buffer);
+	}
+
 	public Texture(ByteBuffer buffer, int width, int height) {
 
 		// Store actual size
@@ -47,13 +57,7 @@ public class Texture {
 
 		try {
 
-			GL11.glBindTexture(GL11.GL_TEXTURE_2D, id);
-
-			GL11.glTexParameterf(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_NEAREST);
-			GL11.glTexParameterf(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_NEAREST);
-
-			GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, GL11.GL_RGBA, width, height, 0, GL11.GL_RGBA,
-					GL11.GL_UNSIGNED_BYTE, buffer);
+			setParameters(buffer, width, height);
 
 		} catch (Throwable t) {
 
@@ -67,6 +71,10 @@ public class Texture {
 			// TODO
 		}
 
+	}
+
+	public Texture(int width, int height) {
+		this((ByteBuffer) null, width, height);
 	}
 
 	public Texture(BufferedImage img) {

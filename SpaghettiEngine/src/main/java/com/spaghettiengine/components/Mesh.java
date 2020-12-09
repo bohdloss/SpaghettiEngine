@@ -2,6 +2,7 @@ package com.spaghettiengine.components;
 
 import com.spaghettiengine.core.*;
 import com.spaghettiengine.render.*;
+import com.spaghettiengine.utils.SpaghettiBuffer;
 
 public class Mesh extends GameComponent {
 
@@ -15,9 +16,9 @@ public class Mesh extends GameComponent {
 	}
 
 	public Mesh(Level level, GameComponent parent) {
-		this(level, parent, (Model)null, (Material)null);
+		this(level, parent, (Model) null, (Material) null);
 	}
-	
+
 	@Override
 	public void renderUpdate() {
 		material.use();
@@ -39,6 +40,22 @@ public class Mesh extends GameComponent {
 
 	public void setMaterial(Material material) {
 		this.material = material;
+	}
+
+	// Interface
+
+	@Override
+	public void getReplicateData(SpaghettiBuffer buffer) {
+
+		// TODO when asset manager is implemented
+
+	}
+
+	@Override
+	public void setReplicateData(SpaghettiBuffer buffer) {
+
+		// TODO - - - - -
+
 	}
 
 }

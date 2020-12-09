@@ -3,6 +3,7 @@ package com.spaghettiengine.core;
 import java.util.*;
 
 import com.spaghettiengine.utils.FunctionDispatcher;
+import com.spaghettiengine.utils.GameOptions;
 import com.spaghettiengine.utils.Utils;
 
 public final class Game {
@@ -12,13 +13,15 @@ public final class Game {
 	protected static ArrayList<Game> games = new ArrayList<>();
 	protected static HashMap<Long, Integer> links = new HashMap<>();
 	protected static Handler handler;
-	
+
 	static {
 		init();
 	}
 
 	private static void init() {
-		if(handler != null) handler.stop = true;
+		if (handler != null) {
+			handler.stop = true;
+		}
 		handler = new Handler();
 		handler.start();
 	}
@@ -72,19 +75,21 @@ public final class Game {
 	protected FunctionDispatcher dispatcher;
 	protected GameWindow window;
 	protected AssetManager assetManager;
-	
+
 	protected Updater updater;
 	protected Renderer renderer;
 
 	protected int index;
 	protected boolean stopped;
+	protected boolean init;
 
 	protected Level activeLevel;
-	protected long tick = 25;
+	protected GameOptions options;
 
 	// Constructors using custom classes
 	public Game(Class<? extends Updater> updater, Class<? extends Renderer> renderer) throws Exception {
 		this.dispatcher = new FunctionDispatcher();
+		this.options = new GameOptions();
 
 		games.add(this);
 		this.index = games.indexOf(this);
@@ -103,24 +108,34 @@ public final class Game {
 
 	// Stop all child threads and flag this game instance as stopped
 	public void stop() {
-		if (window != null) {
-			window.destroy();
-		}
+
+		// First stop all threads
+
 		if (updater != null) {
 			updater.terminate();
-			updater.waitTerminate();
 		}
 		if (renderer != null) {
 			renderer.terminate();
+		}
+
+		// Then wait for termination
+
+		if (updater != null) {
+			updater.waitTerminate();
+		}
+		if (renderer != null) {
 			renderer.waitTerminate();
 		}
 
-		stopped = true;
-		System.out.println("Stopped " + index);
-	}
+		// Destroy the window if it's there
 
-	public boolean isStopped() {
-		return stopped;
+		if (window != null) {
+			window.destroy();
+		}
+
+		stopped = true;
+
+		System.out.println("Stopped " + index);
 	}
 
 	// Linking/Unlinking of threads to this game instance
@@ -149,23 +164,29 @@ public final class Game {
 
 	// Start all child threads
 	public void begin() throws Exception {
+
 		// First start all threads
+
 		if (updater != null) {
 			updater.start();
 		}
 		if (renderer != null) {
 			renderer.start();
 		}
-		
+
 		// Then wait for initialization
-		
-		if(updater != null) {
+
+		if (updater != null) {
 			updater.waitInit();
 		}
-		if(renderer != null) {
+		if (renderer != null) {
 			renderer.waitInit();
 		}
-		
+
+		// Mark this instance as initialized
+
+		init = true;
+
 		System.out.println("Started " + index);
 	}
 
@@ -209,20 +230,20 @@ public final class Game {
 		return false;
 	}
 
+	public boolean isStopped() {
+		return stopped;
+	}
+
+	public boolean isInit() {
+		return init;
+	}
+
 	public int getIndex() {
 		return index;
 	}
 
-	public long getTick() {
-		return tick;
-	}
-
-	public void setTick(long tick) {
-		this.tick = tick;
-	}
-
 	public float getTickMultiplier(float delta) {
-		return delta / tick;
+		return delta / options.getTick();
 	}
 
 	public Level getActiveLevel() {
@@ -232,15 +253,19 @@ public final class Game {
 	public long getUpdaterId() {
 		return updater.getId();
 	}
-	
+
 	public long getRendererId() {
 		return renderer.getId();
 	}
-	
+
 	public AssetManager getAssetManager() {
 		return assetManager;
 	}
-	
+
+	public GameOptions getOptions() {
+		return options;
+	}
+
 	public void detachLevel() {
 		if (activeLevel == null) {
 			return;
@@ -248,13 +273,13 @@ public final class Game {
 		activeLevel.source = null;
 		activeLevel = null;
 	}
-	
+
 	public void attachLevel(Level level) {
-		if(activeLevel != null) {
+		if (activeLevel != null) {
 			return;
 		}
 		activeLevel = level;
 		activeLevel.source = this;
 	}
-	
+
 }

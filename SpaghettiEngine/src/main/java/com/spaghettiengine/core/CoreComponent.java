@@ -41,10 +41,11 @@ public abstract class CoreComponent extends Thread {
 				Utils.sleep(1);
 				loopEvents();
 			}
-			stop = true;
 		} catch (Throwable t) {
 			System.out.println("Critical uncaught error in game " + source.getIndex() + ":");
 			t.printStackTrace();
+		} finally {
+			stop = true;
 		}
 	}
 

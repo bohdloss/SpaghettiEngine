@@ -1,10 +1,11 @@
 package com.spaghettiengine.interfaces;
 
-import java.nio.ByteBuffer;
+import com.spaghettiengine.utils.SpaghettiBuffer;
 
 public interface Replicable {
 
-	public abstract void getReplicateData(ByteBuffer dataBuffer);
-	public abstract void setReplicateData(ByteBuffer dataBuffer);
-	
+	public abstract void getReplicateData(SpaghettiBuffer dataBuffer);
+
+	public abstract void setReplicateData(SpaghettiBuffer dataBuffer);
+
 }

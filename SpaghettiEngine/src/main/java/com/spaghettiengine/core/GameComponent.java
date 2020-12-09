@@ -1,8 +1,7 @@
 package com.spaghettiengine.core;
 
 import java.lang.reflect.Constructor;
-import java.lang.reflect.InvocationTargetException;
-import java.nio.ByteBuffer;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map.Entry;
 
@@ -11,12 +10,13 @@ import org.joml.Vector2d;
 import org.joml.Vector3d;
 
 import com.spaghettiengine.interfaces.*;
+import com.spaghettiengine.utils.SpaghettiBuffer;
 
 public abstract class GameComponent implements Tickable, Renderable, Replicable, Cloneable {
 
 	// Hierarchy and utility
 
-	private static long staticId = 0;
+	private static HashMap<Integer, Long> staticId = new HashMap<>();
 
 	private static final void rebuildHierarchy(int iteration, GameComponent caller, GameComponent child) {
 
@@ -36,7 +36,7 @@ public abstract class GameComponent implements Tickable, Renderable, Replicable,
 		child.children.forEach((id, childComponent) -> {
 			rebuildHierarchy(iteration + 1, child, childComponent);
 		});
-		
+
 	}
 
 	// Instance methods and fields
@@ -51,7 +51,20 @@ public abstract class GameComponent implements Tickable, Renderable, Replicable,
 
 	public GameComponent(Level level, GameComponent parent) {
 		this.level = level;
-		this.id = staticId++;
+
+		// Id calculation based on game instance
+
+		int index = Game.getGame().getIndex();
+
+		Long id = staticId.get(index);
+
+		if (id == null) {
+			id = 0l;
+		}
+		this.id = id;
+		staticId.put(index, id + 1l);
+
+		// Hierarchy initialization
 
 		if (parent == null) {
 			level.addComponent(this);
@@ -90,13 +103,12 @@ public abstract class GameComponent implements Tickable, Renderable, Replicable,
 	}
 
 	@SuppressWarnings("unchecked")
-	public final GameComponent getChild(int index) {
+	public final GameComponent getChildIndex(int index) {
 		rebuildList();
 		return ((Entry<Long, GameComponent>) entryset[index]).getValue();
 	}
 
 	public final GameComponent getChild(long id) {
-		rebuildList();
 		return children.get(id);
 	}
 
@@ -147,6 +159,10 @@ public abstract class GameComponent implements Tickable, Renderable, Replicable,
 		return level;
 	}
 
+	public final Game getGame() {
+		return level.source;
+	}
+
 	public final long getId() {
 		return id;
 	}
@@ -166,8 +182,14 @@ public abstract class GameComponent implements Tickable, Renderable, Replicable,
 		children = null;
 	}
 
-	protected void onDestroy() {}
-	
+	@Override
+	public void finalize() {
+		destroy();
+	}
+
+	protected void onDestroy() {
+	}
+
 	public final boolean isDestroyed() {
 		return hierarchy == -1 || level == null || children == null;
 	}
@@ -205,9 +227,9 @@ public abstract class GameComponent implements Tickable, Renderable, Replicable,
 
 	public final void getWorldPosition(Vector3d pointer) {
 		pointer.zero();
-		
+
 		GameComponent last = this;
-		while(last.hierarchy != 0) {
+		while (last.hierarchy != 0) {
 			pointer.add(last.relativePos);
 			last = last.parent;
 		}
@@ -225,7 +247,7 @@ public abstract class GameComponent implements Tickable, Renderable, Replicable,
 	public final double getRelativeZ() {
 		return relativePos.z;
 	}
-	
+
 	// Position setters
 
 	public void setRelativePosition(Vector3d vec) {
@@ -233,7 +255,7 @@ public abstract class GameComponent implements Tickable, Renderable, Replicable,
 	}
 
 	public void setWorldPosition(Vector3d vec) {
-		synchronized(vec3Cache) {
+		synchronized (vec3Cache) {
 			getWorldPosition(vec3Cache);
 
 			double xdiff = vec3Cache.x - vec.x;
@@ -257,37 +279,37 @@ public abstract class GameComponent implements Tickable, Renderable, Replicable,
 	public void setRelativeZ(double z) {
 		relativePos.z = z;
 	}
-	
+
 	public void setWorldX(double worldx) {
-		synchronized(vec3Cache) {
+		synchronized (vec3Cache) {
 			getWorldPosition(vec3Cache);
-			
+
 			double xdiff = vec3Cache.x - worldx;
-			
+
 			relativePos.x -= xdiff;
 		}
 	}
 
 	public void setWorldY(double worldy) {
-		synchronized(vec3Cache) {
+		synchronized (vec3Cache) {
 			getWorldPosition(vec3Cache);
-			
+
 			double ydiff = vec3Cache.y - worldy;
-			
+
 			relativePos.y -= ydiff;
 		}
 	}
 
 	public void setWorldZ(double worldz) {
-		synchronized(vec3Cache) {
+		synchronized (vec3Cache) {
 			getWorldPosition(vec3Cache);
-			
+
 			double zdiff = vec3Cache.z - worldz;
-			
+
 			relativePos.z -= zdiff;
 		}
 	}
-	
+
 	// Scale getters
 
 	public final void getScale(Vector2d pointer) {
@@ -367,7 +389,7 @@ public abstract class GameComponent implements Tickable, Renderable, Replicable,
 		// shutting down the entire server
 		// (Which might even be a dedicated server as a whole)
 	}
-	
+
 	public void clientUpdate(float delta) {
 		// Here doing such things may still cause
 		// exceptions or weird and hard to debug errors
@@ -390,54 +412,56 @@ public abstract class GameComponent implements Tickable, Renderable, Replicable,
 	}
 
 	@Override
-	public void getReplicateData(ByteBuffer buffer) {
-		
+	public void getReplicateData(SpaghettiBuffer buffer) {
+
 		// Default replication data
-		
+
 		buffer.putDouble(relativePos.x);
 		buffer.putDouble(relativePos.y);
-		
+		buffer.putDouble(relativePos.z);
+
 		buffer.putDouble(scale.x);
 		buffer.putDouble(scale.y);
-		
+
 		buffer.putDouble(rotation);
-		
+
 	}
-	
+
 	@Override
-	public void setReplicateData(ByteBuffer buffer) {
-		
+	public void setReplicateData(SpaghettiBuffer buffer) {
+
 		// Default set replication data
-		
+
 		relativePos.x = buffer.getDouble();
 		relativePos.y = buffer.getDouble();
-		
+		relativePos.z = buffer.getDouble();
+
 		scale.x = buffer.getDouble();
 		scale.y = buffer.getDouble();
-		
+
 		rotation = buffer.getDouble();
-		
+
 	}
-	
+
 	@Override
 	public final GameComponent clone() {
 		try {
-			@SuppressWarnings("rawtypes") Constructor constructor = 
-					this.getClass().getConstructor(Level.class, GameComponent.class);
+			@SuppressWarnings("rawtypes")
+			Constructor constructor = this.getClass().getConstructor(Level.class, GameComponent.class);
 			GameComponent clone = (GameComponent) constructor.newInstance(level, parent);
-			
-			ByteBuffer buffer = ByteBuffer.allocateDirect(1000);
+
+			SpaghettiBuffer buffer = new SpaghettiBuffer(1000);
 			getReplicateData(buffer);
-			buffer.position(0);
+			buffer.getBuffer().position(0);
 			clone.setReplicateData(buffer);
-			
+
 			return clone;
-			
+
 		} catch (Throwable t) {
 			// Too many exceptions can happen, better catch 'em all
 			t.printStackTrace();
 		}
 		return null;
 	}
-	
+
 }

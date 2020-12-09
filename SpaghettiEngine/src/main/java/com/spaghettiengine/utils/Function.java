@@ -8,18 +8,18 @@ public final class Function {
 	private final long id;
 	private final FuncAction action;
 	protected long thread;
-	
+
 	public Function(FuncAction action) {
 		this.id = random.nextLong();
 		this.action = action;
 	}
-	
+
 	public Function() {
 		this(null);
 	}
-	
+
 	public Object execute() throws Throwable {
-		if(action != null) {
+		if (action != null) {
 			return action.execute();
 		} else {
 			return null;

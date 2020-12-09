@@ -18,28 +18,28 @@ public final class FunctionDispatcher {
 	private List<Long> ignoreReturn = new ArrayList<>();
 
 	private ArrayList<Long> removeCache = new ArrayList<>();
-	
+
 	private long defaultId;
-	
+
 	public synchronized void setDefaultId(long id) {
 		defaultId = id;
 	}
-	
+
 	public synchronized long getDefaultId() {
 		return defaultId;
 	}
-	
+
 	public synchronized long queue(Function function) {
 		return queue(function, defaultId);
 	}
-	
+
 	public synchronized long queue(Function function, long thread) {
 		return queue(function, thread, false);
 	}
 
 	public synchronized long queue(Function function, long thread, boolean ignoreReturnValue) {
 		function.thread = thread;
-		
+
 		if (ignoreReturnValue) {
 			ignoreReturn.add(function.getId());
 		}
@@ -83,14 +83,14 @@ public final class FunctionDispatcher {
 	public synchronized void computeEvents() {
 		removeCache.clear();
 		long thread = Thread.currentThread().getId();
-		
+
 		calls.forEach((id, function) -> {
-			if(function.thread == thread) {
+			if (function.thread == thread) {
 				processFunction(id, function);
 				removeCache.add(id);
 			}
 		});
-		
+
 		removeCache.forEach(id -> {
 			calls.remove(id);
 		});

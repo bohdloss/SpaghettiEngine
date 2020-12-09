@@ -78,14 +78,14 @@ public final class GameWindow {
 				self.height = height;
 
 				Level l = source.getActiveLevel();
-				if(l != null) {
+				if (l != null) {
 					Camera c = l.activeCamera;
 					if (c != null) {
 						c.setOrtho(width, height);
 						c.calcScale();
 					}
 				}
-				
+
 				Function queue = new Function(() -> {
 					GL11.glViewport(0, 0, self.width, self.height);
 					GL11.glOrtho(-self.width / 2, self.width / 2, -self.height / 2, self.height / 2, -1, 1);
@@ -105,7 +105,7 @@ public final class GameWindow {
 			toggleFullscreen(fullscreen);
 		}
 	}
-	
+
 	public GameWindow(Game source) {
 		this("Spaghetti game", source);
 	}
@@ -162,7 +162,7 @@ public final class GameWindow {
 			this.visible = visible;
 			return null;
 		});
-		
+
 	}
 
 	public boolean getVisible() {
@@ -170,9 +170,7 @@ public final class GameWindow {
 	}
 
 	public boolean shouldClose() {
-		return (Boolean) quickQueue(() -> {
-			return GLFW.glfwWindowShouldClose(id);
-		});
+		return GLFW.glfwWindowShouldClose(id);
 	}
 
 	public void setShouldClose(boolean close) {
@@ -196,15 +194,11 @@ public final class GameWindow {
 	}
 
 	public boolean keyDown(int keycode) {
-		return (Boolean) quickQueue(() -> {
-			return GLFW.glfwGetKey(id, keycode) == GLFW.GLFW_PRESS;
-		});
+		return (Boolean) quickQueue(() -> (GLFW.glfwGetKey(id, keycode) == GLFW.GLFW_PRESS));
 	}
 
 	public boolean mouseDown(int keycode) {
-		return (Boolean) quickQueue(() -> {
-			return GLFW.glfwGetMouseButton(id, keycode) == GLFW.GLFW_PRESS;
-		});
+		return (Boolean) quickQueue(() -> (GLFW.glfwGetMouseButton(id, keycode) == GLFW.GLFW_PRESS));
 	}
 
 	public double getMouseX() {
@@ -297,7 +291,7 @@ public final class GameWindow {
 	public void swap() {
 		// This absolutely cannot be queued
 		// Must be fast enough to run every frame
-		
+
 		GLFW.glfwSwapBuffers(id);
 	}
 
@@ -325,7 +319,8 @@ public final class GameWindow {
 	public void center() {
 		quickQueue(() -> {
 			GLFWVidMode mode = GLFW.glfwGetVideoMode(GLFW.glfwGetPrimaryMonitor());
-			GLFW.glfwSetWindowPos(id, (int) (mode.width() * 0.5 - width * 0.5), (int) (mode.height() * 0.5 - height * 0.5));
+			GLFW.glfwSetWindowPos(id, (int) (mode.width() * 0.5 - width * 0.5),
+					(int) (mode.height() * 0.5 - height * 0.5));
 			return null;
 		});
 	}
@@ -341,7 +336,7 @@ public final class GameWindow {
 
 	public void makeContextCurrent() {
 		// To queue this doesn't make any sense
-		
+
 		GLFW.glfwMakeContextCurrent(id);
 	}
 
@@ -354,5 +349,5 @@ public final class GameWindow {
 		}
 		return null;
 	}
-	
+
 }

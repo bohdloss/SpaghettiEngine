@@ -1,9 +1,13 @@
 package com.spaghettiengine.components;
 
 import org.joml.Matrix4d;
+import org.joml.Vector2i;
 import org.joml.Vector3d;
+import org.lwjgl.opengl.GL11;
 
 import com.spaghettiengine.core.*;
+import com.spaghettiengine.render.*;
+import com.spaghettiengine.utils.*;
 
 public class Camera extends GameComponent {
 
@@ -15,17 +19,27 @@ public class Camera extends GameComponent {
 
 	protected Matrix4d projection;
 	protected Matrix4d cache;
-	
+
 	protected int width, height;
-	
+
+	protected boolean clearColor = true, clearDepth = true;
+
+	protected FrameBuffer renderTarget;
+
 	// Cache
 	private Vector3d vecC = new Vector3d();
-	
+
 	public Camera(Level level, GameComponent parent, int width, int height) {
 		super(level, parent);
 		projection = new Matrix4d();
 		cache = new Matrix4d();
 		setOrtho(width, height);
+	}
+
+	public Camera(Level level, GameComponent parent) {
+		super(level, parent);
+		projection = new Matrix4d();
+		cache = new Matrix4d();
 	}
 
 	public void setOrtho(int width, int height) {
@@ -37,14 +51,14 @@ public class Camera extends GameComponent {
 	}
 
 	public void calcScale() {
-		int usedVal = min((int)((double)width/targetRatio), height);
+		int usedVal = min((int) (width / targetRatio), height);
 		scale = usedVal / fov;
 	}
 
-	private int min(int a, int b) {
+	private final int min(int a, int b) {
 		return a < b ? a : b;
 	}
-	
+
 	public double getFov() {
 		return fov;
 	}
@@ -53,7 +67,7 @@ public class Camera extends GameComponent {
 		this.fov = fov;
 		calcScale();
 	}
-	
+
 	public double getTargetRatio() {
 		return targetRatio;
 	}
@@ -62,20 +76,99 @@ public class Camera extends GameComponent {
 		this.targetRatio = targetRatio;
 		calcScale();
 	}
-	
+
 	@Override
 	public void onDestroy() {
-		if(getLevel().getActiveCamera() == this) {
+		if (getLevel().getActiveCamera() == this) {
 			getLevel().detachCamera();
 		}
 	}
-	
+
 	public Matrix4d getProjection() {
 		getWorldPosition(vecC);
 		cache.set(projection);
 		cache.translate(-vecC.x, -vecC.y, 0);
-		cache.scale(scale);
+		cache.scale(scale, -scale, 1);
 		return cache;
 	}
-	
+
+	public void draw() {
+		if (renderTarget == null) {
+			Vector2i res = Game.getGame().getOptions().getResolution();
+			renderTarget = new TextureFrameBuffer(res.x, res.y);
+		}
+
+		renderTarget.use();
+
+		if (clearColor) {
+			GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
+		}
+		if (clearDepth) {
+			GL11.glClear(GL11.GL_DEPTH_BUFFER_BIT);
+		}
+
+		getLevel().render(getProjection());
+
+		FrameBuffer.stop();
+
+	}
+
+	// Interfaces
+
+	@Override
+	public void getReplicateData(SpaghettiBuffer buffer) {
+
+		super.getReplicateData(buffer);
+
+		buffer.putDouble(fov);
+		buffer.putDouble(targetRatio);
+
+		buffer.putInt(width);
+		buffer.putInt(height);
+
+		buffer.putBoolean(clearColor);
+		buffer.putBoolean(clearDepth);
+
+	}
+
+	@Override
+	public void setReplicateData(SpaghettiBuffer buffer) {
+
+		super.setReplicateData(buffer);
+
+		fov = buffer.getDouble();
+		targetRatio = buffer.getDouble();
+
+		width = buffer.getInt();
+		height = buffer.getInt();
+
+		clearColor = buffer.getBoolean();
+		clearDepth = buffer.getBoolean();
+
+		setOrtho(width, height);
+
+	}
+
+	// Getters and setters
+
+	public boolean getClearColor() {
+		return clearColor;
+	}
+
+	public void setClearColor(boolean clearColor) {
+		this.clearColor = clearColor;
+	}
+
+	public boolean getClearDepth() {
+		return clearDepth;
+	}
+
+	public void setClearDepth(boolean clearDepth) {
+		this.clearDepth = clearDepth;
+	}
+
+	public FrameBuffer getFrameBuffer() {
+		return renderTarget;
+	}
+
 }
