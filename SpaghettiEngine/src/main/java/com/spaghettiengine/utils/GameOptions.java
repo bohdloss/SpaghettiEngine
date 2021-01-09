@@ -7,16 +7,21 @@ import org.joml.Vector2i;
 
 public final class GameOptions {
 
-	protected Vector2i resolution = new Vector2i(0, 0);
-	protected long tick = 25;
+	protected Vector2i resolution;
+	protected long tick;
+	protected String assetSheetLocation;
 
 	public GameOptions() {
 
 		findResolution();
+		findTick();
+		findAssetSheetLocation();
 
 	}
 
 	private void findResolution() {
+		resolution = new Vector2i();
+
 		if ("true".equals(System.getProperty("java.awt.headless"))) {
 			return;
 		}
@@ -30,6 +35,14 @@ public final class GameOptions {
 		} catch (Throwable t) {
 		}
 
+	}
+
+	private void findTick() {
+		tick = 25;
+	}
+
+	private void findAssetSheetLocation() {
+		assetSheetLocation = "/res/main.txt";
 	}
 
 	// Public getters and setters
@@ -49,6 +62,14 @@ public final class GameOptions {
 
 	public Vector2i getResolution() {
 		return resolution;
+	}
+
+	public void setAssetSheetLocation(String assetSheetLocation) {
+		this.assetSheetLocation = assetSheetLocation;
+	}
+
+	public String getAssetSheetLocation() {
+		return assetSheetLocation;
 	}
 
 }

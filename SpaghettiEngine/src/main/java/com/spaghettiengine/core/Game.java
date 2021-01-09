@@ -2,8 +2,10 @@ package com.spaghettiengine.core;
 
 import java.util.*;
 
+import com.spaghettiengine.assets.AssetManager;
 import com.spaghettiengine.utils.FunctionDispatcher;
 import com.spaghettiengine.utils.GameOptions;
+import com.spaghettiengine.utils.Logger;
 import com.spaghettiengine.utils.Utils;
 
 public final class Game {
@@ -96,18 +98,24 @@ public final class Game {
 
 		if (updater != null) {
 			this.updater = updater.getConstructor(Game.class).newInstance(this);
+			this.updater.setName("UPDATER");
 			registerThread(this.updater);
 		}
 		if (renderer != null) {
 			this.renderer = renderer.getConstructor(Game.class).newInstance(this);
+			this.renderer.setName("RENDERER");
 			registerThread(this.renderer);
 			window = new GameWindow(this);
 			assetManager = new AssetManager(this);
 		}
+
+		this.dispatcher.setDefaultId(getRendererId());
 	}
 
 	// Stop all child threads and flag this game instance as stopped
 	public void stop() {
+
+		Logger.info(this, "Waiting for game threads...");
 
 		// First stop all threads
 
@@ -135,7 +143,7 @@ public final class Game {
 
 		stopped = true;
 
-		System.out.println("Stopped " + index);
+		Logger.info(this, "Stopped");
 	}
 
 	// Linking/Unlinking of threads to this game instance
@@ -163,8 +171,11 @@ public final class Game {
 	}
 
 	// Start all child threads
-	public void begin() throws Exception {
+	public void begin() throws Throwable {
 
+		Logger.loading(this, "Starting game threads...");
+		assetManager.loadAssetSheet(options.getAssetSheetLocation());
+		
 		// First start all threads
 
 		if (updater != null) {
@@ -185,9 +196,11 @@ public final class Game {
 
 		// Mark this instance as initialized
 
+		updater.allowRun();
+		renderer.allowRun();
 		init = true;
 
-		System.out.println("Started " + index);
+		Logger.loading(this, "Ready!");
 	}
 
 	// Getters
@@ -242,7 +255,7 @@ public final class Game {
 		return index;
 	}
 
-	public float getTickMultiplier(float delta) {
+	public double getTickMultiplier(double delta) {
 		return delta / options.getTick();
 	}
 

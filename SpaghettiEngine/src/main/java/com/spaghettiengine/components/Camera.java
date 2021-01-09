@@ -17,8 +17,8 @@ public class Camera extends GameComponent {
 	protected double fov = 10;
 	protected double targetRatio = 1.7777777777777777;
 
-	protected Matrix4d projection;
-	protected Matrix4d cache;
+	protected Matrix4d projection = new Matrix4d();
+	protected Matrix4d cache = new Matrix4d();
 
 	protected int width, height;
 
@@ -31,15 +31,11 @@ public class Camera extends GameComponent {
 
 	public Camera(Level level, GameComponent parent, int width, int height) {
 		super(level, parent);
-		projection = new Matrix4d();
-		cache = new Matrix4d();
 		setOrtho(width, height);
 	}
 
 	public Camera(Level level, GameComponent parent) {
 		super(level, parent);
-		projection = new Matrix4d();
-		cache = new Matrix4d();
 	}
 
 	public void setOrtho(int width, int height) {
@@ -88,15 +84,19 @@ public class Camera extends GameComponent {
 		getWorldPosition(vecC);
 		cache.set(projection);
 		cache.translate(-vecC.x, -vecC.y, 0);
-		cache.scale(scale, -scale, 1);
+		cache.scale(scale, scale, 1);
 		return cache;
 	}
 
-	public void draw() {
+	private void checkTarget() {
 		if (renderTarget == null) {
-			Vector2i res = Game.getGame().getOptions().getResolution();
+			Vector2i res = getGame().getOptions().getResolution();
 			renderTarget = new TextureFrameBuffer(res.x, res.y);
 		}
+	}
+	
+	public void draw() {
+		checkTarget();
 
 		renderTarget.use();
 
@@ -168,7 +168,27 @@ public class Camera extends GameComponent {
 	}
 
 	public FrameBuffer getFrameBuffer() {
+		checkTarget();
 		return renderTarget;
 	}
 
+	public void setFrameBuffer(FrameBuffer renderTarget) {
+		this.renderTarget = renderTarget;
+	}
+
+	@Override
+	public void serverUpdate(double delta) {
+		
+	}
+
+	@Override
+	public void clientUpdate(double delta) {
+		
+	}
+
+	@Override
+	public void renderUpdate() {
+		
+	}
+	
 }

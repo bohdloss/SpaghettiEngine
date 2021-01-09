@@ -7,19 +7,27 @@ public abstract class CoreComponent extends Thread {
 	protected Game source;
 	private boolean stop;
 	private boolean init;
-
+	private boolean allowRun;
+	
 	public CoreComponent(Game source) {
 		this.source = source;
 	}
 
-	protected void init() {
-		// Your custom initialization code here, then call super.init()
-		init = true;
+	protected final void initialize() throws Throwable {
+		try {
+			initialize0();
+		} finally {
+			init = true;
+		}
 	}
+
+	protected abstract void initialize0() throws Throwable; // Your custom initialization code here!
 
 	public final void terminate() {
 		stop = true;
 	}
+	
+	protected abstract void terminate0() throws Throwable; // Your custom finalization code here!
 
 	public final void waitInit() {
 		while (!initialized()) {
@@ -33,23 +41,30 @@ public abstract class CoreComponent extends Thread {
 		}
 	}
 
+	public void allowRun() {
+		allowRun = true;
+	}
+	
 	@Override
 	public final void run() {
 		try {
-			init();
+			initialize();
+			while(!allowRun) {
+				Utils.sleep(1);
+			}
 			while (!stop) {
 				Utils.sleep(1);
 				loopEvents();
 			}
+			terminate0();
 		} catch (Throwable t) {
-			System.out.println("Critical uncaught error in game " + source.getIndex() + ":");
-			t.printStackTrace();
+			Logger.error("Critical uncaught error in game " + source.getIndex() + ":", t);
 		} finally {
 			stop = true;
 		}
 	}
 
-	protected abstract void loopEvents(); // Your custom loop code here!
+	protected abstract void loopEvents() throws Throwable; // Your custom loop code here!
 
 	// Getters
 

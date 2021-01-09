@@ -16,7 +16,7 @@ public class Demo extends Thread {
 
 			Game.idle();
 
-		} catch (Exception e) {
+		} catch (Throwable e) {
 			e.printStackTrace();
 		}
 
@@ -28,7 +28,7 @@ public class Demo extends Thread {
 			Game game2 = new Game(MyUpdater.class, Renderer.class);
 			game2.getWindow().setTitle("die");
 			game2.begin();
-		} catch (Exception e) {
+		} catch (Throwable e) {
 			e.printStackTrace();
 		}
 

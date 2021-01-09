@@ -12,6 +12,7 @@ public final class Handler extends Thread {
 	protected FunctionDispatcher dispatcher;
 
 	public Handler() {
+		super("HANDLER");
 		GLFW.glfwInit();
 		dispatcher = new FunctionDispatcher();
 		dispatcher.setDefaultId(getId());

@@ -7,8 +7,18 @@ import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL13;
 
-public class Texture {
+import com.spaghettiengine.core.Game;
 
+public class Texture extends RenderObject {
+
+	public static Texture get(String name) {
+		return Game.getGame().getAssetManager().texture(name);
+	}
+	
+	public static Texture require(String name) {
+		return Game.getGame().getAssetManager().requireTexture(name);
+	}
+	
 	// Static method necessary for ausiliary constructor
 	private static final ByteBuffer parseImage(BufferedImage img) {
 		int w = img.getWidth();
@@ -32,11 +42,14 @@ public class Texture {
 		return pixels;
 	}
 
-	private final int id;
-	private boolean deleted;
+	protected int id;
 	protected int width, height;
+	protected ByteBuffer buffer;
 
+	// This can be overridden to easily modify the behaviour of the construction
+	// process
 	protected void setParameters(ByteBuffer buffer, int width, int height) {
+		
 		GL11.glBindTexture(GL11.GL_TEXTURE_2D, id);
 
 		GL11.glTexParameterf(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_NEAREST);
@@ -44,14 +57,39 @@ public class Texture {
 
 		GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, GL11.GL_RGBA, width, height, 0, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE,
 				buffer);
+		
 	}
 
+	public Texture() {
+	}
+	
 	public Texture(ByteBuffer buffer, int width, int height) {
+		setData(buffer, width, height);
+		load();
+	}
 
-		// Store actual size
+	public Texture(int width, int height) {
+		this((ByteBuffer) null, width, height);
+	}
+
+	public Texture(BufferedImage img) {
+		this(parseImage(img), img.getWidth(), img.getHeight());
+	}
+	
+	public void setData(ByteBuffer buffer, int width, int height) {
+		if(valid()) {
+			return;
+		}
+		
+		this.buffer = buffer;
 		this.width = width;
 		this.height = height;
+		
+		setFilled(true);
+	}
 
+	@Override
+	protected void load0() {
 		// First generate a valid id for this texture
 		id = GL11.glGenTextures();
 
@@ -68,35 +106,24 @@ public class Texture {
 			throw t;
 
 		} finally {
-			// TODO
+			// It's not needed, let's hope GC picks it up...
+			buffer = null;
 		}
-
-	}
-
-	public Texture(int width, int height) {
-		this((ByteBuffer) null, width, height);
-	}
-
-	public Texture(BufferedImage img) {
-		this(parseImage(img), img.getWidth(), img.getHeight());
 	}
 
 	public void use(int sampler) {
+		if(!valid()) {
+			return;
+		}
 		if (sampler >= 0 && sampler <= 31) {
 			GL13.glActiveTexture(GL13.GL_TEXTURE0 + sampler);
 			GL11.glBindTexture(GL11.GL_TEXTURE_2D, id);
 		}
 	}
 
-	public void delete() {
-		if (!deleted) {
-			GL11.glDeleteTextures(id);
-			deleted = true;
-		}
-	}
-
-	public boolean isDeleted() {
-		return deleted;
+	@Override
+	protected void delete0() {
+		GL11.glDeleteTextures(id);
 	}
 
 	public int getId() {
@@ -109,6 +136,14 @@ public class Texture {
 
 	public int getHeight() {
 		return height;
+	}
+
+	@Override
+	protected void reset0() {
+		buffer = null;
+		width = 0;
+		height = 0;
+		id = -1;
 	}
 
 }

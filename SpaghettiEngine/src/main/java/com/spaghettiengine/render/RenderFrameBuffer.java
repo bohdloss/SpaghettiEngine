@@ -1,15 +1,22 @@
 package com.spaghettiengine.render;
 
 import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL14;
 import org.lwjgl.opengl.GL30;
 
 public class RenderFrameBuffer extends FrameBuffer {
 
 	protected int depth;
 
+	public RenderFrameBuffer() {
+	}
+
 	public RenderFrameBuffer(int width, int height) {
 		super(width, height);
+	}
+
+	@Override
+	protected void load0() {
+		super.load0();
 
 		// Create a depth render buffer
 
@@ -28,11 +35,15 @@ public class RenderFrameBuffer extends FrameBuffer {
 		use();
 		GL30.glFramebufferRenderbuffer(GL30.GL_DRAW_FRAMEBUFFER, GL30.GL_DEPTH_ATTACHMENT, GL30.GL_RENDERBUFFER, depth);
 		stop();
-
 	}
 
 	public int getRenderBuffer() {
 		return depth;
+	}
+
+	@Override
+	protected void reset0() {
+		depth = -1;
 	}
 
 }

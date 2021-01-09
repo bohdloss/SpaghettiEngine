@@ -5,14 +5,21 @@ import java.nio.ByteBuffer;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL14;
 import org.lwjgl.opengl.GL30;
-import org.lwjgl.opengl.GL32;
 
 public class TextureFrameBuffer extends FrameBuffer {
 
 	protected Texture depth;
 
+	public TextureFrameBuffer() {
+	}
+
 	public TextureFrameBuffer(int width, int height) {
 		super(width, height);
+	}
+	
+	@Override
+	protected void load0() {
+		super.load0();
 
 		this.depth = new Texture((ByteBuffer) null, width, height) {
 
@@ -32,21 +39,28 @@ public class TextureFrameBuffer extends FrameBuffer {
 			}
 
 		};
-
-		// Attach depth shader
+		
+		// Attach depth texture
 
 		use();
 		depth.use(0);
 		GL30.glFramebufferTexture2D(GL30.GL_DRAW_FRAMEBUFFER, GL30.GL_DEPTH_ATTACHMENT, GL11.GL_TEXTURE_2D,
 				depth.getId(), 0);
-		stop();
-
-		checkValid();
-
 	}
 
 	public Texture getDepth() {
 		return depth;
+	}
+
+	protected void delete0() {
+		super.delete0();
+		
+		depth.reset();
+	}
+
+	@Override
+	protected void reset0() {
+		depth = null;
 	}
 
 }

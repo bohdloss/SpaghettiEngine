@@ -14,10 +14,6 @@ public final class Function {
 		this.action = action;
 	}
 
-	public Function() {
-		this(null);
-	}
-
 	public Object execute() throws Throwable {
 		if (action != null) {
 			return action.execute();

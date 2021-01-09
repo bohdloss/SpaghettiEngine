@@ -1,5 +1,6 @@
 package com.spaghettiengine.utils;
 
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -29,6 +30,50 @@ public final class FunctionDispatcher {
 		return defaultId;
 	}
 
+	// Queue using reflection
+
+	public synchronized long queue(long thread, boolean ignoreReturnValue, Object target, String funcName,
+			Object... args) {
+
+		try {
+
+			// Gather class types of the arguments
+
+			Class<?> cls = target.getClass();
+			Class<?>[] classes = new Class<?>[args.length];
+
+			for (int i = 0; i < args.length; i++) {
+				classes[i] = args[i].getClass();
+			}
+
+			// Find the method
+
+			Method method = cls.getMethod(funcName, classes);
+
+			Function toQueue = new Function(() -> method.invoke(target, args));
+
+			return queue(toQueue, thread, ignoreReturnValue);
+
+		} catch (Throwable t) {
+			throw new IllegalArgumentException();
+		}
+
+	}
+
+	public synchronized long queue(long thread, Object target, String funcName, Object... args) {
+		return queue(thread, false, target, funcName, args);
+	}
+
+	public synchronized long queue(boolean ignoreReturnValue, Object target, String funcName, Object... args) {
+		return queue(defaultId, ignoreReturnValue, target, funcName, args);
+	}
+	
+	public synchronized long queue(Object target, String funcName, Object... args) {
+		return queue(defaultId, false, target, funcName, args);
+	}
+
+	// Queue by function object
+
 	public synchronized long queue(Function function) {
 		return queue(function, defaultId);
 	}
@@ -37,6 +82,10 @@ public final class FunctionDispatcher {
 		return queue(function, thread, false);
 	}
 
+	public synchronized long queue(Function function, boolean ignoreReturnValue) {
+		return queue(function, defaultId, ignoreReturnValue);
+	}
+	
 	public synchronized long queue(Function function, long thread, boolean ignoreReturnValue) {
 		function.thread = thread;
 
@@ -54,10 +103,19 @@ public final class FunctionDispatcher {
 	}
 
 	public Object waitReturnValue(long funcId) throws Throwable {
+		if (ignoresReturnValue(funcId)) {
+			return null;
+		}
 		while (!hasReturnValue(funcId) && !hasException(funcId)) {
 			Utils.sleep(1);
 		}
 		return getReturnValue(funcId);
+	}
+
+	public void waitFor(long funcId) {
+		while (calls.get(funcId) != null) {
+			Utils.sleep(1);
+		}
 	}
 
 	public synchronized boolean hasReturnValue(long funcId) {
@@ -66,6 +124,10 @@ public final class FunctionDispatcher {
 
 	public synchronized boolean hasException(long funcId) {
 		return hasException.contains(funcId);
+	}
+
+	public synchronized boolean ignoresReturnValue(long funcId) {
+		return ignoreReturn.contains(funcId);
 	}
 
 	public synchronized Object getReturnValue(long funcId) throws Throwable {
@@ -80,20 +142,27 @@ public final class FunctionDispatcher {
 		}
 	}
 
-	public synchronized void computeEvents() {
+	private int current;
+	public synchronized void computeEvents(int amount) {
+		current = 0;
 		removeCache.clear();
 		long thread = Thread.currentThread().getId();
 
 		calls.forEach((id, function) -> {
-			if (function.thread == thread) {
+			if (function.thread == thread && current < amount) {
 				processFunction(id, function);
 				removeCache.add(id);
+				current++;
 			}
 		});
 
 		removeCache.forEach(id -> {
 			calls.remove(id);
 		});
+	}
+	
+	public synchronized void computeEvents() {
+		computeEvents(Integer.MAX_VALUE);
 	}
 
 	private synchronized void processFunction(long id, Function function) {
@@ -104,8 +173,10 @@ public final class FunctionDispatcher {
 				hasReturn.add(id);
 			}
 		} catch (Throwable e) {
-			hasException.add(id);
-			exceptions.put(id, e);
+			if (!ignoreReturn.contains(id)) {
+				hasException.add(id);
+				exceptions.put(id, e);
+			}
 		} finally {
 			ignoreReturn.remove(id);
 		}

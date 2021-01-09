@@ -50,6 +50,10 @@ public abstract class GameComponent implements Tickable, Renderable, Replicable,
 	private boolean rebuildListNeeded;
 
 	public GameComponent(Level level, GameComponent parent) {
+		if (level == null) {
+			throw new IllegalArgumentException();
+		}
+
 		this.level = level;
 
 		// Id calculation based on game instance
@@ -67,16 +71,17 @@ public abstract class GameComponent implements Tickable, Renderable, Replicable,
 		// Hierarchy initialization
 
 		if (parent == null) {
-			level.addComponent(this);
+			level.components.add(this);
 			hierarchy = 0;
 		} else {
-			parent.addChild(this);
+			parent.children.put(id, this);
 		}
-
+		level.ordered.put(id, this);
+		
 		rebuildListNeeded();
 	}
 
-	public final void addChild(GameComponent component) {
+	public final synchronized void addChild(GameComponent component) {
 		if (component.parent == this) {
 			return;
 		}
@@ -103,18 +108,48 @@ public abstract class GameComponent implements Tickable, Renderable, Replicable,
 	}
 
 	@SuppressWarnings("unchecked")
-	public final GameComponent getChildIndex(int index) {
+	public final synchronized GameComponent getChildIndex(int index) {
 		rebuildList();
 		return ((Entry<Long, GameComponent>) entryset[index]).getValue();
 	}
 
-	public final GameComponent getChild(long id) {
+	public final synchronized GameComponent getChild(long id) {
 		return children.get(id);
 	}
 
+	long _getChild_long_id;
+	@SuppressWarnings("unchecked")
+	public final synchronized <T> T getChild(Class<T> cls) {
+		_getChild_long_id = -1;
+		children.forEach((id, component) -> {
+			if(component.getClass().equals(cls)) {
+				_getChild_long_id = id;
+			}
+		});
+		if(_getChild_long_id == -1) {
+			return (T) null;
+		}
+		return (T) level.getComponent(id);
+	}
+	
+	public final synchronized GameComponent getChildN(Class<? extends GameComponent> cls) {
+		_getChild_long_id = -1;
+		children.forEach((id, component) -> {
+			if(component.getClass().equals(cls)) {
+				_getChild_long_id = id;
+			}
+		});
+		if(_getChild_long_id == -1) {
+			return (GameComponent) null;
+		}
+		return level.getComponent(id);
+	}
+	
+	
+	
 	// Remove just detaches a child component
 
-	public final void removeChild(long id) {
+	public final synchronized void removeChild(long id) {
 		GameComponent removed = children.remove(id);
 
 		if (removed != null) {
@@ -126,14 +161,14 @@ public abstract class GameComponent implements Tickable, Renderable, Replicable,
 
 	// Delete does the same by calling destroy();
 
-	public final void deleteChild(long id) {
+	public final synchronized void deleteChild(long id) {
 		GameComponent get = children.get(id);
 		if (get != null) {
 			get.destroy();
 		}
 	}
 
-	public final int getChildrenAmount() {
+	public final synchronized int getChildrenAmount() {
 		return children.size();
 	}
 
@@ -143,13 +178,13 @@ public abstract class GameComponent implements Tickable, Renderable, Replicable,
 
 	// Removes all children
 
-	public final void removeChildren() {
+	public final synchronized void removeChildren() {
 		children.clear();
 	}
 
 	// Destroys all children
 
-	public final void deleteChildren() {
+	public final synchronized void deleteChildren() {
 		children.forEach((id, child) -> {
 			child.destroy();
 		});
@@ -160,14 +195,14 @@ public abstract class GameComponent implements Tickable, Renderable, Replicable,
 	}
 
 	public final Game getGame() {
-		return level.source;
+		return level.getGame();
 	}
 
 	public final long getId() {
 		return id;
 	}
 
-	public final void destroy() {
+	public synchronized final void destroy() {
 		onDestroy();
 		if (level != null) {
 			level.removeComponent(id);
@@ -182,11 +217,6 @@ public abstract class GameComponent implements Tickable, Renderable, Replicable,
 		children = null;
 	}
 
-	@Override
-	public void finalize() {
-		destroy();
-	}
-
 	protected void onDestroy() {
 	}
 
@@ -194,7 +224,7 @@ public abstract class GameComponent implements Tickable, Renderable, Replicable,
 		return hierarchy == -1 || level == null || children == null;
 	}
 
-	public final GameComponent getBase() {
+	public final synchronized GameComponent getBase() {
 		if (hierarchy == 0) {
 			return this;
 		}
@@ -358,7 +388,7 @@ public abstract class GameComponent implements Tickable, Renderable, Replicable,
 	protected Vector2d gravityMultiplier = new Vector2d(1, 1);
 	protected Vector2d gravityOverride = new Vector2d();
 
-	protected void physicsUpdate(float multiplier) {
+	protected void physicsUpdate(double multiplier) {
 
 	}
 
@@ -367,7 +397,7 @@ public abstract class GameComponent implements Tickable, Renderable, Replicable,
 	protected Matrix4d matCache = new Matrix4d();
 
 	@Override
-	public final void update(float delta) {
+	public final void update(double delta) {
 		if (hasPhysics) {
 			physicsUpdate(Game.getGame().getTickMultiplier(delta));
 		}
@@ -380,7 +410,7 @@ public abstract class GameComponent implements Tickable, Renderable, Replicable,
 		});
 	}
 
-	public void serverUpdate(float delta) {
+	public abstract void serverUpdate(double delta);
 		// WARNING: NONE of the code in this method
 		// should EVER try to interact with render code
 		// or other objects that require an opngGL context
@@ -388,14 +418,12 @@ public abstract class GameComponent implements Tickable, Renderable, Replicable,
 		// scenario, a SIGSEGV signal (Segmentation fault)
 		// shutting down the entire server
 		// (Which might even be a dedicated server as a whole)
-	}
 
-	public void clientUpdate(float delta) {
+	public abstract void clientUpdate(double delta);
 		// Here doing such things may still cause
 		// exceptions or weird and hard to debug errors
 		// so by design it is best not to include such
 		// code in update methods
-	}
 
 	@Override
 	public void render(Matrix4d projection) {
@@ -408,8 +436,7 @@ public abstract class GameComponent implements Tickable, Renderable, Replicable,
 		});
 	}
 
-	public void renderUpdate() {
-	}
+	public abstract void renderUpdate();
 
 	@Override
 	public void getReplicateData(SpaghettiBuffer buffer) {

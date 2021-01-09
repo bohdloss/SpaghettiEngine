@@ -17,27 +17,39 @@ public class Level implements Tickable {
 	protected Camera activeCamera;
 
 	// Physics related
-
-	protected double killY = -10000;
 	protected Vector2d gravity = new Vector2d();
 
 	public Level() {
 	}
 
-	protected final void addComponent(GameComponent component) {
+	public Game getGame() {
+		return source;
+	}
+	
+	public void destroy() {
+		for(Object obj : components.toArray()) {
+			GameComponent gc = (GameComponent) obj;
+			gc.destroy();
+		}
+	}
+	
+	protected synchronized final void addComponent(GameComponent component) {
 		components.add(component);
 		ordered.put(component.getId(), component);
 	}
 
-	public final void removeComponent(long id) {
+	public synchronized final void removeComponent(long id) {
 		GameComponent removed = ordered.remove(id);
 		if (removed != null) {
 			components.remove(removed);
 		}
 	}
 
-	public final void deleteComponent(long id) {
-		ordered.get(id).destroy();
+	public synchronized final void deleteComponent(long id) {
+		GameComponent found;
+		if((found = ordered.get(id)) != null) {
+			found.destroy();
+		}
 	}
 
 	public final GameComponent getComponent(long id) {
@@ -53,13 +65,9 @@ public class Level implements Tickable {
 	}
 
 	@Override
-	public void update(float delta) {
+	public void update(double delta) {
 		components.forEach(component -> {
-			if (component.relativePos.y < killY) {
-				component.destroy();
-			} else {
-				component.update(delta);
-			}
+			component.update(delta);
 		});
 	}
 
@@ -82,6 +90,7 @@ public class Level implements Tickable {
 
 	public void attachCamera(Camera camera) {
 		if (activeCamera != null || camera.getLevel() != this) {
+			camera.calcScale();
 			return;
 		}
 		activeCamera = camera;

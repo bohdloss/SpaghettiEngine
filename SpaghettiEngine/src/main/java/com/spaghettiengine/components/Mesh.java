@@ -58,4 +58,12 @@ public class Mesh extends GameComponent {
 
 	}
 
+	@Override
+	public void serverUpdate(double delta) {
+	}
+
+	@Override
+	public void clientUpdate(double delta) {
+	}
+
 }
