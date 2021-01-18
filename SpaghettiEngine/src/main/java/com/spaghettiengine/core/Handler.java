@@ -24,6 +24,8 @@ public final class Handler extends Thread {
 			Utils.sleep(1);
 
 			// This makes sure windows can be interacted with
+			// In Windows this also unties the renderer from
+			// any window event
 			GameWindow.pollEvents();
 			dispatcher.computeEvents();
 

@@ -67,7 +67,7 @@ public final class FunctionDispatcher {
 	public synchronized long queue(boolean ignoreReturnValue, Object target, String funcName, Object... args) {
 		return queue(defaultId, ignoreReturnValue, target, funcName, args);
 	}
-	
+
 	public synchronized long queue(Object target, String funcName, Object... args) {
 		return queue(defaultId, false, target, funcName, args);
 	}
@@ -85,7 +85,7 @@ public final class FunctionDispatcher {
 	public synchronized long queue(Function function, boolean ignoreReturnValue) {
 		return queue(function, defaultId, ignoreReturnValue);
 	}
-	
+
 	public synchronized long queue(Function function, long thread, boolean ignoreReturnValue) {
 		function.thread = thread;
 
@@ -143,6 +143,7 @@ public final class FunctionDispatcher {
 	}
 
 	private int current;
+
 	public synchronized void computeEvents(int amount) {
 		current = 0;
 		removeCache.clear();
@@ -160,7 +161,7 @@ public final class FunctionDispatcher {
 			calls.remove(id);
 		});
 	}
-	
+
 	public synchronized void computeEvents() {
 		computeEvents(Integer.MAX_VALUE);
 	}

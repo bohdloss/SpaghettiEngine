@@ -50,46 +50,46 @@ public final class Logger {
 
 	// Determine game instance using current thread
 
-	public static void info(String string) {
+	public static synchronized void info(String string) {
 		print(INFO, string);
 	}
 
-	public static void loading(String string) {
+	public static synchronized void loading(String string) {
 		print(LOADING, string);
 	}
 
-	public static void error(String string) {
+	public static synchronized void error(String string) {
 		print(ERROR, string);
 	}
 
-	public static void warning(String string) {
+	public static synchronized void warning(String string) {
 		print(WARNING, string);
 	}
 
-	public static void error(String message, Throwable t) {
+	public static synchronized void error(String message, Throwable t) {
 		print(ERROR, message);
 		print(ERROR, exception(t));
 	}
 
 	// Determine game instance directly
 
-	public static void info(Game game, String string) {
+	public static synchronized void info(Game game, String string) {
 		print(game, INFO, string);
 	}
 
-	public static void loading(Game game, String string) {
+	public static synchronized void loading(Game game, String string) {
 		print(game, LOADING, string);
 	}
 
-	public static void error(Game game, String string) {
+	public static synchronized void error(Game game, String string) {
 		print(game, ERROR, string);
 	}
 
-	public static void warning(Game game, String string) {
+	public static synchronized void warning(Game game, String string) {
 		print(game, WARNING, string);
 	}
 
-	public static void error(Game game, String message, Throwable t) {
+	public static synchronized void error(Game game, String message, Throwable t) {
 		print(game, ERROR, message);
 		print(game, ERROR, exception(t));
 	}

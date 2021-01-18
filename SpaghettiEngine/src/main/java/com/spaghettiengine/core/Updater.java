@@ -7,7 +7,7 @@ public class Updater extends CoreComponent {
 	}
 
 	@Override
-	protected void loopEvents() throws Throwable {
+	protected void loopEvents(double delta) throws Throwable {
 		source.dispatcher.computeEvents();
 
 		if (source.getActiveLevel() != null) {
@@ -22,7 +22,7 @@ public class Updater extends CoreComponent {
 
 	@Override
 	protected void terminate0() throws Throwable {
-		if(source.getActiveLevel() != null) {
+		if (source.getActiveLevel() != null) {
 			source.getActiveLevel().destroy();
 		}
 	}

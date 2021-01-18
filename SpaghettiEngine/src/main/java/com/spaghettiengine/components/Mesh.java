@@ -1,5 +1,7 @@
 package com.spaghettiengine.components;
 
+import org.joml.Matrix4d;
+
 import com.spaghettiengine.core.*;
 import com.spaghettiengine.render.*;
 import com.spaghettiengine.utils.SpaghettiBuffer;
@@ -20,9 +22,9 @@ public class Mesh extends GameComponent {
 	}
 
 	@Override
-	public void renderUpdate() {
+	public void render(Matrix4d projection, double delta) {
 		material.use();
-		material.setProjection(matCache);
+		material.setProjection(projection);
 		model.render();
 	}
 

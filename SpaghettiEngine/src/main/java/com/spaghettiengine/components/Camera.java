@@ -3,9 +3,8 @@ package com.spaghettiengine.components;
 import org.joml.Matrix4d;
 import org.joml.Vector2i;
 import org.joml.Vector3d;
-import org.lwjgl.opengl.GL11;
-
 import com.spaghettiengine.core.*;
+import com.spaghettiengine.interfaces.Replicate;
 import com.spaghettiengine.render.*;
 import com.spaghettiengine.utils.*;
 
@@ -13,16 +12,20 @@ public class Camera extends GameComponent {
 
 	// Instace fields
 
+	@Replicate
 	protected double scale;
+	@Replicate
 	protected double fov = 10;
+	@Replicate
 	protected double targetRatio = 1.7777777777777777;
 
 	protected Matrix4d projection = new Matrix4d();
 	protected Matrix4d cache = new Matrix4d();
+	protected Matrix4d view = new Matrix4d();
 
 	protected int width, height;
-
-	protected boolean clearColor = true, clearDepth = true;
+	@Replicate
+	protected boolean clearColor = true, clearDepth = true, clearStencil = true;
 
 	protected FrameBuffer renderTarget;
 
@@ -31,28 +34,20 @@ public class Camera extends GameComponent {
 
 	public Camera(Level level, GameComponent parent, int width, int height) {
 		super(level, parent);
-		setOrtho(width, height);
 	}
 
 	public Camera(Level level, GameComponent parent) {
 		super(level, parent);
 	}
 
-	public void setOrtho(int width, int height) {
-		// This makes sure depth testing works correctly for multi-layer rendering
+	protected void setProjectionMatrix() {
 		projection.identity().setOrtho(-width / 2, width / 2, -height / 2, height / 2, -1000, 1000);
-		this.width = width;
-		this.height = height;
 		calcScale();
 	}
 
 	public void calcScale() {
-		int usedVal = min((int) (width / targetRatio), height);
+		double usedVal = CMath.min(width / targetRatio, height);
 		scale = usedVal / fov;
-	}
-
-	private final int min(int a, int b) {
-		return a < b ? a : b;
 	}
 
 	public double getFov() {
@@ -83,70 +78,19 @@ public class Camera extends GameComponent {
 	public Matrix4d getProjection() {
 		getWorldPosition(vecC);
 		cache.set(projection);
-		cache.translate(-vecC.x, -vecC.y, 0);
 		cache.scale(scale, scale, 1);
+		cache.translate(-vecC.x, -vecC.y, -vecC.z);
 		return cache;
 	}
 
-	private void checkTarget() {
+	protected void checkTarget() {
 		if (renderTarget == null) {
 			Vector2i res = getGame().getOptions().getResolution();
-			renderTarget = new TextureFrameBuffer(res.x, res.y);
+			renderTarget = new FrameBuffer(res.x, res.y);
+			width = renderTarget.getWidth();
+			height = renderTarget.getHeight();
+			setProjectionMatrix();
 		}
-	}
-	
-	public void draw() {
-		checkTarget();
-
-		renderTarget.use();
-
-		if (clearColor) {
-			GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
-		}
-		if (clearDepth) {
-			GL11.glClear(GL11.GL_DEPTH_BUFFER_BIT);
-		}
-
-		getLevel().render(getProjection());
-
-		FrameBuffer.stop();
-
-	}
-
-	// Interfaces
-
-	@Override
-	public void getReplicateData(SpaghettiBuffer buffer) {
-
-		super.getReplicateData(buffer);
-
-		buffer.putDouble(fov);
-		buffer.putDouble(targetRatio);
-
-		buffer.putInt(width);
-		buffer.putInt(height);
-
-		buffer.putBoolean(clearColor);
-		buffer.putBoolean(clearDepth);
-
-	}
-
-	@Override
-	public void setReplicateData(SpaghettiBuffer buffer) {
-
-		super.setReplicateData(buffer);
-
-		fov = buffer.getDouble();
-		targetRatio = buffer.getDouble();
-
-		width = buffer.getInt();
-		height = buffer.getInt();
-
-		clearColor = buffer.getBoolean();
-		clearDepth = buffer.getBoolean();
-
-		setOrtho(width, height);
-
 	}
 
 	// Getters and setters
@@ -167,6 +111,14 @@ public class Camera extends GameComponent {
 		this.clearDepth = clearDepth;
 	}
 
+	public boolean getClearStencil() {
+		return clearStencil;
+	}
+
+	public void setClearStencil(boolean clearStencil) {
+		this.clearStencil = clearStencil;
+	}
+
 	public FrameBuffer getFrameBuffer() {
 		checkTarget();
 		return renderTarget;
@@ -176,19 +128,31 @@ public class Camera extends GameComponent {
 		this.renderTarget = renderTarget;
 	}
 
+	public double getCameraScale() {
+		return scale;
+	}
+
+	public double getWidth() {
+		return width;
+	}
+
+	public double getHeight() {
+		return height;
+	}
+
 	@Override
 	public void serverUpdate(double delta) {
-		
+
 	}
 
 	@Override
 	public void clientUpdate(double delta) {
-		
+
 	}
 
 	@Override
-	public void renderUpdate() {
-		
+	public void render(Matrix4d projection, double delta) {
+
 	}
-	
+
 }

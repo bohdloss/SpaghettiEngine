@@ -13,4 +13,12 @@ public final class Utils {
 		}
 	}
 
+	public static void sleep(long ms, int nanos) {
+		try {
+			Thread.sleep(ms, nanos);
+		} catch (InterruptedException e) {
+			e.printStackTrace();
+		}
+	}
+
 }

@@ -12,11 +12,11 @@ public final class Shader extends RenderObject {
 	public static Shader get(String name) {
 		return Game.getGame().getAssetManager().shader(name);
 	}
-	
+
 	public static Shader require(String name) {
 		return Game.getGame().getAssetManager().requireShader(name);
 	}
-	
+
 	public static final int VERTEX_SHADER = GL20.GL_VERTEX_SHADER;
 	public static final int FRAGMENT_SHADER = GL20.GL_FRAGMENT_SHADER;
 	public static final int GEOMETRY_SHADER = GL32.GL_GEOMETRY_SHADER;
@@ -41,13 +41,13 @@ public final class Shader extends RenderObject {
 	}
 
 	public void setData(String source, int type) {
-		if(valid()) {
+		if (valid()) {
 			return;
 		}
-		
+
 		this.source = source;
 		this.type = type;
-		
+
 		setFilled(true);
 	}
 

@@ -6,6 +6,7 @@ import java.nio.ByteBuffer;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL13;
+import org.lwjgl.opengl.GL30;
 
 import com.spaghettiengine.core.Game;
 
@@ -14,11 +15,11 @@ public class Texture extends RenderObject {
 	public static Texture get(String name) {
 		return Game.getGame().getAssetManager().texture(name);
 	}
-	
+
 	public static Texture require(String name) {
 		return Game.getGame().getAssetManager().requireTexture(name);
 	}
-	
+
 	// Static method necessary for ausiliary constructor
 	private static final ByteBuffer parseImage(BufferedImage img) {
 		int w = img.getWidth();
@@ -42,29 +43,37 @@ public class Texture extends RenderObject {
 		return pixels;
 	}
 
+	public static final int COLOR = GL30.GL_RGBA;
+	public static final int DEPTH = GL30.GL_DEPTH_COMPONENT;
+	public static final int STENCIL = GL30.GL_STENCIL_INDEX8;
+
 	protected int id;
 	protected int width, height;
+	protected int type;
 	protected ByteBuffer buffer;
 
 	// This can be overridden to easily modify the behaviour of the construction
 	// process
-	protected void setParameters(ByteBuffer buffer, int width, int height) {
-		
+	protected void setParameters(ByteBuffer buffer, int width, int height, int type) {
+
 		GL11.glBindTexture(GL11.GL_TEXTURE_2D, id);
 
-		GL11.glTexParameterf(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_NEAREST);
-		GL11.glTexParameterf(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_NEAREST);
+		GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_LINEAR);
+		GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_LINEAR);
 
-		GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, GL11.GL_RGBA, width, height, 0, GL11.GL_RGBA, GL11.GL_UNSIGNED_BYTE,
-				buffer);
-		
+		GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, type, width, height, 0, type, GL11.GL_UNSIGNED_BYTE, buffer);
+
 	}
 
 	public Texture() {
 	}
-	
+
 	public Texture(ByteBuffer buffer, int width, int height) {
-		setData(buffer, width, height);
+		this(buffer, width, height, COLOR);
+	}
+
+	public Texture(ByteBuffer buffer, int width, int height, int type) {
+		setData(buffer, width, height, type);
 		load();
 	}
 
@@ -75,27 +84,29 @@ public class Texture extends RenderObject {
 	public Texture(BufferedImage img) {
 		this(parseImage(img), img.getWidth(), img.getHeight());
 	}
-	
-	public void setData(ByteBuffer buffer, int width, int height) {
-		if(valid()) {
+
+	@Override
+	public void setData(Object... objects) {
+		if (valid()) {
 			return;
 		}
-		
-		this.buffer = buffer;
-		this.width = width;
-		this.height = height;
-		
+
+		this.buffer = (ByteBuffer) objects[0];
+		this.width = (int) objects[1];
+		this.height = (int) objects[2];
+		this.type = (int) objects[3];
+
 		setFilled(true);
 	}
 
 	@Override
 	protected void load0() {
-		// First generate a valid id for this texture
+		// Generate a valid id for this texture
 		id = GL11.glGenTextures();
 
 		try {
 
-			setParameters(buffer, width, height);
+			setParameters(buffer, width, height, type);
 
 		} catch (Throwable t) {
 
@@ -112,7 +123,7 @@ public class Texture extends RenderObject {
 	}
 
 	public void use(int sampler) {
-		if(!valid()) {
+		if (!valid()) {
 			return;
 		}
 		if (sampler >= 0 && sampler <= 31) {
@@ -136,6 +147,10 @@ public class Texture extends RenderObject {
 
 	public int getHeight() {
 		return height;
+	}
+
+	public int getType() {
+		return type;
 	}
 
 	@Override

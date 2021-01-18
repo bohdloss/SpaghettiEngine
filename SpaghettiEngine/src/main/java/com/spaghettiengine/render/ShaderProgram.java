@@ -16,11 +16,11 @@ public final class ShaderProgram extends RenderObject {
 	public static ShaderProgram get(String name) {
 		return Game.getGame().getAssetManager().shaderProgram(name);
 	}
-	
+
 	public static ShaderProgram require(String name) {
 		return Game.getGame().getAssetManager().requireShaderProgram(name);
 	}
-	
+
 	private static final String PROJECTION = "projection";
 
 	protected int id;
@@ -41,22 +41,22 @@ public final class ShaderProgram extends RenderObject {
 	}
 
 	public void setData(Shader... shaders) {
-		if(valid()) {
+		if (valid()) {
 			return;
 		}
-		
+
 		this.shaders = shaders;
-		
+
 		setFilled(true);
 	}
-	
+
 	@Override
 	protected void load0() {
 		// Get a usable id for this s-program
 		this.id = GL20.glCreateProgram();
 
 		try {
-			
+
 			// Link all shaders
 			for (Shader shader : shaders) {
 				if (!shader.valid()) {
@@ -64,7 +64,7 @@ public final class ShaderProgram extends RenderObject {
 				}
 				GL20.glAttachShader(id, shader.getId());
 			}
-			// Basic attribs
+			// Bind attributes
 			GL20.glBindAttribLocation(id, 0, "vertices");
 			GL20.glBindAttribLocation(id, 1, "textures");
 			GL20.glBindAttribLocation(id, 2, "normals");
@@ -102,7 +102,7 @@ public final class ShaderProgram extends RenderObject {
 	}
 
 	public void use() {
-		if(!valid()) {
+		if (!valid()) {
 			return;
 		}
 		GL20.glUseProgram(id);
@@ -111,6 +111,7 @@ public final class ShaderProgram extends RenderObject {
 	@Override
 	protected void delete0() {
 		GL20.glDeleteProgram(id);
+		locations.clear();
 	}
 
 	public int getId() {
@@ -127,7 +128,7 @@ public final class ShaderProgram extends RenderObject {
 			// Find the location and cache it
 			int loc = GL20.glGetUniformLocation(id, name);
 			if (loc == -1) {
-				throw new IllegalArgumentException("Invalid uniform name");
+				throw new IllegalArgumentException("Invalid uniform name: " + name);
 			}
 			locations.put(name, loc);
 			return loc;
@@ -135,7 +136,7 @@ public final class ShaderProgram extends RenderObject {
 	}
 
 	public void setMat4Uniform(String name, Matrix4d value) {
-		if(!valid()) {
+		if (!valid()) {
 			return;
 		}
 		int loc = getUniformLocation(name);
@@ -156,7 +157,7 @@ public final class ShaderProgram extends RenderObject {
 	// Float, float array, float buffer
 
 	public void setFloatUniform(String name, float value) {
-		if(!valid()) {
+		if (!valid()) {
 			return;
 		}
 		int loc = getUniformLocation(name);
@@ -164,7 +165,7 @@ public final class ShaderProgram extends RenderObject {
 	}
 
 	public void setFloatArrayUniform(String name, float[] value) {
-		if(!valid()) {
+		if (!valid()) {
 			return;
 		}
 		int loc = getUniformLocation(name);
@@ -172,7 +173,7 @@ public final class ShaderProgram extends RenderObject {
 	}
 
 	public void setFloatBufferUniform(String name, FloatBuffer value) {
-		if(!valid()) {
+		if (!valid()) {
 			return;
 		}
 		int loc = getUniformLocation(name);
@@ -182,7 +183,7 @@ public final class ShaderProgram extends RenderObject {
 	// Int, int array, int buffer
 
 	public void setIntUniform(String name, int value) {
-		if(!valid()) {
+		if (!valid()) {
 			return;
 		}
 		int loc = getUniformLocation(name);
@@ -190,7 +191,7 @@ public final class ShaderProgram extends RenderObject {
 	}
 
 	public void setIntArrayUniform(String name, int[] value) {
-		if(!valid()) {
+		if (!valid()) {
 			return;
 		}
 		int loc = getUniformLocation(name);
@@ -198,7 +199,7 @@ public final class ShaderProgram extends RenderObject {
 	}
 
 	public void setIntBufferUniform(String name, IntBuffer value) {
-		if(!valid()) {
+		if (!valid()) {
 			return;
 		}
 		int loc = getUniformLocation(name);
@@ -208,7 +209,7 @@ public final class ShaderProgram extends RenderObject {
 	// Vector 2 (all to float)
 
 	public void setVec2Uniform(String name, float x, float y) {
-		if(!valid()) {
+		if (!valid()) {
 			return;
 		}
 		int loc = getUniformLocation(name);
@@ -216,7 +217,7 @@ public final class ShaderProgram extends RenderObject {
 	}
 
 	public void setVec2Uniform(String name, Vector2f vec) {
-		if(!valid()) {
+		if (!valid()) {
 			return;
 		}
 		int loc = getUniformLocation(name);
@@ -224,7 +225,7 @@ public final class ShaderProgram extends RenderObject {
 	}
 
 	public void setVec2Uniform(String name, double x, double y) {
-		if(!valid()) {
+		if (!valid()) {
 			return;
 		}
 		int loc = getUniformLocation(name);
@@ -232,7 +233,7 @@ public final class ShaderProgram extends RenderObject {
 	}
 
 	public void setVec2Uniform(String name, Vector2d vec) {
-		if(!valid()) {
+		if (!valid()) {
 			return;
 		}
 		int loc = getUniformLocation(name);
@@ -242,7 +243,7 @@ public final class ShaderProgram extends RenderObject {
 	// Vector 3 (all to float)
 
 	public void setVec3Uniform(String name, float x, float y, float z) {
-		if(!valid()) {
+		if (!valid()) {
 			return;
 		}
 		int loc = getUniformLocation(name);
@@ -250,7 +251,7 @@ public final class ShaderProgram extends RenderObject {
 	}
 
 	public void setVec3Uniform(String name, Vector3f vec) {
-		if(!valid()) {
+		if (!valid()) {
 			return;
 		}
 		int loc = getUniformLocation(name);
@@ -258,7 +259,7 @@ public final class ShaderProgram extends RenderObject {
 	}
 
 	public void setVec3Uniform(String name, double x, double y, double z) {
-		if(!valid()) {
+		if (!valid()) {
 			return;
 		}
 		int loc = getUniformLocation(name);
@@ -266,7 +267,7 @@ public final class ShaderProgram extends RenderObject {
 	}
 
 	public void setVec3Uniform(String name, Vector3d vec) {
-		if(!valid()) {
+		if (!valid()) {
 			return;
 		}
 		int loc = getUniformLocation(name);
@@ -276,7 +277,7 @@ public final class ShaderProgram extends RenderObject {
 	// Vector 4 (all to float)
 
 	public void setVec4Uniform(String name, float x, float y, float z, float w) {
-		if(!valid()) {
+		if (!valid()) {
 			return;
 		}
 		int loc = getUniformLocation(name);
@@ -284,7 +285,7 @@ public final class ShaderProgram extends RenderObject {
 	}
 
 	public void setVec4Uniform(String name, Vector4f vec) {
-		if(!valid()) {
+		if (!valid()) {
 			return;
 		}
 		int loc = getUniformLocation(name);
@@ -292,7 +293,7 @@ public final class ShaderProgram extends RenderObject {
 	}
 
 	public void setVec4Uniform(String name, double x, double y, double z, float w) {
-		if(!valid()) {
+		if (!valid()) {
 			return;
 		}
 		int loc = getUniformLocation(name);
@@ -300,7 +301,7 @@ public final class ShaderProgram extends RenderObject {
 	}
 
 	public void setVec4Uniform(String name, Vector4d vec) {
-		if(!valid()) {
+		if (!valid()) {
 			return;
 		}
 		int loc = getUniformLocation(name);
@@ -310,7 +311,7 @@ public final class ShaderProgram extends RenderObject {
 	// Matrix 2, 3, 4
 
 	public void setMat2Uniform(String name, Matrix2f mat) {
-		if(!valid()) {
+		if (!valid()) {
 			return;
 		}
 		int loc = getUniformLocation(name);
@@ -319,7 +320,7 @@ public final class ShaderProgram extends RenderObject {
 	}
 
 	public void setMat3Uniform(String name, Matrix3f mat) {
-		if(!valid()) {
+		if (!valid()) {
 			return;
 		}
 		int loc = getUniformLocation(name);
@@ -328,7 +329,7 @@ public final class ShaderProgram extends RenderObject {
 	}
 
 	public void setMat3Uniform(String name, Matrix3d mat) {
-		if(!valid()) {
+		if (!valid()) {
 			return;
 		}
 		int loc = getUniformLocation(name);
@@ -337,7 +338,7 @@ public final class ShaderProgram extends RenderObject {
 	}
 
 	public void setMat4Uniform(String name, Matrix4f value) {
-		if(!valid()) {
+		if (!valid()) {
 			return;
 		}
 		int loc = getUniformLocation(name);

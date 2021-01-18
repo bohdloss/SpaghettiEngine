@@ -1,5 +1,6 @@
 package com.spaghettiengine.core;
 
+import com.spaghettiengine.components.Camera;
 import com.spaghettiengine.utils.*;
 
 public abstract class CoreComponent extends Thread {
@@ -8,7 +9,8 @@ public abstract class CoreComponent extends Thread {
 	private boolean stop;
 	private boolean init;
 	private boolean allowRun;
-	
+	private long lastTime;
+
 	public CoreComponent(Game source) {
 		this.source = source;
 	}
@@ -26,7 +28,7 @@ public abstract class CoreComponent extends Thread {
 	public final void terminate() {
 		stop = true;
 	}
-	
+
 	protected abstract void terminate0() throws Throwable; // Your custom finalization code here!
 
 	public final void waitInit() {
@@ -44,18 +46,32 @@ public abstract class CoreComponent extends Thread {
 	public void allowRun() {
 		allowRun = true;
 	}
-	
+
 	@Override
 	public final void run() {
 		try {
 			initialize();
-			while(!allowRun) {
+			while (!allowRun) {
 				Utils.sleep(1);
 			}
 			while (!stop) {
-				Utils.sleep(1);
-				loopEvents();
+				long current = System.currentTimeMillis();
+
+				if (lastTime == 0) {
+					lastTime = current;
+				}
+
+				long time = System.currentTimeMillis();
+
+				long pre = time - lastTime;
+				double delta = pre;
+
+				lastTime = current;
+
+				loopEvents(delta);
 			}
+			// Known bug: for some reason (probably synchronization)
+			// this code hangs right there in certain circumstances
 			terminate0();
 		} catch (Throwable t) {
 			Logger.error("Critical uncaught error in game " + source.getIndex() + ":", t);
@@ -64,7 +80,7 @@ public abstract class CoreComponent extends Thread {
 		}
 	}
 
-	protected abstract void loopEvents() throws Throwable; // Your custom loop code here!
+	protected abstract void loopEvents(double delta) throws Throwable; // Your custom loop code here!
 
 	// Getters
 
@@ -74,6 +90,19 @@ public abstract class CoreComponent extends Thread {
 
 	public final boolean initialized() {
 		return init;
+	}
+
+	// Getters and setters
+
+	protected Level getLevel() {
+		return source.activeLevel;
+	}
+
+	protected Camera getCamera() {
+		if (getLevel() == null) {
+			return null;
+		}
+		return getLevel().getActiveCamera();
 	}
 
 }

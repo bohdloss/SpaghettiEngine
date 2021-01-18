@@ -1,5 +1,7 @@
 package com.spaghettiengine.core;
 
+import org.joml.Vector2d;
+import org.joml.Vector2i;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.glfw.GLFWImage;
 import org.lwjgl.glfw.GLFWVidMode;
@@ -81,7 +83,6 @@ public final class GameWindow {
 				if (l != null) {
 					Camera c = l.activeCamera;
 					if (c != null) {
-						c.setOrtho(width, height);
 						c.calcScale();
 					}
 				}
@@ -112,15 +113,17 @@ public final class GameWindow {
 
 	// Gather new size
 	private void gatherSize() {
-		quickQueue(() -> {
-			GLFW.glfwGetWindowSize(id, intx, inty);
-			width = intx[0];
-			height = inty[0];
-			return null;
-		});
+		GLFW.glfwGetWindowSize(id, intx, inty);
+		width = intx[0];
+		height = inty[0];
 	}
 
 	// Wrap native functions
+
+	public void getSize(Vector2i pointer) {
+		pointer.x = width;
+		pointer.y = height;
+	}
 
 	public int getWidth() {
 		return width;
@@ -194,42 +197,43 @@ public final class GameWindow {
 	}
 
 	public boolean keyDown(int keycode) {
-		return (Boolean) quickQueue(() -> (GLFW.glfwGetKey(id, keycode) == GLFW.GLFW_PRESS));
+		return GLFW.glfwGetKey(id, keycode) == GLFW.GLFW_PRESS;
 	}
 
 	public boolean mouseDown(int keycode) {
-		return (Boolean) quickQueue(() -> (GLFW.glfwGetMouseButton(id, keycode) == GLFW.GLFW_PRESS));
+		return GLFW.glfwGetMouseButton(id, keycode) == GLFW.GLFW_PRESS;
 	}
 
 	public double getMouseX() {
-		return (Double) quickQueue(() -> {
-			GLFW.glfwGetCursorPos(id, doublex, doubley);
-
-			return doublex[0];
-		});
+		GLFW.glfwGetCursorPos(id, doublex, doubley);
+		return doublex[0];
 	}
 
 	public double getMouseY() {
-		return (Double) quickQueue(() -> {
-			GLFW.glfwGetCursorPos(id, doublex, doubley);
+		GLFW.glfwGetCursorPos(id, doublex, doubley);
+		return doubley[0];
+	}
 
-			return doubley[0];
-		});
+	public void getMousePosition(Vector2d pointer) {
+		GLFW.glfwGetCursorPos(id, doublex, doubley);
+		pointer.x = doublex[0];
+		pointer.y = doubley[0];
 	}
 
 	public int getX() {
-		return (Integer) quickQueue(() -> {
-			GLFW.glfwGetWindowPos(id, intx, inty);
-
-			return intx[0];
-		});
+		GLFW.glfwGetWindowPos(id, intx, inty);
+		return intx[0];
 	}
 
 	public int getY() {
-		return (Integer) quickQueue(() -> {
-			GLFW.glfwGetWindowPos(id, intx, inty);
-			return inty[0];
-		});
+		GLFW.glfwGetWindowPos(id, intx, inty);
+		return inty[0];
+	}
+
+	public void getPosition(Vector2i pointer) {
+		GLFW.glfwGetWindowPos(id, intx, inty);
+		pointer.x = intx[0];
+		pointer.y = inty[0];
 	}
 
 	public void setX(int x) {
@@ -335,9 +339,11 @@ public final class GameWindow {
 	}
 
 	public void makeContextCurrent() {
-		// To queue this doesn't make any sense
-
 		GLFW.glfwMakeContextCurrent(id);
+	}
+
+	public boolean isFocused() {
+		return GLFW.glfwGetWindowAttrib(id, GLFW.GLFW_FOCUSED) == 1;
 	}
 
 	private Object quickQueue(FuncAction action) {

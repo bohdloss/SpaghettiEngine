@@ -115,6 +115,9 @@ public final class Game {
 	// Stop all child threads and flag this game instance as stopped
 	public void stop() {
 
+		if (stopped) {
+			return;
+		}
 		Logger.info(this, "Waiting for game threads...");
 
 		// First stop all threads
@@ -131,6 +134,7 @@ public final class Game {
 		if (updater != null) {
 			updater.waitTerminate();
 		}
+
 		if (renderer != null) {
 			renderer.waitTerminate();
 		}
@@ -144,6 +148,10 @@ public final class Game {
 		stopped = true;
 
 		Logger.info(this, "Stopped");
+	}
+
+	public void stopAsync() {
+		handler.dispatcher.queue(true, this, "stop", new Object[0]);
 	}
 
 	// Linking/Unlinking of threads to this game instance
@@ -175,7 +183,7 @@ public final class Game {
 
 		Logger.loading(this, "Starting game threads...");
 		assetManager.loadAssetSheet(options.getAssetSheetLocation());
-		
+
 		// First start all threads
 
 		if (updater != null) {

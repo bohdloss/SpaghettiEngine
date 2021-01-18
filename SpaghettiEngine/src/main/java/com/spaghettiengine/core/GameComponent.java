@@ -6,7 +6,6 @@ import java.util.LinkedHashMap;
 import java.util.Map.Entry;
 
 import org.joml.Matrix4d;
-import org.joml.Vector2d;
 import org.joml.Vector3d;
 
 import com.spaghettiengine.interfaces.*;
@@ -77,7 +76,7 @@ public abstract class GameComponent implements Tickable, Renderable, Replicable,
 			parent.children.put(id, this);
 		}
 		level.ordered.put(id, this);
-		
+
 		rebuildListNeeded();
 	}
 
@@ -117,36 +116,32 @@ public abstract class GameComponent implements Tickable, Renderable, Replicable,
 		return children.get(id);
 	}
 
-	long _getChild_long_id;
+	private GameComponent _getChild_GameComponent_return;
+
 	@SuppressWarnings("unchecked")
 	public final synchronized <T> T getChild(Class<T> cls) {
-		_getChild_long_id = -1;
+		_getChild_GameComponent_return = null;
 		children.forEach((id, component) -> {
-			if(component.getClass().equals(cls)) {
-				_getChild_long_id = id;
+			if (component.getClass().equals(cls)) {
+				_getChild_GameComponent_return = component;
 			}
 		});
-		if(_getChild_long_id == -1) {
-			return (T) null;
+		if (_getChild_GameComponent_return == null) {
+			return null;
 		}
-		return (T) level.getComponent(id);
+		return (T) _getChild_GameComponent_return;
 	}
-	
+
 	public final synchronized GameComponent getChildN(Class<? extends GameComponent> cls) {
-		_getChild_long_id = -1;
+		_getChild_GameComponent_return = null;
 		children.forEach((id, component) -> {
-			if(component.getClass().equals(cls)) {
-				_getChild_long_id = id;
+			if (component.getClass().equals(cls)) {
+				_getChild_GameComponent_return = component;
 			}
 		});
-		if(_getChild_long_id == -1) {
-			return (GameComponent) null;
-		}
-		return level.getComponent(id);
+		return _getChild_GameComponent_return;
 	}
-	
-	
-	
+
 	// Remove just detaches a child component
 
 	public final synchronized void removeChild(long id) {
@@ -241,12 +236,14 @@ public abstract class GameComponent implements Tickable, Renderable, Replicable,
 
 	// World interaction
 
+	@Replicate
 	protected Vector3d relativePos = new Vector3d();
-	protected Vector2d scale = new Vector2d(1, 1);
-	protected double rotation;
+	@Replicate
+	protected Vector3d relativeScale = new Vector3d(1, 1, 1);
+	@Replicate
+	protected Vector3d relativeRotation = new Vector3d();
 
 	// Cache
-	protected Vector2d vec2Cache = new Vector2d();
 	protected Vector3d vec3Cache = new Vector3d();
 
 	// Position getters
@@ -278,19 +275,60 @@ public abstract class GameComponent implements Tickable, Renderable, Replicable,
 		return relativePos.z;
 	}
 
-	// Position setters
+	public final double getWorldX() {
+		double x = 0;
 
-	public void setRelativePosition(Vector3d vec) {
-		relativePos.set(vec);
+		GameComponent last = this;
+		while (last.hierarchy != 0) {
+			x += last.relativePos.x;
+			last = last.parent;
+		}
+		return x + last.relativePos.x;
 	}
 
-	public void setWorldPosition(Vector3d vec) {
+	public final double getWorldY() {
+		double y = 0;
+
+		GameComponent last = this;
+		while (last.hierarchy != 0) {
+			y += last.relativePos.y;
+			last = last.parent;
+		}
+		return y + last.relativePos.y;
+	}
+
+	public final double getWorldZ() {
+		double z = 0;
+
+		GameComponent last = this;
+		while (last.hierarchy != 0) {
+			z += last.relativePos.z;
+			last = last.parent;
+		}
+		return z + last.relativePos.z;
+	}
+
+	// Position setters
+
+	public final void setRelativePosition(Vector3d vec) {
+		setRelativePosition(vec.x, vec.y, vec.z);
+	}
+
+	public final void setRelativePosition(double x, double y, double z) {
+		relativePos.set(x, y, z);
+	}
+
+	public final void setWorldPosition(Vector3d vec) {
+		setWorldPosition(vec.x, vec.y, vec.z);
+	}
+
+	public final void setWorldPosition(double x, double y, double z) {
 		synchronized (vec3Cache) {
 			getWorldPosition(vec3Cache);
 
-			double xdiff = vec3Cache.x - vec.x;
-			double ydiff = vec3Cache.y - vec.y;
-			double zdiff = vec3Cache.z - vec.z;
+			double xdiff = vec3Cache.x - x;
+			double ydiff = vec3Cache.y - y;
+			double zdiff = vec3Cache.z - z;
 
 			relativePos.x -= xdiff;
 			relativePos.y -= ydiff;
@@ -298,110 +336,289 @@ public abstract class GameComponent implements Tickable, Renderable, Replicable,
 		}
 	}
 
-	public void setRelativeX(double x) {
+	public final void setRelativeX(double x) {
 		relativePos.x = x;
 	}
 
-	public void setRelativeY(double y) {
+	public final void setRelativeY(double y) {
 		relativePos.y = y;
 	}
 
-	public void setRelativeZ(double z) {
+	public final void setRelativeZ(double z) {
 		relativePos.z = z;
 	}
 
-	public void setWorldX(double worldx) {
-		synchronized (vec3Cache) {
-			getWorldPosition(vec3Cache);
+	public final void setWorldX(double worldx) {
+		double x = getWorldX();
+		double xdiff = x - worldx;
 
-			double xdiff = vec3Cache.x - worldx;
-
-			relativePos.x -= xdiff;
-		}
+		relativePos.x -= xdiff;
 	}
 
-	public void setWorldY(double worldy) {
-		synchronized (vec3Cache) {
-			getWorldPosition(vec3Cache);
+	public final void setWorldY(double worldy) {
+		double y = getWorldY();
+		double ydiff = y - worldy;
 
-			double ydiff = vec3Cache.y - worldy;
-
-			relativePos.y -= ydiff;
-		}
+		relativePos.y -= ydiff;
 	}
 
-	public void setWorldZ(double worldz) {
-		synchronized (vec3Cache) {
-			getWorldPosition(vec3Cache);
+	public final void setWorldZ(double worldz) {
+		double z = getWorldZ();
+		double zdiff = z - worldz;
 
-			double zdiff = vec3Cache.z - worldz;
-
-			relativePos.z -= zdiff;
-		}
+		relativePos.z -= zdiff;
 	}
 
 	// Scale getters
 
-	public final void getScale(Vector2d pointer) {
-		pointer.set(scale);
+	public final void getRelativeScale(Vector3d pointer) {
+		pointer.set(relativeScale);
+	}
+
+	public final void getWorldScale(Vector3d pointer) {
+		pointer.set(1);
+
+		GameComponent last = this;
+		while (last.hierarchy != 0) {
+			pointer.mul(last.relativeScale);
+			last = last.parent;
+		}
+		pointer.mul(last.relativeScale);
 	}
 
 	public final double getXScale() {
-		return scale.x;
+		return relativeScale.x;
 	}
 
 	public final double getYScale() {
-		return scale.y;
+		return relativeScale.y;
+	}
+
+	public final double getZScale() {
+		return relativeScale.z;
+	}
+
+	public final double getWorldXScale() {
+		double x = 0;
+
+		GameComponent last = this;
+		while (last.hierarchy != 0) {
+			x *= last.relativeScale.x;
+			last = last.parent;
+		}
+		return x * last.relativeScale.x;
+	}
+
+	public final double getWorldYScale() {
+		double y = 0;
+
+		GameComponent last = this;
+		while (last.hierarchy != 0) {
+			y *= last.relativeScale.y;
+			last = last.parent;
+		}
+		return y * last.relativeScale.y;
+	}
+
+	public final double getWorldZScale() {
+		double z = 0;
+
+		GameComponent last = this;
+		while (last.hierarchy != 0) {
+			z *= last.relativeScale.z;
+			last = last.parent;
+		}
+		return z * last.relativeScale.z;
 	}
 
 	// Scale setters
 
-	public void setScale(Vector2d vec) {
-		scale.x = vec.x;
-		scale.y = vec.y;
+	public final void setRelativeScale(Vector3d vec) {
+		setRelativeScale(vec.x, vec.y, vec.z);
 	}
 
-	public void setXScale(double x) {
-		scale.x = x;
+	public final void setRelativeScale(double x, double y, double z) {
+		relativeScale.set(x, y, z);
 	}
 
-	public void setYScale(double y) {
-		scale.y = y;
+	public final void setWorldScale(Vector3d vec) {
+		setWorldScale(vec.x, vec.y, vec.z);
+	}
+
+	public final void setWorldScale(double x, double y, double z) {
+		synchronized (vec3Cache) {
+			getWorldScale(vec3Cache);
+
+			double xdiff = vec3Cache.x / x;
+			double ydiff = vec3Cache.y / y;
+			double zdiff = vec3Cache.z / z;
+
+			relativeScale.x /= xdiff;
+			relativeScale.y /= ydiff;
+			relativeScale.z /= zdiff;
+		}
+	}
+
+	public final void setXScale(double x) {
+		relativeScale.x = x;
+	}
+
+	public final void setYScale(double y) {
+		relativeScale.y = y;
+	}
+
+	public final void setZScale(double z) {
+		relativeScale.z = z;
+	}
+
+	public final void setWorldXScale(double worldx) {
+		double x = getWorldXScale();
+		double xdiff = x / worldx;
+
+		relativeScale.x /= xdiff;
+	}
+
+	public final void setWorldYScale(double worldy) {
+		double y = getWorldYScale();
+		double ydiff = y / worldy;
+
+		relativeScale.y /= ydiff;
+	}
+
+	public final void setWorldZScale(double worldz) {
+		double z = getWorldZScale();
+		double zdiff = z - worldz;
+
+		relativeScale.z -= zdiff;
 	}
 
 	// Rotation getters
 
-	public final double getRotation() {
-		return rotation;
+	public final void getRelativeRotation(Vector3d pointer) {
+		pointer.set(relativeRotation);
+	}
+
+	public final void getWorldRotation(Vector3d pointer) {
+		pointer.zero();
+
+		GameComponent last = this;
+		while (last.hierarchy != 0) {
+			pointer.add(last.relativeRotation);
+			last = last.parent;
+		}
+		pointer.add(last.relativeRotation);
+	}
+
+	public final double getYaw() {
+		return relativeRotation.x;
+	}
+
+	public final double getPitch() {
+		return relativeRotation.y;
+	}
+
+	public final double getRoll() {
+		return relativeRotation.z;
+	}
+
+	public final double getWorldYaw() {
+		double yaw = 0;
+
+		GameComponent last = this;
+		while (last.hierarchy != 0) {
+			yaw += last.relativeRotation.x;
+			last = last.parent;
+		}
+		return yaw + last.relativeRotation.x;
+	}
+
+	public final double getWorldPitch() {
+		double pitch = 0;
+
+		GameComponent last = this;
+		while (last.hierarchy != 0) {
+			pitch += last.relativeRotation.y;
+			last = last.parent;
+		}
+		return pitch + last.relativeRotation.y;
+	}
+
+	public final double getWorldRoll() {
+		double roll = 0;
+
+		GameComponent last = this;
+		while (last.hierarchy != 0) {
+			roll += last.relativeRotation.z;
+			last = last.parent;
+		}
+		return roll + last.relativeRotation.z;
 	}
 
 	// Rotation setters
 
-	public void setRotation(double rot) {
-		this.rotation = rot;
+	public final void setRelativeRotation(Vector3d vec) {
+		setRelativeRotation(vec.x, vec.y, vec.z);
 	}
 
-	// Physics
+	public final void setRelativeRotation(double x, double y, double z) {
+		relativeRotation.set(x, y, z);
+	}
 
-	protected boolean hasPhysics = false;
-	protected Vector2d velocity = new Vector2d();
-	protected Vector2d gravityMultiplier = new Vector2d(1, 1);
-	protected Vector2d gravityOverride = new Vector2d();
+	public final void setWorldRotation(Vector3d vec) {
+		setWorldRotation(vec.x, vec.y, vec.z);
+	}
 
-	protected void physicsUpdate(double multiplier) {
+	public final void setWorldRotation(double x, double y, double z) {
+		synchronized (vec3Cache) {
+			getWorldRotation(vec3Cache);
 
+			double xdiff = vec3Cache.x - x;
+			double ydiff = vec3Cache.y - y;
+			double zdiff = vec3Cache.z - z;
+
+			relativeRotation.x -= xdiff;
+			relativeRotation.y -= ydiff;
+			relativeRotation.z -= zdiff;
+		}
+	}
+
+	public final void setYaw(double yaw) {
+		relativeRotation.x = yaw;
+	}
+
+	public final void setPitch(double pitch) {
+		relativeRotation.y = pitch;
+	}
+
+	public final void setRoll(double roll) {
+		relativeRotation.z = roll;
+	}
+
+	public final void setWorldYaw(double worldyaw) {
+		double x = getWorldYaw();
+		double xdiff = x - worldyaw;
+
+		relativeRotation.x -= xdiff;
+	}
+
+	public final void setWorldPitch(double worldpitch) {
+		double y = getWorldPitch();
+		double ydiff = y - worldpitch;
+
+		relativeRotation.y -= ydiff;
+	}
+
+	public final void setWorldRoll(double worldroll) {
+		double z = getWorldRoll();
+		double zdiff = z - worldroll;
+
+		relativeRotation.z -= zdiff;
 	}
 
 	// Interface methods
 
-	protected Matrix4d matCache = new Matrix4d();
-
 	@Override
 	public final void update(double delta) {
-		if (hasPhysics) {
-			physicsUpdate(Game.getGame().getTickMultiplier(delta));
-		}
-
 		// TODO Detect if this is a server or client instance
 		clientUpdate(delta);
 
@@ -411,63 +628,29 @@ public abstract class GameComponent implements Tickable, Renderable, Replicable,
 	}
 
 	public abstract void serverUpdate(double delta);
-		// WARNING: NONE of the code in this method
-		// should EVER try to interact with render code
-		// or other objects that require an opngGL context
-		// as it will trigger errors or, in the worst
-		// scenario, a SIGSEGV signal (Segmentation fault)
-		// shutting down the entire server
-		// (Which might even be a dedicated server as a whole)
+	// WARNING: NONE of the code in this method
+	// should EVER try to interact with render code
+	// or other objects that require an opngGL context
+	// as it will trigger errors or, in the worst
+	// scenario, a SIGSEGV signal (Segmentation fault)
+	// shutting down the entire server
+	// (Which might even be a dedicated server as a whole)
 
 	public abstract void clientUpdate(double delta);
-		// Here doing such things may still cause
-		// exceptions or weird and hard to debug errors
-		// so by design it is best not to include such
-		// code in update methods
+	// Here doing such things may still cause
+	// exceptions or weird and hard to debug errors
+	// so by design it is best not to include such
+	// code in update methods
 
 	@Override
-	public void render(Matrix4d projection) {
-		matCache.set(projection);
-		matCache.translate(relativePos).rotate(rotation, 0, 1, 0).scale(scale.x, scale.y, 1);
-		renderUpdate();
-
-		children.forEach((id, component) -> {
-			component.render(matCache);
-		});
-	}
-
-	public abstract void renderUpdate();
+	public abstract void render(Matrix4d projection, double delta);
 
 	@Override
 	public void getReplicateData(SpaghettiBuffer buffer) {
-
-		// Default replication data
-
-		buffer.putDouble(relativePos.x);
-		buffer.putDouble(relativePos.y);
-		buffer.putDouble(relativePos.z);
-
-		buffer.putDouble(scale.x);
-		buffer.putDouble(scale.y);
-
-		buffer.putDouble(rotation);
-
 	}
 
 	@Override
 	public void setReplicateData(SpaghettiBuffer buffer) {
-
-		// Default set replication data
-
-		relativePos.x = buffer.getDouble();
-		relativePos.y = buffer.getDouble();
-		relativePos.z = buffer.getDouble();
-
-		scale.x = buffer.getDouble();
-		scale.y = buffer.getDouble();
-
-		rotation = buffer.getDouble();
-
 	}
 
 	@Override

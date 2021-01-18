@@ -7,11 +7,11 @@ public abstract class RenderObject {
 	public static RenderObject get(String name) {
 		return Game.getGame().getAssetManager().custom(name);
 	}
-	
+
 	public static RenderObject require(String name) {
 		return Game.getGame().getAssetManager().requireCustom(name);
 	}
-	
+
 	private boolean init, deleted, filled;
 
 	public final void load() {
@@ -32,9 +32,9 @@ public abstract class RenderObject {
 		}
 	}
 
-	public void setData(Object...objects) {
+	public void setData(Object... objects) {
 	}
-	
+
 	protected abstract void delete0();
 
 	public boolean isInitialized() {
@@ -62,14 +62,14 @@ public abstract class RenderObject {
 	public boolean isFilled() {
 		return filled;
 	}
-	
+
 	public void reset() {
 		delete();
 		reset0();
 		filled = true;
 	}
-	
+
 	// Revert the effects of setData()
 	protected abstract void reset0();
-	
+
 }

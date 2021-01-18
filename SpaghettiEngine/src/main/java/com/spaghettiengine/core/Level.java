@@ -2,10 +2,10 @@ package com.spaghettiengine.core;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.function.BiConsumer;
+import java.util.function.Consumer;
 
 import org.joml.Matrix4d;
-import org.joml.Vector2d;
-
 import com.spaghettiengine.components.Camera;
 import com.spaghettiengine.interfaces.Tickable;
 
@@ -16,23 +16,20 @@ public class Level implements Tickable {
 	protected HashMap<Long, GameComponent> ordered = new HashMap<>();
 	protected Camera activeCamera;
 
-	// Physics related
-	protected Vector2d gravity = new Vector2d();
-
 	public Level() {
 	}
 
-	public Game getGame() {
+	public final Game getGame() {
 		return source;
 	}
-	
-	public void destroy() {
-		for(Object obj : components.toArray()) {
+
+	public final void destroy() {
+		for (Object obj : components.toArray()) {
 			GameComponent gc = (GameComponent) obj;
 			gc.destroy();
 		}
 	}
-	
+
 	protected synchronized final void addComponent(GameComponent component) {
 		components.add(component);
 		ordered.put(component.getId(), component);
@@ -47,7 +44,7 @@ public class Level implements Tickable {
 
 	public synchronized final void deleteComponent(long id) {
 		GameComponent found;
-		if((found = ordered.get(id)) != null) {
+		if ((found = ordered.get(id)) != null) {
 			found.destroy();
 		}
 	}
@@ -64,6 +61,40 @@ public class Level implements Tickable {
 		return ordered.size();
 	}
 
+	public final void forEachComponent(Consumer<GameComponent> consumer) {
+		components.forEach(consumer);
+	}
+
+	public final void forEachActualComponent(BiConsumer<Long, GameComponent> consumer) {
+		ordered.forEach(consumer);
+	}
+
+	private GameComponent _getComponent_GameComponent_return;
+
+	@SuppressWarnings("unchecked")
+	public final synchronized <T> T getComponent(Class<T> cls) {
+		_getComponent_GameComponent_return = null;
+		ordered.forEach((id, component) -> {
+			if (component.getClass().equals(cls)) {
+				_getComponent_GameComponent_return = component;
+			}
+		});
+		if (_getComponent_GameComponent_return == null) {
+			return null;
+		}
+		return (T) _getComponent_GameComponent_return;
+	}
+
+	public final synchronized GameComponent getComponentN(Class<? extends GameComponent> cls) {
+		_getComponent_GameComponent_return = null;
+		ordered.forEach((id, component) -> {
+			if (component.getClass().equals(cls)) {
+				_getComponent_GameComponent_return = component;
+			}
+		});
+		return _getComponent_GameComponent_return;
+	}
+
 	@Override
 	public void update(double delta) {
 		components.forEach(component -> {
@@ -71,9 +102,9 @@ public class Level implements Tickable {
 		});
 	}
 
-	public void render(Matrix4d projection) {
+	public void render(Matrix4d projection, double delta) {
 		components.forEach(component -> {
-			component.render(projection);
+			component.render(projection, delta);
 		});
 	}
 

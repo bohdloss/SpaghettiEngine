@@ -11,5 +11,5 @@ public class SheetEntry {
 	public String location() {
 		return location == null ? args[0] : location;
 	}
-	
+
 }

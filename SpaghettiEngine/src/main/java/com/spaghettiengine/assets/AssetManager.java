@@ -28,7 +28,7 @@ public final class AssetManager {
 		this.source = source;
 		sheet = new AssetSheet();
 	}
-	
+
 	// Destroy every resource currently loaded
 	public void deleteAll() {
 
@@ -41,14 +41,14 @@ public final class AssetManager {
 	// Destroy every resource currently loaded and collect possible garbage
 	public void resetAll() {
 		deleteAll();
-		
+
 		cache.forEach((str, asset) -> {
 			asset.reset();
 		});
-		
+
 		System.gc();
 	}
-	
+
 	// Remove all dummy resources
 	protected void removeDummy() {
 		cache.clear();
@@ -56,7 +56,7 @@ public final class AssetManager {
 	}
 
 	// Reset this instance to its state upon creation
-	public void destroy() {
+	public synchronized void destroy() {
 		deleteAll();
 		resetAll();
 		removeDummy();
@@ -69,9 +69,9 @@ public final class AssetManager {
 
 		sheet.sheet.forEach((name, asset) -> {
 			try {
-				
+
 				instantiate(asset);
-				
+
 			} catch (Throwable t) {
 				lambda_error = t;
 			}
@@ -87,11 +87,11 @@ public final class AssetManager {
 		try {
 			Class<? extends RenderObject> customClass = (Class<? extends RenderObject>) Class.forName(cls.customType);
 			Constructor<? extends RenderObject> custom = customClass.getConstructor(new Class<?>[0]);
-			cache.put(cls.name, (RenderObject) custom.newInstance(new Object[0]));
+			cache.put(cls.name, custom.newInstance(new Object[0]));
 			flags.put(cls.name, new AssetFlag());
 		} catch (Throwable t) {
-			Logger.error(source, "Could not instantiate asset:" + "\nname=" + cls.name + "\nlocation="
-					+ cls.location + "\nisCustom=" + cls.isCustom + "\ncustomType=" + cls.customType, t);
+			Logger.error(source, "Could not instantiate asset:" + "\nname=" + cls.name + "\nlocation=" + cls.location
+					+ "\nisCustom=" + cls.isCustom + "\ncustomType=" + cls.customType, t);
 			throw t;
 		}
 	}
@@ -106,35 +106,35 @@ public final class AssetManager {
 		resetAll();
 		removeDummy();
 		initDummy();
-		
+
 	}
-	
+
 	public void loadAssetSheet(String sheetLocation) throws Throwable {
 
 		try {
-		
+
 			String sheetSource = ResourceLoader.loadText(sheetLocation);
 			loadAssetSheetSource(sheetSource);
-		
+
 			Logger.loading(source, "Successfully loaded asset sheet " + sheetLocation);
-			
-		} catch(Throwable t) {
-			
+
+		} catch (Throwable t) {
+
 			Logger.error(source, "Could not load asset sheet " + sheetLocation, t);
 			throw t;
-			
+
 		}
 
 	}
-	
+
 	private synchronized void flagAsset(String type, String name) {
 		flagAsset(type, name, true);
 	}
-	
+
 	private synchronized void flagAsset(String type, String name, boolean flag) {
 		AssetFlag aflag = flags.get(name);
-		if(flag) {
-			if(!cache.get(name).valid()) {
+		if (flag) {
+			if (!cache.get(name).valid()) {
 				aflag.needLoad = flag;
 			}
 		} else {
@@ -142,22 +142,22 @@ public final class AssetManager {
 		}
 		aflag.type = type;
 	}
-	
-	public synchronized void lazyLoad() {
-		cache.forEach((name, asset)->{
+
+	public synchronized void lazyLoad() throws Throwable {
+		cache.forEach((name, asset) -> {
 			AssetFlag flag = flags.get(name);
-			if(flag.needLoad) {
+			if (flag.needLoad) {
 				loadAsset(flag.type, name);
 			}
 		});
 	}
-	
+
 	// Loader methods
-	
+
 	private void fillAsset(String type, String name) {
 		try {
 			SheetEntry info = sheet.sheet.get(name);
-			switch(type) {
+			switch (type) {
 			case MODEL:
 				Model model = model(name);
 				AssetLoader.loadModel(model, info);
@@ -183,113 +183,117 @@ public final class AssetManager {
 				AssetLoader.loadCustom(custom, info);
 				break;
 			}
-		} catch(Throwable t) {
+		} catch (Throwable t) {
 			Logger.error("Could not fill " + type + " " + name, t);
 		}
 	}
-	
+
 	public synchronized void loadAsset(String type, String name) {
-		long load = source.getFunctionDispatcher().queue(new Function(()->{
+		long load = source.getFunctionDispatcher().queue(new Function(() -> {
 			fillAsset(type, name);
 			custom(name).load();
 			flagAsset(type, name, false);
 			return null;
-		}), true);
-		source.getFunctionDispatcher().waitFor(load);
+		}));
+		try {
+			source.getFunctionDispatcher().getReturnValue(load);
+		} catch (Throwable t) {
+			Logger.error("Could not load " + type + " " + name, t);
+		}
 	}
-	
+
 	// Lazy-loading getters
-	
+
 	private void check(String name) {
-		if(cache.get(name) == null) {
+		if (cache.get(name) == null) {
 			throw new NullPointerException("Non existant asset requested");
 		}
 	}
-	
+
 	public RenderObject custom(String name) {
 		check(name);
 		RenderObject ret = cache.get(name);
 		flagAsset(CUSTOM, name);
 		return ret;
 	}
-	
+
 	public Model model(String name) {
 		check(name);
 		Model ret = (Model) cache.get(name);
 		flagAsset(MODEL, name);
 		return ret;
 	}
-	
+
 	public Shader shader(String name) {
 		check(name);
 		Shader ret = (Shader) cache.get(name);
 		flagAsset(SHADER, name);
 		return ret;
 	}
-	
+
 	public ShaderProgram shaderProgram(String name) {
 		check(name);
 		ShaderProgram ret = (ShaderProgram) cache.get(name);
 		flagAsset(SHADERPROGRAM, name);
 		return ret;
 	}
-	
+
 	public Texture texture(String name) {
 		check(name);
 		Texture ret = (Texture) cache.get(name);
 		flagAsset(TEXTURE, name);
 		return ret;
 	}
-	
+
 	public Material material(String name) {
 		check(name);
 		Material ret = (Material) cache.get(name);
 		flagAsset(MATERIAL, name);
 		return ret;
 	}
-	
+
 	// Instant-loading getters
-	
+
 	public RenderObject requireCustom(String name) {
 		check(name);
 		RenderObject ret = cache.get(name);
 		loadAsset(CUSTOM, name);
 		return ret;
 	}
-	
+
 	public Model requireModel(String name) {
 		check(name);
 		Model ret = (Model) cache.get(name);
 		loadAsset(MODEL, name);
 		return ret;
 	}
-	
+
 	public Shader requireShader(String name) {
 		check(name);
 		Shader ret = (Shader) cache.get(name);
 		loadAsset(SHADER, name);
 		return ret;
 	}
-	
+
 	public ShaderProgram requireShaderProgram(String name) {
 		check(name);
 		ShaderProgram ret = (ShaderProgram) cache.get(name);
 		loadAsset(SHADERPROGRAM, name);
 		return ret;
 	}
-	
+
 	public Texture requireTexture(String name) {
 		check(name);
 		Texture ret = (Texture) cache.get(name);
 		loadAsset(TEXTURE, name);
 		return ret;
 	}
-	
+
 	public Material requireMaterial(String name) {
 		check(name);
 		Material ret = (Material) cache.get(name);
 		loadAsset(MATERIAL, name);
 		return ret;
 	}
-	
+
 }
