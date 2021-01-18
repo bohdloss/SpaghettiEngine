@@ -22,7 +22,7 @@ public class MyUpdater extends Updater {
 		level = new Level();
 		source.attachLevel(level);
 
-		Camera camera = new Camera(level, null, source.getWindow().getWidth(), source.getWindow().getHeight());
+		Camera camera = new Camera(level, null);
 		camera.setFov(3);
 		new Mesh(level, null, Model.get("apple_model"), Material.get("apple_mat"));
 
@@ -36,7 +36,7 @@ public class MyUpdater extends Updater {
 		super.loopEvents(delta);
 		i += 0.05 * source.getTickMultiplier(delta);
 
-		level.getComponent(1).setPitch(i);
+		level.getComponent(Mesh.class).setPitch(i);
 	}
 
 	@Override

@@ -32,10 +32,6 @@ public class Camera extends GameComponent {
 	// Cache
 	private Vector3d vecC = new Vector3d();
 
-	public Camera(Level level, GameComponent parent, int width, int height) {
-		super(level, parent);
-	}
-
 	public Camera(Level level, GameComponent parent) {
 		super(level, parent);
 	}
