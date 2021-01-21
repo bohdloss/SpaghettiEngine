@@ -10,7 +10,7 @@ import org.lwjgl.glfw.GLFW;
 import org.lwjgl.opengl.GLCapabilities;
 
 import com.spaghettiengine.assets.AssetManager;
-import com.spaghettiengine.components.Camera;
+import com.spaghettiengine.objects.Camera;
 import com.spaghettiengine.render.*;
 import com.spaghettiengine.utils.*;
 
@@ -45,10 +45,10 @@ public class Renderer extends CoreComponent {
 		glEnable(GL_TEXTURE_2D);
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		glDisable(GL_CULL_FACE);
+		glEnable(GL_CULL_FACE);
 		glEnable(GL_DEPTH_TEST);
 		glDepthFunc(GL_LEQUAL);
-		glEnable(GL_LIGHTING);
+		glDisable(GL_LIGHTING);
 		GLFW.glfwSwapInterval(0);
 
 		sceneRenderer = new Model(new float[] { -1f, 1f, 0f, 1f, 1f, 0f, 1f, -1f, 0f, -1f, -1f, 0 },
@@ -100,7 +100,7 @@ public class Renderer extends CoreComponent {
 				glClear(GL11.GL_STENCIL_BUFFER_BIT);
 			}
 
-			getLevel().forEachActualComponent((id, component) -> {
+			getLevel().forEachActualObject((id, component) -> {
 
 				// Reset matrix
 				sceneMat.set(camera.getProjection());

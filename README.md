@@ -149,10 +149,13 @@ To understand how to actually import your assets read the next example
 ### Import assets
 
 Spaghetti engine offers a dynamic asset import system: all you have to do is specify the assets to import in a .txt file!
+
 By default, a file called main.txt will be searched for asset import
 
 Each line in the file indicates a different asset
+
 Lines that start with // will be ignored
+
 Each word in a line, separated by 1 space, indicates the following:
 - First word: asset type (choose between - shader / shaderprogram / material / texture / model - or the full class name of your custom asset type)
 - Second word: asset name
@@ -178,4 +181,5 @@ Here is the full documentation for the arguments that are needed for each asset 
   - Model location (currently only .obj supported, use triangulate modifier on the model before exporting it in your model editor)
   
 This .txt file type may be referred to Asset Sheet later in the documentation
+
 An example of an asset sheet can be found in the folder /res/main.txt of this repository

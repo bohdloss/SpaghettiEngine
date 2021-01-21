@@ -1,4 +1,4 @@
-package com.spaghettiengine.components;
+package com.spaghettiengine.objects;
 
 import org.joml.Matrix4d;
 import org.joml.Vector2i;
@@ -8,7 +8,7 @@ import com.spaghettiengine.interfaces.Replicate;
 import com.spaghettiengine.render.*;
 import com.spaghettiengine.utils.*;
 
-public class Camera extends GameComponent {
+public class Camera extends GameObject {
 
 	// Instace fields
 
@@ -32,7 +32,7 @@ public class Camera extends GameComponent {
 	// Cache
 	private Vector3d vecC = new Vector3d();
 
-	public Camera(Level level, GameComponent parent) {
+	public Camera(Level level, GameObject parent) {
 		super(level, parent);
 	}
 

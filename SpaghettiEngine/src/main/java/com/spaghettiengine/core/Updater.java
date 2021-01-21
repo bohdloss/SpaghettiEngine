@@ -11,7 +11,7 @@ public class Updater extends CoreComponent {
 		source.dispatcher.computeEvents();
 
 		if (source.getActiveLevel() != null) {
-			source.getActiveLevel().update(0);
+			source.getActiveLevel().update(delta);
 		}
 	}
 

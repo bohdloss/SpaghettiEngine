@@ -6,14 +6,15 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import org.joml.Matrix4d;
-import com.spaghettiengine.components.Camera;
+
 import com.spaghettiengine.interfaces.Tickable;
+import com.spaghettiengine.objects.Camera;
 
 public class Level implements Tickable {
 
 	protected Game source;
-	protected ArrayList<GameComponent> components = new ArrayList<>();
-	protected HashMap<Long, GameComponent> ordered = new HashMap<>();
+	protected ArrayList<GameObject> objects = new ArrayList<>();
+	protected HashMap<Long, GameObject> ordered = new HashMap<>();
 	protected Camera activeCamera;
 
 	public Level() {
@@ -24,87 +25,87 @@ public class Level implements Tickable {
 	}
 
 	public final void destroy() {
-		for (Object obj : components.toArray()) {
-			GameComponent gc = (GameComponent) obj;
-			gc.destroy();
+		for (Object obj : objects.toArray()) {
+			GameObject go = (GameObject) obj;
+			go.destroy();
 		}
 	}
 
-	protected synchronized final void addComponent(GameComponent component) {
-		components.add(component);
+	protected synchronized final void addObject(GameObject component) {
+		objects.add(component);
 		ordered.put(component.getId(), component);
 	}
 
-	public synchronized final void removeComponent(long id) {
-		GameComponent removed = ordered.remove(id);
+	public synchronized final void removeObject(long id) {
+		GameObject removed = ordered.remove(id);
 		if (removed != null) {
-			components.remove(removed);
+			objects.remove(removed);
 		}
 	}
 
-	public synchronized final void deleteComponent(long id) {
-		GameComponent found;
+	public synchronized final void deleteObject(long id) {
+		GameObject found;
 		if ((found = ordered.get(id)) != null) {
 			found.destroy();
 		}
 	}
 
-	public final GameComponent getComponent(long id) {
+	public final GameObject getObject(long id) {
 		return ordered.get(id);
 	}
 
-	public final int getComponentAmount() {
-		return components.size();
+	public final int getObjectAmount() {
+		return objects.size();
 	}
 
-	public final int getActualComponentAmount() {
+	public final int getActualObjectAmount() {
 		return ordered.size();
 	}
 
-	public final void forEachComponent(Consumer<GameComponent> consumer) {
-		components.forEach(consumer);
+	public final void forEachObject(Consumer<GameObject> consumer) {
+		objects.forEach(consumer);
 	}
 
-	public final void forEachActualComponent(BiConsumer<Long, GameComponent> consumer) {
+	public final void forEachActualObject(BiConsumer<Long, GameObject> consumer) {
 		ordered.forEach(consumer);
 	}
 
-	private GameComponent _getComponent_GameComponent_return;
+	private GameObject _getObject_GameObject_return;
 
 	@SuppressWarnings("unchecked")
-	public final synchronized <T> T getComponent(Class<T> cls) {
-		_getComponent_GameComponent_return = null;
-		ordered.forEach((id, component) -> {
-			if (component.getClass().equals(cls)) {
-				_getComponent_GameComponent_return = component;
+	public final synchronized <T> T getObject(Class<T> cls) {
+		_getObject_GameObject_return = null;
+		ordered.forEach((id, object) -> {
+			if (object.getClass().equals(cls)) {
+				_getObject_GameObject_return = object;
 			}
 		});
-		if (_getComponent_GameComponent_return == null) {
+		if (_getObject_GameObject_return == null) {
 			return null;
 		}
-		return (T) _getComponent_GameComponent_return;
+		return (T) _getObject_GameObject_return;
 	}
 
-	public final synchronized GameComponent getComponentN(Class<? extends GameComponent> cls) {
-		_getComponent_GameComponent_return = null;
-		ordered.forEach((id, component) -> {
-			if (component.getClass().equals(cls)) {
-				_getComponent_GameComponent_return = component;
+	public final synchronized GameObject getObjectN(Class<? extends GameObject> cls) {
+		_getObject_GameObject_return = null;
+		ordered.forEach((id, object) -> {
+			if (object.getClass().equals(cls)) {
+				_getObject_GameObject_return = object;
 			}
 		});
-		return _getComponent_GameComponent_return;
+		return _getObject_GameObject_return;
 	}
 
 	@Override
 	public void update(double delta) {
-		components.forEach(component -> {
-			component.update(delta);
+		objects.forEach(object -> {
+			object.update(delta);
 		});
 	}
 
 	public void render(Matrix4d projection, double delta) {
-		components.forEach(component -> {
-			component.render(projection, delta);
+		objects.forEach(object -> {
+			object.render(projection, delta);
 		});
 	}
 

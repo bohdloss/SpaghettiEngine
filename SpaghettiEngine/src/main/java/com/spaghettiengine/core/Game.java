@@ -67,7 +67,10 @@ public final class Game {
 		Integer index = links.get(id);
 		if (index != null) {
 			if (index >= 0 && index < games.size()) {
-				return games.get(index);
+				Game game = games.get(index);
+				if(game != null && !game.isStopped()) {
+					return game;
+				}
 			}
 		}
 		return null;

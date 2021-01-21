@@ -4,10 +4,10 @@ import java.util.Random;
 
 import org.joml.Vector2d;
 
-import com.spaghettiengine.components.Camera;
 import com.spaghettiengine.core.Game;
 import com.spaghettiengine.core.GameWindow;
 import com.spaghettiengine.core.Level;
+import com.spaghettiengine.objects.Camera;
 
 public final class CMath {
 

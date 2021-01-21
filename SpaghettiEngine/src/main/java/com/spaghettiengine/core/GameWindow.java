@@ -8,7 +8,7 @@ import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.glfw.GLFWWindowSizeCallback;
 import org.lwjgl.opengl.GL11;
 
-import com.spaghettiengine.components.Camera;
+import com.spaghettiengine.objects.Camera;
 import com.spaghettiengine.utils.*;
 
 public final class GameWindow {

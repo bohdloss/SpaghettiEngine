@@ -2,15 +2,14 @@ package com.spaghettiengine.demo;
 
 import java.awt.Robot;
 
-import com.spaghettiengine.components.Camera;
-import com.spaghettiengine.components.Mesh;
 import com.spaghettiengine.core.*;
+import com.spaghettiengine.objects.Camera;
+import com.spaghettiengine.objects.Mesh;
 import com.spaghettiengine.render.*;
 
 public class MyUpdater extends Updater {
 
 	protected Level level;
-	protected Robot robot;
 
 	public MyUpdater(Game source) {
 		super(source);
@@ -18,14 +17,14 @@ public class MyUpdater extends Updater {
 
 	@Override
 	public void initialize0() throws Throwable {
-		robot = new Robot();
 		level = new Level();
 		source.attachLevel(level);
 
 		Camera camera = new Camera(level, null);
 		camera.setFov(3);
-		new Mesh(level, null, Model.get("apple_model"), Material.get("apple_mat"));
-
+		Mesh mesh = new Mesh(level, null, Model.get("apple_model"), Material.get("apple_mat"));
+		mesh.addComponent(null);
+		
 		level.attachCamera(camera);
 	}
 
@@ -36,7 +35,7 @@ public class MyUpdater extends Updater {
 		super.loopEvents(delta);
 		i += 0.05 * source.getTickMultiplier(delta);
 
-		level.getComponent(Mesh.class).setPitch(i);
+		level.getObject(Mesh.class).setPitch(i);
 	}
 
 	@Override

@@ -1,4 +1,4 @@
-package com.spaghettiengine.components;
+package com.spaghettiengine.objects;
 
 import org.joml.Matrix4d;
 
@@ -6,18 +6,18 @@ import com.spaghettiengine.core.*;
 import com.spaghettiengine.render.*;
 import com.spaghettiengine.utils.SpaghettiBuffer;
 
-public class Mesh extends GameComponent {
+public class Mesh extends GameObject {
 
 	protected Model model;
 	protected Material material;
 
-	public Mesh(Level level, GameComponent parent, Model model, Material material) {
+	public Mesh(Level level, GameObject parent, Model model, Material material) {
 		super(level, parent);
 		this.model = model;
 		this.material = material;
 	}
 
-	public Mesh(Level level, GameComponent parent) {
+	public Mesh(Level level, GameObject parent) {
 		this(level, parent, (Model) null, (Material) null);
 	}
 

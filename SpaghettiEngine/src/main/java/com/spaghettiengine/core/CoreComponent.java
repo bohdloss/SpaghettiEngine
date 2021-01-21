@@ -1,6 +1,6 @@
 package com.spaghettiengine.core;
 
-import com.spaghettiengine.components.Camera;
+import com.spaghettiengine.objects.Camera;
 import com.spaghettiengine.utils.*;
 
 public abstract class CoreComponent extends Thread {
