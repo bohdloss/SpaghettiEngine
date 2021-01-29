@@ -8,7 +8,7 @@ import org.joml.Vector2i;
 public final class GameOptions {
 
 	protected Vector2i resolution;
-	protected long tick;
+	protected double tick;
 	protected String assetSheetLocation;
 
 	public GameOptions() {
@@ -38,7 +38,7 @@ public final class GameOptions {
 	}
 
 	private void findTick() {
-		tick = 25;
+		tick = 1;
 	}
 
 	private void findAssetSheetLocation() {
@@ -47,11 +47,11 @@ public final class GameOptions {
 
 	// Public getters and setters
 
-	public void setTick(long tick) {
+	public void setTick(double tick) {
 		this.tick = tick;
 	}
 
-	public long getTick() {
+	public double getTick() {
 		return tick;
 	}
 

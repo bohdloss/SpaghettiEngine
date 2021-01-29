@@ -5,8 +5,6 @@ import java.util.HashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-import org.joml.Matrix4d;
-
 import com.spaghettiengine.interfaces.Tickable;
 import com.spaghettiengine.objects.Camera;
 
@@ -36,18 +34,24 @@ public class Level implements Tickable {
 		ordered.put(component.getId(), component);
 	}
 
-	public synchronized final void removeObject(long id) {
-		GameObject removed = ordered.remove(id);
-		if (removed != null) {
-			objects.remove(removed);
+	public synchronized final GameObject removeObject(long id) {
+		GameObject get = ordered.remove(id);
+		if(get != null) {
+			objects.remove(get);
+			get._end();
 		}
+		return get;
 	}
 
-	public synchronized final void deleteObject(long id) {
-		GameObject found;
-		if ((found = ordered.get(id)) != null) {
-			found.destroy();
+	public synchronized final boolean deleteObject(long id) {
+		GameObject get = ordered.get(id);
+		if(get != null) {
+			objects.remove(get);
+			get.destroy();
+			
+			return true;
 		}
+		return false;
 	}
 
 	public final GameObject getObject(long id) {
@@ -100,12 +104,6 @@ public class Level implements Tickable {
 	public void update(double delta) {
 		objects.forEach(object -> {
 			object.update(delta);
-		});
-	}
-
-	public void render(Matrix4d projection, double delta) {
-		objects.forEach(object -> {
-			object.render(projection, delta);
 		});
 	}
 

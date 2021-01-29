@@ -81,7 +81,7 @@ public class Renderer extends CoreComponent {
 
 		glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
 		assetManager.lazyLoad();
-		dispatcher.computeEvents();
+		dispatcher.computeEvents(1);
 
 		Camera camera = getCamera();
 		if (camera != null) {

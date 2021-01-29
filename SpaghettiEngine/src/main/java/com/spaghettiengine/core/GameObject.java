@@ -23,19 +23,19 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 			Field field = GameComponent.class.getDeclaredField("owner");
 			field.setAccessible(true);
 			field.set(gc, go);
-		} catch(Throwable t) {
+		} catch (Throwable t) {
 			// Not going to happen
 			t.printStackTrace();
 		}
 	}
-	
+
 	private static final void rebuildLevel(GameObject caller, GameObject child) {
-		if(child.hierarchy == 0) {
-			if(child.level != null) {
+		if (child.hierarchy == 0) {
+			if (child.level != null) {
 				child.level.removeObject(child.id);
 			}
 		} else {
-			if(child.parent != null) {
+			if (child.parent != null) {
 				child.parent.removeChild(child.id);
 			}
 		}
@@ -44,7 +44,7 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 			rebuildLevel(child, childObject);
 		});
 	}
-	
+
 	private static final void rebuildHierarchy(GameObject caller, GameObject child) {
 
 		child.parent = caller;
@@ -55,12 +55,12 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 		});
 
 	}
-	
+
 	private static final void rebuildObject(GameObject caller, GameObject child) {
 		rebuildLevel(caller, child);
 		rebuildHierarchy(caller, child);
 	}
-	
+
 	// Instance methods and fields
 
 	private boolean destroyed;
@@ -100,14 +100,14 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 		}
 		level.ordered.put(this.id, this);
 	}
-	
+
 	// Add objects or components
-	
+
 	public final synchronized void addChild(GameObject object) {
-		if(isDestroyed() || object == null || object.isDestroyed()) {
+		if (isDestroyed() || object == null || object.isDestroyed()) {
 			return;
 		}
-		
+
 		if (object.parent == this) {
 			// This is already a child of this object
 			return;
@@ -116,24 +116,24 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 			// This is us
 			return;
 		}
-		
+
 		rebuildObject(this, object);
 		children.put(object.id, object);
-		
-		object.onBeginPlay();
+
+		object._begin();
 	}
 
 	public final synchronized void addComponent(GameComponent component) {
-		if(component == null || component.isDestroyed()) {
+		if (isDestroyed() || component == null || component.isDestroyed() || component.getOwner() == this) {
 			return;
 		}
-		
+
 		setComponentOwner(component, this);
 		components.add(component);
-		
+
 		component.onBeginPlay();
 	}
-	
+
 	// Get objects and components
 
 	public final synchronized GameObject getChild(long id) {
@@ -142,15 +142,15 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 
 	public final synchronized GameObject getChildIndex(int index) {
 		int i = 0;
-		for(GameObject object : children.values()) {
-			if(i == index) {
+		for (GameObject object : children.values()) {
+			if (i == index) {
 				return object;
 			}
 			i++;
 		}
-		throw new IndexOutOfBoundsException(""+index);
+		throw new IndexOutOfBoundsException("" + index);
 	}
-	
+
 	private GameObject _obj;
 	private GameComponent _com;
 	private int i;
@@ -178,137 +178,145 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 		});
 		return _obj;
 	}
-	
+
 	public final synchronized int getChildrenAmount(Class<? extends GameObject> cls) {
 		i = 0;
 		children.forEach((id, object) -> {
-			if(object.getClass().equals(cls)) {
+			if (object.getClass().equals(cls)) {
 				i++;
 			}
 		});
 		return i;
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	public final synchronized <T extends GameObject> T[] getChildren(Class<T> cls, T[] buffer) {
 		i = 0;
 		children.forEach((id, object) -> {
-			if(object.getClass().equals(cls)) {
+			if (object.getClass().equals(cls)) {
 				buffer[i] = (T) object;
 				i++;
 			}
 		});
 		return buffer;
 	}
-	
+
 	public final synchronized GameObject[] getChildrenN(Class<? extends GameObject> cls, GameObject[] buffer) {
 		i = 0;
 		children.forEach((id, object) -> {
-			if(object.getClass().equals(cls)) {
+			if (object.getClass().equals(cls)) {
 				buffer[i] = object;
 				i++;
 			}
 		});
 		return buffer;
 	}
-	
+
 	public final synchronized int getComponentIndex(GameComponent component) {
 		i = 0;
-		for(GameComponent comp : components) {
-			if(comp == component) {
+		for (GameComponent comp : components) {
+			if (comp == component) {
 				return i;
 			}
 			i++;
 		}
 		return -1;
 	}
-	
+
 	public final synchronized GameComponent getComponent(int index) {
 		return components.get(index);
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	public final synchronized <T extends GameComponent> T getComponent(Class<T> cls) {
 		_com = null;
 		components.forEach(component -> {
-			if(component.getClass().equals(cls)) {
+			if (component.getClass().equals(cls)) {
 				_com = component;
 			}
 		});
 		return (T) _com;
 	}
-	
+
 	public final synchronized GameComponent getComponentN(Class<? extends GameComponent> cls) {
 		_com = null;
 		components.forEach(component -> {
-			if(component.getClass().equals(cls)) {
+			if (component.getClass().equals(cls)) {
 				_com = component;
 			}
 		});
 		return _com;
 	}
-	
+
 	public final synchronized int getComponentAmount(Class<? extends GameComponent> cls) {
 		i = 0;
 		components.forEach(component -> {
-			if(component.getClass().equals(cls)) {
+			if (component.getClass().equals(cls)) {
 				i++;
 			}
 		});
 		return i;
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	public final synchronized <T extends GameComponent> T[] getComponents(Class<T> cls, T[] buffer) {
 		i = 0;
 		components.forEach(component -> {
-			if(component.getClass().equals(cls)) {
+			if (component.getClass().equals(cls)) {
 				buffer[i] = (T) component;
 			}
 		});
 		return buffer;
 	}
-	
-	public final synchronized GameComponent[] getComponentsN(Class<? extends GameComponent> cls, GameComponent[] buffer) {
+
+	public final synchronized GameComponent[] getComponentsN(Class<? extends GameComponent> cls,
+			GameComponent[] buffer) {
 		i = 0;
 		components.forEach(component -> {
-			if(component.getClass().equals(cls)) {
+			if (component.getClass().equals(cls)) {
 				buffer[i] = component;
 			}
 		});
 		return buffer;
 	}
-	
+
 	// Remove objects or components
 
-	public final synchronized void removeChild(long id) {
+	public final synchronized GameObject removeChild(long id) {
 		GameObject removed = children.get(id);
 
 		if (removed != null) {
-			removed.onEndPlay();
+			
+			removed._end();
 			children.remove(id);
 			removed.parent = null;
+			
+			return removed;
 		}
+		return null;
 	}
 
 	public final synchronized void removeChildren() {
 		children.forEach((id, child) -> {
-			child.onEndPlay();
+			child._end();
 			child.parent = null;
 		});
 		children.clear();
 	}
-	
-	public final synchronized void removeComponent(int index) {
+
+	public final synchronized GameComponent removeComponent(int index) {
 		GameComponent removed = components.get(index);
-		
-		if(removed != null) {
+
+		if (removed != null) {
 			removed.onEndPlay();
 			components.remove(index);
 			setComponentOwner(removed, null);
+			
+			return removed;
 		}
+		return null;
 	}
-	
+
 	public final synchronized void removeComponents() {
 		components.forEach(component -> {
 			component.onEndPlay();
@@ -316,65 +324,121 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 		});
 		components.clear();
 	}
-	
+
 	// Delete object or components
 
-	public final synchronized void deleteChild(long id) {
+	public final synchronized boolean deleteChild(long id) {
 		GameObject get = children.get(id);
 		if (get != null) {
 			get.destroy();
+			return true;
 		}
+		return false;
 	}
 
 	@SuppressWarnings("unchecked")
 	public final synchronized void deleteChildren() {
 		Object[] entries = children.entrySet().toArray();
-		
-		for(Object e : entries) {
+
+		for (Object e : entries) {
 			Entry<Long, GameObject> entry = (Entry<Long, GameObject>) e;
 			entry.getValue().destroy();
 		}
 	}
-	
-	public final synchronized void deleteComponent(int index) {
-		components.get(index).destroy();
+
+	public final synchronized GameComponent deleteComponent(int index) {
+		GameComponent component = components.get(index);
+		if(component != null) {
+			
+			component.destroy();
+			
+			return component;
+		}
+		return null;
 	}
-	
+
 	public final synchronized void deleteComponents() {
 		Object[] entries = components.toArray();
-		
-		for(Object e : entries) {
+
+		for (Object e : entries) {
 			GameComponent entry = (GameComponent) e;
 			entry.destroy();
 		}
 	}
-	
+
 	// Self destroy methods
-	
+
 	public synchronized final void destroy() {
-		if(isDestroyed()) {
+		if (isDestroyed()) {
 			return;
 		}
-		components.forEach(component -> {
-			component.destroy();
-		});
-		if (parent != null) {
-			parent.removeChild(id);
+		_destroy();
+		destroySimple();
+	}
+
+	private final void destroySimple() {
+		if(parent != null) {
+			parent.children.remove(id);
 		}
-		onDestroy();
 		if (level != null) {
-			level.removeObject(id);
+			level.ordered.remove(id);
+			level.objects.remove(this);
 		}
 		hierarchy = -1;
 		level = null;
 		parent = null;
-		deleteChildren();
 		children = null;
 		destroyed = true;
 	}
-
-	// Getters
 	
+	// Propagate onBeginPlay, onEndPlay and onDestroy to children
+	
+	protected final void _begin() {
+		children.forEach((id, child) -> {
+			child.onBeginPlay();
+			child.components.forEach(component -> {
+				component.onBeginPlay();
+			});
+			child._begin();
+		});
+		onBeginPlay();
+		components.forEach(component -> {
+			component.onBeginPlay();
+		});
+	}
+	
+	protected final void _end() {
+		children.forEach((id, child) -> {
+			child._end();
+			child.components.forEach(component -> {
+				component.onEndPlay();
+			});
+			child.onEndPlay();
+		});
+		components.forEach(component -> {
+			component.onEndPlay();
+		});
+		onEndPlay();
+	}
+	
+	protected final void _destroy() {
+		_end();
+		children.forEach((id, child) -> {
+			child._destroy();
+			child.components.forEach(component -> {
+				component.destroy();
+			});
+			child.onDestroy();
+			child.destroySimple();
+		});
+		components.forEach(component -> {
+			component.destroy();
+		});
+		onDestroy();
+	}
+	
+	// Getters
+
 	public final synchronized int getChildrenAmount() {
 		return children.size();
 	}
@@ -382,7 +446,7 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 	public final synchronized int getComponentAmount() {
 		return components.size();
 	}
-	
+
 	public final GameObject getParent() {
 		return parent;
 	}
@@ -427,9 +491,6 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 	@Replicate
 	protected Vector3d relativeRotation = new Vector3d();
 
-	// Cache
-	protected Vector3d vec3Cache = new Vector3d();
-
 	// Position getters
 
 	public final void getRelativePosition(Vector3d pointer) {
@@ -450,7 +511,7 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 	public final double getRelativeX() {
 		return relativePos.x;
 	}
-	
+
 	public final double getRelativeY() {
 		return relativePos.y;
 	}
@@ -507,50 +568,44 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 	}
 
 	public final void setWorldPosition(double x, double y, double z) {
-		synchronized (vec3Cache) {
-			getWorldPosition(vec3Cache);
+		Vector3d vec3 = new Vector3d();
+		getWorldPosition(vec3);
 
-			double xdiff = vec3Cache.x - x;
-			double ydiff = vec3Cache.y - y;
-			double zdiff = vec3Cache.z - z;
-
-			relativePos.x -= xdiff;
-			relativePos.y -= ydiff;
-			relativePos.z -= zdiff;
-		}
+		double xdiff = vec3.x - x;
+		double ydiff = vec3.y - y;
+		double zdiff = vec3.z - z;
+		
+		setRelativePosition(relativePos.x - xdiff, relativePos.y - ydiff, relativePos.z - zdiff);
 	}
 
 	public final void setRelativeX(double x) {
-		relativePos.x = x;
+		setRelativePosition(x, relativePos.y, relativePos.z);
 	}
 
 	public final void setRelativeY(double y) {
-		relativePos.y = y;
+		setRelativePosition(relativePos.x, y, relativePos.z);
 	}
 
 	public final void setRelativeZ(double z) {
-		relativePos.z = z;
+		setRelativePosition(relativePos.x, relativePos.y, z);
 	}
 
 	public final void setWorldX(double worldx) {
-		double x = getWorldX();
-		double xdiff = x - worldx;
-
-		relativePos.x -= xdiff;
+		Vector3d vec3 = new Vector3d();
+		getWorldPosition(vec3);
+		setWorldPosition(worldx, vec3.y, vec3.z);
 	}
 
 	public final void setWorldY(double worldy) {
-		double y = getWorldY();
-		double ydiff = y - worldy;
-
-		relativePos.y -= ydiff;
+		Vector3d vec3 = new Vector3d();
+		getWorldPosition(vec3);
+		setWorldPosition(vec3.x, worldy, vec3.z);
 	}
 
 	public final void setWorldZ(double worldz) {
-		double z = getWorldZ();
-		double zdiff = z - worldz;
-
-		relativePos.z -= zdiff;
+		Vector3d vec3 = new Vector3d();
+		getWorldPosition(vec3);
+		setWorldPosition(vec3.x, vec3.y, worldz);
 	}
 
 	// Scale getters
@@ -630,50 +685,44 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 	}
 
 	public final void setWorldScale(double x, double y, double z) {
-		synchronized (vec3Cache) {
-			getWorldScale(vec3Cache);
+		Vector3d vec3 = new Vector3d();
+		getWorldScale(vec3);
 
-			double xdiff = vec3Cache.x / x;
-			double ydiff = vec3Cache.y / y;
-			double zdiff = vec3Cache.z / z;
-
-			relativeScale.x /= xdiff;
-			relativeScale.y /= ydiff;
-			relativeScale.z /= zdiff;
-		}
+		double xdiff = vec3.x / x;
+		double ydiff = vec3.y / y;
+		double zdiff = vec3.z / z;
+		
+		setRelativeScale(relativeScale.x / xdiff, relativeScale.y / ydiff, relativeScale.z / zdiff);
 	}
 
 	public final void setXScale(double x) {
-		relativeScale.x = x;
+		setRelativeScale(x, relativeScale.y, relativeScale.z);
 	}
 
 	public final void setYScale(double y) {
-		relativeScale.y = y;
+		setRelativeScale(relativeScale.x, y, relativeScale.z);
 	}
 
 	public final void setZScale(double z) {
-		relativeScale.z = z;
+		setRelativeScale(relativeScale.x, relativeScale.y, z);
 	}
 
 	public final void setWorldXScale(double worldx) {
-		double x = getWorldXScale();
-		double xdiff = x / worldx;
-
-		relativeScale.x /= xdiff;
+		Vector3d vec3 = new Vector3d();
+		getWorldScale(vec3);
+		setWorldScale(worldx, vec3.y, vec3.z);
 	}
 
 	public final void setWorldYScale(double worldy) {
-		double y = getWorldYScale();
-		double ydiff = y / worldy;
-
-		relativeScale.y /= ydiff;
+		Vector3d vec3 = new Vector3d();
+		getWorldScale(vec3);
+		setWorldScale(vec3.x, worldy, vec3.z);
 	}
 
 	public final void setWorldZScale(double worldz) {
-		double z = getWorldZScale();
-		double zdiff = z - worldz;
-
-		relativeScale.z -= zdiff;
+		Vector3d vec3 = new Vector3d();
+		getWorldScale(vec3);
+		setWorldScale(vec3.x, vec3.y, worldz);
 	}
 
 	// Rotation getters
@@ -753,57 +802,51 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 	}
 
 	public final void setWorldRotation(double x, double y, double z) {
-		synchronized (vec3Cache) {
-			getWorldRotation(vec3Cache);
+		Vector3d vec3 = new Vector3d();
+		getWorldRotation(vec3);
 
-			double xdiff = vec3Cache.x - x;
-			double ydiff = vec3Cache.y - y;
-			double zdiff = vec3Cache.z - z;
-
-			relativeRotation.x -= xdiff;
-			relativeRotation.y -= ydiff;
-			relativeRotation.z -= zdiff;
-		}
+		double xdiff = vec3.x - x;
+		double ydiff = vec3.y - y;
+		double zdiff = vec3.z - z;
+		
+		setRelativeRotation(relativeRotation.x - xdiff, relativeRotation.y - ydiff, relativeRotation.z - zdiff);
 	}
 
 	public final void setYaw(double yaw) {
-		relativeRotation.x = yaw;
+		setRelativeRotation(yaw, relativeRotation.y, relativeRotation.z);
 	}
 
 	public final void setPitch(double pitch) {
-		relativeRotation.y = pitch;
+		setRelativeRotation(relativeRotation.x, pitch, relativeRotation.z);
 	}
 
 	public final void setRoll(double roll) {
-		relativeRotation.z = roll;
+		setRelativeRotation(relativeRotation.x, relativeRotation.y, roll);
 	}
 
 	public final void setWorldYaw(double worldyaw) {
-		double x = getWorldYaw();
-		double xdiff = x - worldyaw;
-
-		relativeRotation.x -= xdiff;
+		Vector3d vec3 = new Vector3d();
+		getWorldRotation(vec3);
+		setWorldRotation(worldyaw, vec3.y, vec3.z);
 	}
 
 	public final void setWorldPitch(double worldpitch) {
-		double y = getWorldPitch();
-		double ydiff = y - worldpitch;
-
-		relativeRotation.y -= ydiff;
+		Vector3d vec3 = new Vector3d();
+		getWorldRotation(vec3);
+		setWorldRotation(vec3.x, worldpitch, vec3.z);
 	}
 
 	public final void setWorldRoll(double worldroll) {
-		double z = getWorldRoll();
-		double zdiff = z - worldroll;
-
-		relativeRotation.z -= zdiff;
+		Vector3d vec3 = new Vector3d();
+		getWorldRotation(vec3);
+		setWorldRotation(vec3.x, vec3.y, worldroll);
 	}
 
 	// Interface methods
 
 	protected void onBeginPlay() {
 	}
-	
+
 	protected void onEndPlay() {
 	}
 
@@ -832,7 +875,6 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 		// shutting down the entire server
 		// (Which might even be a dedicated server as a whole)
 	}
-	
 
 	protected void clientUpdate(double delta) {
 		// Here doing such things may still cause
@@ -840,7 +882,7 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 		// so by design it is best not to include such
 		// code in update methods
 	}
-	
+
 	@Override
 	public void render(Matrix4d projection, double delta) {
 	}

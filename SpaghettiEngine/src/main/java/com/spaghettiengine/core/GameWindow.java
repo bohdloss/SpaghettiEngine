@@ -4,10 +4,12 @@ import org.joml.Vector2d;
 import org.joml.Vector2i;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.glfw.GLFWImage;
+import org.lwjgl.glfw.GLFWScrollCallback;
 import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.glfw.GLFWWindowSizeCallback;
 import org.lwjgl.opengl.GL11;
 
+import com.spaghettiengine.input.InputDispatcher;
 import com.spaghettiengine.objects.Camera;
 import com.spaghettiengine.utils.*;
 
@@ -20,7 +22,7 @@ public final class GameWindow {
 	public static int defaultMinimumWidth = 100, defaultMinimumHeight = 100;
 	public static int defaultMaximumWidth = 800, defaultMaximumHeight = 800;
 	public static boolean defaultResizable = true;
-
+	
 	public static void pollEvents() {
 		GLFW.glfwPollEvents();
 	}
@@ -35,6 +37,7 @@ public final class GameWindow {
 	protected int minWidth, minHeight, maxWidth, maxHeight;
 	protected int width, height;
 	protected Game source;
+	protected InputDispatcher inputDispatcher;
 
 	// Cache
 	private int[] intx = new int[1];
@@ -52,8 +55,9 @@ public final class GameWindow {
 
 	private void winInit(String title, Game source) {
 		this.source = source;
+		this.inputDispatcher = new InputDispatcher(this);
 		// Cannot be instantiated outside of a game's context
-		if (source == null || source.renderer == null) {
+		if (source == null || source.renderer == null || source.window != null) {
 			throw new UnsupportedOperationException();
 		}
 		this.title = title;
@@ -70,7 +74,7 @@ public final class GameWindow {
 			// In case the window does not initialize properly
 			throw new IllegalStateException("GLFW window initialization failed");
 		}
-
+		
 		GameWindow self = this;
 
 		GLFW.glfwSetWindowSizeCallback(id, new GLFWWindowSizeCallback() {
@@ -96,6 +100,14 @@ public final class GameWindow {
 				source.getFunctionDispatcher().queue(queue, self.source.getRendererId(), true);
 
 			}
+		});
+		GLFW.glfwSetScrollCallback(id, new GLFWScrollCallback() {
+
+			@Override
+			public void invoke(long window, double xoffset, double yoffset) {
+				inputDispatcher.scroll = yoffset;
+			}
+			
 		});
 		gatherSize();
 		center();
@@ -346,6 +358,10 @@ public final class GameWindow {
 		return GLFW.glfwGetWindowAttrib(id, GLFW.GLFW_FOCUSED) == 1;
 	}
 
+	public InputDispatcher getInputDispatcher() {
+		return inputDispatcher;
+	}
+	
 	private Object quickQueue(FuncAction action) {
 		try {
 			long funcId = Game.handler.dispatcher.queue(new Function(action));

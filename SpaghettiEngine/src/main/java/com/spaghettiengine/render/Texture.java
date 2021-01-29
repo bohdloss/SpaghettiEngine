@@ -47,19 +47,22 @@ public class Texture extends RenderObject {
 	public static final int DEPTH = GL30.GL_DEPTH_COMPONENT;
 	public static final int STENCIL = GL30.GL_STENCIL_INDEX8;
 
+	public static final int LINEAR = GL11.GL_LINEAR;
+	public static final int NEAREST = GL11.GL_NEAREST;
+	
 	protected int id;
 	protected int width, height;
-	protected int type;
+	protected int type, mode;
 	protected ByteBuffer buffer;
 
 	// This can be overridden to easily modify the behaviour of the construction
 	// process
-	protected void setParameters(ByteBuffer buffer, int width, int height, int type) {
+	protected void setParameters(ByteBuffer buffer, int width, int height, int type, int mode) {
 
 		GL11.glBindTexture(GL11.GL_TEXTURE_2D, id);
 
-		GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, GL11.GL_LINEAR);
-		GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, GL11.GL_LINEAR);
+		GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, mode);
+		GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, mode);
 
 		GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, type, width, height, 0, type, GL11.GL_UNSIGNED_BYTE, buffer);
 
@@ -73,10 +76,14 @@ public class Texture extends RenderObject {
 	}
 
 	public Texture(ByteBuffer buffer, int width, int height, int type) {
-		setData(buffer, width, height, type);
-		load();
+		this(buffer, width, height, type, LINEAR);
 	}
 
+	public Texture(ByteBuffer buffer, int width, int height, int type, int mode) {
+		setData(buffer, width, height, type, mode);
+		load();
+	}
+	
 	public Texture(int width, int height) {
 		this((ByteBuffer) null, width, height);
 	}
@@ -95,6 +102,7 @@ public class Texture extends RenderObject {
 		this.width = (int) objects[1];
 		this.height = (int) objects[2];
 		this.type = (int) objects[3];
+		this.mode = (int) objects[4];
 
 		setFilled(true);
 	}
@@ -106,7 +114,7 @@ public class Texture extends RenderObject {
 
 		try {
 
-			setParameters(buffer, width, height, type);
+			setParameters(buffer, width, height, type, mode);
 
 		} catch (Throwable t) {
 

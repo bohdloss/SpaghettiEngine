@@ -9,7 +9,9 @@ public class Updater extends CoreComponent {
 	@Override
 	protected void loopEvents(double delta) throws Throwable {
 		source.dispatcher.computeEvents();
-
+		
+		source.getWindow().getInputDispatcher().update();
+		
 		if (source.getActiveLevel() != null) {
 			source.getActiveLevel().update(delta);
 		}

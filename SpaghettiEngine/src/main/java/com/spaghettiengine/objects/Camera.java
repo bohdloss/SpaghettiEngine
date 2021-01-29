@@ -43,7 +43,7 @@ public class Camera extends GameObject {
 
 	public void calcScale() {
 		double usedVal = CMath.min(width / targetRatio, height);
-		scale = usedVal / fov;
+		scale = (usedVal / fov) * 2;
 	}
 
 	public double getFov() {

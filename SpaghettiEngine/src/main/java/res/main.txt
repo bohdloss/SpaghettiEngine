@@ -1,8 +1,3 @@
-// Default shaders
-model square /internal/square.obj
-shader defaultVS /internal/default.vs vertex
-shader defaultFS /internal/default.fs fragment
-shaderprogram defaultSP defaultVS defaultFS
 // aaaaa
 texture coolness /res/cool_image.jpg
 material aaa coolness defaultSP

@@ -49,7 +49,9 @@ public final class FunctionDispatcher {
 			// Find the method
 
 			Method method = cls.getMethod(funcName, classes);
+			method.setAccessible(true);
 
+			// Queue
 			Function toQueue = new Function(() -> method.invoke(target, args));
 
 			return queue(toQueue, thread, ignoreReturnValue);

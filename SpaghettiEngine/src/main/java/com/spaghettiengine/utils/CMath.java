@@ -177,7 +177,7 @@ public final class CMath {
 
 	// Finds the angle from (0, 0) to a point
 	public static double lookAt(Vector2d point) {
-		return Math.atan2(point.y, point.x);
+		return lookAt(point.y, point.x);
 	}
 
 	// Finds the angle from (0, 0) to a point and adds PI to it
@@ -187,7 +187,7 @@ public final class CMath {
 
 	// Finds the angle from (0, 0) to a point
 	public static double lookAt(double x, double y) {
-		return Math.atan2(y, x);
+		return lookAt(0, 0, x, y);
 	}
 
 	// Finds the angle from (0, 0) to a point and adds PI to it
@@ -195,6 +195,26 @@ public final class CMath {
 		return lookAt(x, y) + Math.PI;
 	}
 
+	// Finds the angle from the given coordinates (x, y) to the second pair of coordinates (x2, y2)
+	public static double lookAt(double x, double y, double x2, double y2) {
+		return Math.atan2(y2 - y, x2 - x);
+	}
+	
+	// Finds the angle from the given coordinates (from) to the second pair of coordinates (to)
+	public static double lookAt(Vector2d from, Vector2d to) {
+		return lookAt(from.x, from.y, to.x, to.y);
+	}
+	
+	// Finds the angle from the given coordinates (x, y) to the second pair of coordinates (x2, y2) and adds PI to it
+	public static double oppositeTo(double x, double y, double x2, double y2) {
+		return lookAt(x, y, x2, y2) + Math.PI;
+	}
+	
+	// Finds the angle from the given coordinates (from) to the second pair of coordinates (to) and adds PI to it
+	public static double oppositeTo(Vector2d from, Vector2d to) {
+		return lookAt(from, to) + Math.PI;
+	}
+	
 	// Smooth lerp methods
 
 	public static double lerpEaseIn(double in, double a, double b) {

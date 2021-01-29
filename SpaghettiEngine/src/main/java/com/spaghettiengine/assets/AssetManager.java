@@ -26,7 +26,7 @@ public final class AssetManager {
 
 	public AssetManager(Game source) {
 		this.source = source;
-		sheet = new AssetSheet();
+		sheet = new AssetSheet(this);
 	}
 
 	// Destroy every resource currently loaded

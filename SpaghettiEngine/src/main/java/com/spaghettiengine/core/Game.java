@@ -3,6 +3,7 @@ package com.spaghettiengine.core;
 import java.util.*;
 
 import com.spaghettiengine.assets.AssetManager;
+import com.spaghettiengine.utils.Function;
 import com.spaghettiengine.utils.FunctionDispatcher;
 import com.spaghettiengine.utils.GameOptions;
 import com.spaghettiengine.utils.Logger;
@@ -68,7 +69,7 @@ public final class Game {
 		if (index != null) {
 			if (index >= 0 && index < games.size()) {
 				Game game = games.get(index);
-				if(game != null && !game.isStopped()) {
+				if (game != null && !game.isStopped()) {
 					return game;
 				}
 			}
@@ -186,7 +187,7 @@ public final class Game {
 
 		Logger.loading(this, "Starting game threads...");
 		assetManager.loadAssetSheet(options.getAssetSheetLocation());
-
+		
 		// First start all threads
 
 		if (updater != null) {
@@ -267,7 +268,7 @@ public final class Game {
 	}
 
 	public double getTickMultiplier(double delta) {
-		return delta / options.getTick();
+		return (delta / 1000) / options.getTick();
 	}
 
 	public Level getActiveLevel() {

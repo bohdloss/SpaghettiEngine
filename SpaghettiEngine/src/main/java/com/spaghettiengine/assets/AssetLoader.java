@@ -278,7 +278,7 @@ public final class AssetLoader {
 
 		pixels.flip();
 
-		texture.setData(pixels, w, h, Texture.COLOR);
+		texture.setData(pixels, w, h, Texture.COLOR, Texture.NEAREST);
 	}
 
 	// Material loaders

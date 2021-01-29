@@ -7,40 +7,43 @@ public abstract class GameComponent implements Tickable, Replicable {
 
 	private GameObject owner;
 	private boolean destroyed;
-	
-	public GameComponent(GameObject owner) {
-		if(owner == null || owner.isDestroyed()) {
-			throw new IllegalArgumentException();
-		}
-		
-		this.owner = owner;
-	}
-	
+
 	public GameComponent() {
 	}
-	
+
 	// Interfaces
-	
+
 	protected void onBeginPlay() {
 	}
-	
+
 	protected void onEndPlay() {
 	}
-	
+
 	protected void onDestroy() {
 	}
-	
+
+	@Override
 	public void getReplicateData(SpaghettiBuffer buffer) {
 	}
-	
+
+	@Override
 	public void setReplicateData(SpaghettiBuffer buffer) {
 	}
+
+	@Override
+	public final void update(double delta) {
+		// TODO: determine whether this is a client or server instance
+		clientUpdate(delta);
+	}
+
+	public void clientUpdate(double delta) {
+	}
 	
-	public void update(double delta) {
+	public void serverUpdate(double delta) {
 	}
 	
 	// Hierarchy methods
-	
+
 	public final void destroy() {
 		owner.removeComponent(owner.getComponentIndex(this));
 		onDestroy();
@@ -48,18 +51,22 @@ public abstract class GameComponent implements Tickable, Replicable {
 		destroyed = true;
 	}
 	
+	// Getters and setters
+
 	protected final boolean isDestroyed() {
 		return destroyed;
 	}
 	
-	// Getters and setters
-	
 	public GameObject getOwner() {
 		return owner;
 	}
-	
+
 	public Level getLevel() {
 		return owner.getLevel();
+	}
+
+	public Game getGame() {
+		return owner.getGame();
 	}
 	
 }
