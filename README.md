@@ -19,11 +19,11 @@ Spaghetti engine features:
 
 And you can do the following with it
 - Render 3d models with materials
-- (SOON) Render 2D lighting
-- (SOON) Use physics and input system to control a player
-- (LATER) Easily manage networking for multiplayer
-- (LATER) Run servers
-- (LATER) Play sounds and music
+- Use the input system to control a player
+- (WIP) Easily manage networking for multiplayer
+- (WIP) Physics
+- (SOON) Run servers
+- (SOON) Play sounds and music
 
 ### How to set it up
 
@@ -60,7 +60,7 @@ You will have to create a new class that extends Updater and implement 3 methods
 The code of an example class is:
 ```java
 // Import the parent class
-import com.spaghettiengine.core.Updater
+import com.spaghettiengine.core.Updater;
 
 // Extends Updater
 public class MyUpdater extends Updater {

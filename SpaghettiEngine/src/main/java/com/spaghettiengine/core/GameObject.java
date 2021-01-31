@@ -431,10 +431,6 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 			child.onDestroy();
 			child.destroySimple();
 		});
-		components.forEach(component -> {
-			component.destroy();
-		});
-		onDestroy();
 	}
 	
 	// Getters
