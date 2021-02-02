@@ -3,6 +3,7 @@ package com.spaghettiengine.utils;
 import java.util.Random;
 
 import org.joml.Vector2d;
+import org.joml.Vector2i;
 
 import com.spaghettiengine.core.Game;
 import com.spaghettiengine.core.GameWindow;
@@ -124,11 +125,12 @@ public final class CMath {
 
 	// Tests whether a value (in) is in the given range (min, max)
 	public static boolean inrange(double in, double min, double max) {
-		return (in >= min && max <= max);
+		return (in >= min && in <= max);
 	}
 
 	// Converts a pixel coordinate to a world coordinate
-	public static Vector2d toGLCoord(double x, double y, double scale, double width, double height, Vector2d pointer) {
+	public static void toGLCoord(double x, double y, double scale, double width, double height, Vector2d pointer) {
+		
 		double visiblex, visibley, resx, resy;
 
 		visiblex = width / scale;
@@ -148,18 +150,17 @@ public final class CMath {
 
 		pointer.x = resx;
 		pointer.y = resy;
-
-		return pointer;
+		
 	}
 
 	// Overload of toGLCoord
-	public static Vector2d mGLCoord(Vector2d pointer) {
+	public static void mGLCoord(Vector2i pointer) {
 		Game game = Game.getGame();
 		GameWindow win = game.getWindow();
 		Level level = game.getActiveLevel();
 		Camera cam = level.getActiveCamera();
 		win.getMousePosition(pointer);
-		return toGLCoord(pointer.x, pointer.y, cam.getCameraScale(), win.getWidth(), win.getHeight(), pointer);
+		toGLCoord(pointer.x, pointer.y, cam.getCameraScale(), win.getWidth(), win.getHeight(), new Vector2d(pointer));
 	}
 
 	// Returns true only if an amount of (iterations) random consecutive booleans is

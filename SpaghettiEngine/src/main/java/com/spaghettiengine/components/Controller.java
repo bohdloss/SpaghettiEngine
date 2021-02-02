@@ -9,28 +9,28 @@ import com.spaghettiengine.interfaces.*;
 public class Controller extends GameComponent implements Controllable {
 
 	@Override
-	public void onKeyPressed(int key) {}
+	public void onKeyPressed(int key, int x, int y) {}
 
 	@Override
-	public void onKeyReleased(int key) {}
+	public void onKeyReleased(int key, int x, int y) {}
 
 	@Override
 	public void onMouseMove(int x, int y) {}
 
 	@Override
-	public void onMouseScroll(double scroll) {}
+	public void onMouseScroll(double scroll, int x, int y) {}
 
 	@Override
-	public void onMouseButtonPressed(int button) {}
+	public void onMouseButtonPressed(int button, int x, int y) {}
 
 	@Override
-	public void onMouseButtonReleased(int button) {}
+	public void onMouseButtonReleased(int button, int x, int y) {}
 
 	@Override
-	public void ifKeyDown(int key) {}
+	public void ifKeyDown(int key, int x, int y) {}
 
 	@Override
-	public void ifButtonDown(int button) {}
+	public void ifButtonDown(int button, int x, int y) {}
 	
 	@Override
 	public void onBeginPlay() {

@@ -3,6 +3,9 @@ package com.spaghettiengine.core;
 import java.util.*;
 
 import com.spaghettiengine.assets.AssetManager;
+import com.spaghettiengine.input.Updater;
+import com.spaghettiengine.networking.Client;
+import com.spaghettiengine.render.Renderer;
 import com.spaghettiengine.utils.Function;
 import com.spaghettiengine.utils.FunctionDispatcher;
 import com.spaghettiengine.utils.GameOptions;
@@ -20,7 +23,7 @@ public final class Game {
 	static {
 		init();
 	}
-
+	
 	private static void init() {
 		if (handler != null) {
 			handler.stop = true;
@@ -78,22 +81,29 @@ public final class Game {
 	}
 
 	// Instance globals
-	protected FunctionDispatcher dispatcher;
-	protected GameWindow window;
-	protected AssetManager assetManager;
+	private FunctionDispatcher dispatcher;
+	private GameWindow window;
+	private AssetManager assetManager;
 
-	protected Updater updater;
-	protected Renderer renderer;
+	private Updater updater;
+	private Renderer renderer;
+	private Client client;
 
-	protected int index;
-	protected boolean stopped;
-	protected boolean init;
-
-	protected Level activeLevel;
-	protected GameOptions options;
+	private int index;
+	private boolean stopped;
+	private boolean init;
+	
+	protected boolean stopSignal;
+	
+	// Security
+	private boolean starting;
+	private boolean stopping;
+	
+	private Level activeLevel;
+	private GameOptions options;
 
 	// Constructors using custom classes
-	public Game(Class<? extends Updater> updater, Class<? extends Renderer> renderer) throws Exception {
+	public Game(Updater updater, Renderer renderer, Client client) throws Throwable {
 		this.dispatcher = new FunctionDispatcher();
 		this.options = new GameOptions();
 
@@ -101,12 +111,12 @@ public final class Game {
 		this.index = games.indexOf(this);
 
 		if (updater != null) {
-			this.updater = updater.getConstructor(Game.class).newInstance(this);
+			this.updater = updater;
 			this.updater.setName("UPDATER");
 			registerThread(this.updater);
 		}
 		if (renderer != null) {
-			this.renderer = renderer.getConstructor(Game.class).newInstance(this);
+			this.renderer = renderer;
 			this.renderer.setName("RENDERER");
 			registerThread(this.renderer);
 			window = new GameWindow(this);
@@ -119,10 +129,11 @@ public final class Game {
 	// Stop all child threads and flag this game instance as stopped
 	public void stop() {
 
-		if (stopped) {
+		if (stopped || stopping || starting) {
 			return;
 		}
 		Logger.info(this, "Waiting for game threads...");
+		stopping = true;
 
 		// First stop all threads
 
@@ -134,7 +145,7 @@ public final class Game {
 		}
 
 		// Then wait for termination
-
+		
 		if (updater != null) {
 			updater.waitTerminate();
 		}
@@ -150,12 +161,13 @@ public final class Game {
 		}
 
 		stopped = true;
+		stopping = false;
 
 		Logger.info(this, "Stopped");
 	}
 
 	public void stopAsync() {
-		handler.dispatcher.queue(true, this, "stop", new Object[0]);
+		stopSignal = true;
 	}
 
 	// Linking/Unlinking of threads to this game instance
@@ -185,16 +197,21 @@ public final class Game {
 	// Start all child threads
 	public void begin() throws Throwable {
 
+		if(stopped || init || starting || stopping) {
+			return;
+		}
+		
 		Logger.loading(this, "Starting game threads...");
+		starting = true;
 		assetManager.loadAssetSheet(options.getAssetSheetLocation());
 		
 		// First start all threads
 
 		if (updater != null) {
-			updater.start();
+			updater.start(this);
 		}
 		if (renderer != null) {
-			renderer.start();
+			renderer.start(this);
 		}
 
 		// Then wait for initialization
@@ -211,12 +228,21 @@ public final class Game {
 		updater.allowRun();
 		renderer.allowRun();
 		init = true;
-
+		starting = false;
+		
 		Logger.loading(this, "Ready!");
 	}
 
 	// Getters
 
+	public boolean isStarting() {
+		return starting;
+	}
+	
+	public boolean isStopping() {
+		return stopping;
+	}
+	
 	public Renderer getRenderer() {
 		return renderer;
 	}
@@ -225,6 +251,10 @@ public final class Game {
 		return updater;
 	}
 
+	public Client getClient() {
+		return client;
+	}
+	
 	public FunctionDispatcher getFunctionDispatcher() {
 		return dispatcher;
 	}

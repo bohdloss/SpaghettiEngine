@@ -23,11 +23,11 @@ public abstract class GameComponent implements Tickable, Replicable {
 	}
 
 	@Override
-	public void getReplicateData(SpaghettiBuffer buffer) {
+	public void getReplicateData(NetworkBuffer buffer) {
 	}
 
 	@Override
-	public void setReplicateData(SpaghettiBuffer buffer) {
+	public void setReplicateData(NetworkBuffer buffer) {
 	}
 
 	@Override

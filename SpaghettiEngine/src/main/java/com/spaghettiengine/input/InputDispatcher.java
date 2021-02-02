@@ -2,7 +2,7 @@ package com.spaghettiengine.input;
 
 import java.util.ArrayList;
 
-import org.joml.Vector2d;
+import org.joml.Vector2i;
 import org.lwjgl.glfw.GLFW;
 
 import com.spaghettiengine.core.*;
@@ -19,7 +19,7 @@ public final class InputDispatcher {
 	
 	private GameWindow window;
 	public double scroll;
-	private Vector2d mousePosition;
+	private int x, y;
 	private boolean[] mouseButtons;
 	private boolean[] keyboardButtons;
 	private ArrayList<Controllable> listeners;
@@ -29,13 +29,36 @@ public final class InputDispatcher {
 		
 		// Initialize variables
 		scroll = 0;
-		mousePosition = new Vector2d();
+		x = 0;
+		y = 0;
 		mouseButtons = new boolean[GLFW.GLFW_MOUSE_BUTTON_LAST];
 		keyboardButtons = new boolean[GLFW.GLFW_KEY_LAST];
 		listeners = new ArrayList<>();
 	}
 	
 	public synchronized void update() {
+		
+		// Fire mouse movement events
+		Vector2i pointer = new Vector2i();
+		window.getMousePosition(pointer);
+		
+		if(pointer.x != x || pointer.y != y) {
+			// If the cursor is outside the bounds
+			// of the window, ignore the event
+			if(CMath.inrange(pointer.x, 0, window.getWidth()) && CMath.inrange(pointer.y, 0, window.getHeight())) {
+				fireMouseEvent(MouseEvent.MOVE, 0, false);
+			}
+			x = pointer.x;
+			y = pointer.y;
+		}
+		
+		// Fire mouse scroll events
+		// the scroll variable is set by the window itself
+		if(scroll != 0) {
+			fireMouseEvent(MouseEvent.SCROLL, 0, false);
+			scroll = 0;
+		}
+
 		for(int i = 0; i < mouseButtons.length; i++) {
 			
 			// Update mouse buttons
@@ -43,7 +66,7 @@ public final class InputDispatcher {
 				boolean current = window.mouseDown(i);
 				
 				if(current != mouseButtons[i]) {
-					fireMouseEvent(MouseEvent.BUTTONCHANGE, i, current, 0, 0, 0);
+					fireMouseEvent(MouseEvent.BUTTONCHANGE, i, current);
 				}
 				if(current) {
 					fireContinuousMouseEvent(i);
@@ -71,57 +94,42 @@ public final class InputDispatcher {
 			
 		}
 		
-		// Update mouse movement
-		int lastx = (int) mousePosition.x;
-		int lasty = (int) mousePosition.y;
-		window.getMousePosition(mousePosition);
-		
-		if((int) mousePosition.x != lastx || (int) mousePosition.y != lasty) {
-			if(CMath.inrange(mousePosition.x, 0, window.getWidth()) || CMath.inrange(mousePosition.y, 0, window.getHeight())) {
-				fireMouseEvent(MouseEvent.MOVE, 0, false, (int) mousePosition.x, (int) mousePosition.y, 0);
-			}
-		}
-		
-		// Fire mouse scroll events
-		// the scroll variable is set by the window itself
-		fireMouseEvent(MouseEvent.SCROLL, 0, false, 0, 0, scroll);
-		scroll = 0;
 	}
 
 	// Fire events to listeners
 	
-	private void fireMouseEvent(MouseEvent event, int button, boolean pressed, int mousex, int mousey, double scroll) {
+	private void fireMouseEvent(MouseEvent event, int button, boolean pressed) {
 		switch(event) {
 		case BUTTONCHANGE:
 			if(pressed) {
-				listeners.forEach(listener -> listener.onMouseButtonPressed(button));
+				listeners.forEach(listener -> listener.onMouseButtonPressed(button, x, y));
 			} else {
-				listeners.forEach(listener -> listener.onMouseButtonReleased(button));
+				listeners.forEach(listener -> listener.onMouseButtonReleased(button, x, y));
 			}
 			break;
 		case MOVE:
-			listeners.forEach(listener -> listener.onMouseMove(mousex, mousey));
+			listeners.forEach(listener -> listener.onMouseMove(x, y));
 			break;
 		case SCROLL:
-			listeners.forEach(listener -> listener.onMouseScroll(scroll));
+			listeners.forEach(listener -> listener.onMouseScroll(scroll, x, y));
 			break;
 		}
 	}
 	
 	private void fireKeyEvent(int key, boolean pressed) {
 		if(pressed) {
-			listeners.forEach(listener -> listener.onKeyPressed(key));
+			listeners.forEach(listener -> listener.onKeyPressed(key, x, y));
 		} else {
-			listeners.forEach(listener -> listener.onKeyReleased(key));
+			listeners.forEach(listener -> listener.onKeyReleased(key, x, y));
 		}
 	}
 	
 	private void fireContinuousMouseEvent(int button) {
-		listeners.forEach(listener -> listener.ifButtonDown(button));
+		listeners.forEach(listener -> listener.ifButtonDown(button, x, y));
 	}
 	
 	private void fireContinuousKeyEvent(int key) {
-		listeners.forEach(listener -> listener.ifKeyDown(key));
+		listeners.forEach(listener -> listener.ifKeyDown(key, x, y));
 	}
 	
 	// Register listeners

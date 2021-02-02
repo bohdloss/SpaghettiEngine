@@ -1,6 +1,5 @@
 package com.spaghettiengine.core;
 
-import org.joml.Vector2d;
 import org.joml.Vector2i;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.glfw.GLFWImage;
@@ -57,7 +56,7 @@ public final class GameWindow {
 		this.source = source;
 		this.inputDispatcher = new InputDispatcher(this);
 		// Cannot be instantiated outside of a game's context
-		if (source == null || source.renderer == null || source.window != null) {
+		if (source == null || source.getRenderer() == null || source.getWindow() != null) {
 			throw new UnsupportedOperationException();
 		}
 		this.title = title;
@@ -226,10 +225,10 @@ public final class GameWindow {
 		return doubley[0];
 	}
 
-	public void getMousePosition(Vector2d pointer) {
+	public void getMousePosition(Vector2i pointer) {
 		GLFW.glfwGetCursorPos(id, doublex, doubley);
-		pointer.x = doublex[0];
-		pointer.y = doubley[0];
+		pointer.x = (int) doublex[0];
+		pointer.y = (int) doubley[0];
 	}
 
 	public int getX() {

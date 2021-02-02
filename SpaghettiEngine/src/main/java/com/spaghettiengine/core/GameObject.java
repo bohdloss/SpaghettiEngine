@@ -10,7 +10,7 @@ import org.joml.Matrix4d;
 import org.joml.Vector3d;
 
 import com.spaghettiengine.interfaces.*;
-import com.spaghettiengine.utils.SpaghettiBuffer;
+import com.spaghettiengine.utils.NetworkBuffer;
 
 public abstract class GameObject implements Tickable, Renderable, Replicable {
 
@@ -884,11 +884,11 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 	}
 
 	@Override
-	public void getReplicateData(SpaghettiBuffer buffer) {
+	public void getReplicateData(NetworkBuffer buffer) {
 	}
 
 	@Override
-	public void setReplicateData(SpaghettiBuffer buffer) {
+	public void setReplicateData(NetworkBuffer buffer) {
 	}
 
 }

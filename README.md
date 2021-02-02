@@ -22,7 +22,7 @@ And you can do the following with it
 - Use the input system to control a player
 - (WIP) Easily manage networking for multiplayer
 - (WIP) Physics
-- (SOON) Run servers
+- (WIP) Run servers
 - (SOON) Play sounds and music
 
 ### How to set it up
@@ -41,12 +41,16 @@ First step necessary to do anything else
 The code is:
 ```java
 // Initialize an instance
-Game myGame = new Game(Updater.class, Renderer.class);
+GameBuilder builder = new GameBuilder();
+builder.setUpdater(new Updater());
+builder.setRenderer(new Renderer());
 
-// Start game threads (will initialize Renderer and Updater)
+Game myGame = builder.build();
+
+// Start game threads (will initialize the provided components)
 myGame.begin();
 ```
-Where Renderer is already implemented in the core package of the engine, while you will have to implement your own Updater class
+Where Renderer is already implemented in the core package of the engine, while you will have to implement your own Updater class, and Client can be null
 
 ### Implement Updater class
 
@@ -64,11 +68,6 @@ import com.spaghettiengine.core.Updater;
 
 // Extends Updater
 public class MyUpdater extends Updater {
-
-  // Re-implement super-class constructor
-  public MyUpdater(Game game) {
-    super(game);
-  }
 
   public void initialize0() {
     super.initialize0();
@@ -102,8 +101,8 @@ In your initialize0() method:
 Level myLevel = new Level();
 
 // Attach the level to the game
-// Source is a reference to the current Game instance
-source.attachLevel(myLevel);
+// getSource() returns a reference to the current Game instance
+getSource().attachLevel(myLevel);
 
 /*
 * You will need a Camera to render the scene
@@ -134,8 +133,8 @@ public void loopEvents(double delta) {
   super.loopEvents(delta);
 
   // Increase it reagrdless of the framerate
-  // Remember source is a reference to the current game object
-  i += 0.05 * source.getTickMultiplier(delta);
+  // Remember getSource() returns a reference to the current game object
+  i += 0.05 * getSource().getTickMultiplier(delta);
 
   // Assuming you saved a reference to the level you created
   myLevel.getComponent(Mesh.class).setPitch(i);

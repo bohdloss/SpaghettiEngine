@@ -3,14 +3,14 @@ package com.spaghettiengine.utils;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 
-public final class SpaghettiBuffer {
+public final class NetworkBuffer {
 
 	private static final byte b0 = (byte) 0, b1 = (byte) 1;
 	private static final Charset UTF_8 = Charset.forName("UTF-8");
 
 	private ByteBuffer buffer;
 
-	public SpaghettiBuffer(int size) {
+	public NetworkBuffer(int size) {
 		buffer = ByteBuffer.allocateDirect(size);
 	}
 
@@ -120,12 +120,6 @@ public final class SpaghettiBuffer {
 		for (Object object : objects) {
 			putObject(object);
 		}
-	}
-
-	// Utility
-
-	public ByteBuffer getBuffer() {
-		return buffer;
 	}
 
 }

@@ -1,18 +1,20 @@
 package com.spaghettiengine.demo;
 
 import com.spaghettiengine.core.*;
+import com.spaghettiengine.render.Renderer;
+import com.spaghettiengine.utils.Utils;
 
-public class Demo extends Thread {
+public class Demo {
 
+	public static Game game;
+	
 	public static void main(String[] args) {
 
 		try {
-
-			Game game = new Game(MyUpdater.class, Renderer.class);
+			
+			game = new GameBuilder().setRenderer(new Renderer()).setUpdater(new MyUpdater()).build();
 			game.getWindow().setSizeLimit(2, 2, 2000, 2000);
 			game.begin();
-
-			// new Demo().start();
 
 			Game.idle();
 
@@ -21,17 +23,5 @@ public class Demo extends Thread {
 		}
 
 	}
-
-	@Override
-	public void run() {
-		try {
-			Game game2 = new Game(MyUpdater.class, Renderer.class);
-			game2.getWindow().setTitle("die");
-			game2.begin();
-		} catch (Throwable e) {
-			e.printStackTrace();
-		}
-
-	}
-
+	
 }

@@ -218,21 +218,6 @@ public final class AssetLoader {
 		// Apply data to Model
 
 		model.setData(__vertices, __tex_coords, __normals, __indices);
-		/*
-		 * model.setData(new float[]{
-		 * 
-		 * -0.5f, 0.5f, 0, 0.5f, 0.5f, 0, 0.5f, -0.5f, 0, -0.5f, -0.5f, 0
-		 * 
-		 * },new float[]{
-		 * 
-		 * 0, 0, 1, 0, 1, 1, 0, 1
-		 * 
-		 * },new int[]{
-		 * 
-		 * 0, 1, 2, 2, 3, 0
-		 * 
-		 * });
-		 */
 
 	}
 

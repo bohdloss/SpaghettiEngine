@@ -2,8 +2,10 @@ package com.spaghettiengine.input;
 
 import org.lwjgl.glfw.GLFW;
 
-public class Keys {
+public final class Keys {
 
+	private Keys() {}
+	
 	// Auto generated code
 	
 	public static final int UNKNOWN = GLFW.GLFW_KEY_UNKNOWN;

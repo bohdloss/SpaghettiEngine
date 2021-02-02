@@ -4,7 +4,7 @@ import org.joml.Matrix4d;
 
 import com.spaghettiengine.core.*;
 import com.spaghettiengine.render.*;
-import com.spaghettiengine.utils.SpaghettiBuffer;
+import com.spaghettiengine.utils.NetworkBuffer;
 
 public class Mesh extends GameObject {
 
@@ -47,14 +47,14 @@ public class Mesh extends GameObject {
 	// Interface
 
 	@Override
-	public void getReplicateData(SpaghettiBuffer buffer) {
+	public void getReplicateData(NetworkBuffer buffer) {
 
 		// TODO when asset manager is implemented
 
 	}
 
 	@Override
-	public void setReplicateData(SpaghettiBuffer buffer) {
+	public void setReplicateData(NetworkBuffer buffer) {
 
 		// TODO - - - - -
 

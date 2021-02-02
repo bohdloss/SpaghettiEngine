@@ -3,24 +3,21 @@ package com.spaghettiengine.demo;
 import com.spaghettiengine.components.Controller;
 import com.spaghettiengine.core.*;
 import com.spaghettiengine.input.Keys;
+import com.spaghettiengine.input.Updater;
 import com.spaghettiengine.objects.Camera;
 import com.spaghettiengine.objects.Mesh;
 import com.spaghettiengine.physics.RigidBody;
 import com.spaghettiengine.render.*;
+import com.spaghettiengine.utils.Utils;
 
 public class MyUpdater extends Updater {
 
 	protected Level level;
 
-	public MyUpdater(Game source) {
-		super(source);
-	}
-
 	@Override
 	public void initialize0() throws Throwable {
 		level = new Level();
-		source.attachLevel(level);
-		
+		getSource().attachLevel(level);
 		Camera camera = new Camera(level, null);
 		camera.setFov(20);
 		
@@ -29,7 +26,7 @@ public class MyUpdater extends Updater {
 		square.setRelativePosition(-1, 2, 0);
 		square.addComponent(new Controller() {
 			double speed = 0.0001;
-			public void ifKeyDown(int key) {
+			public void ifKeyDown(int key, int x, int y) {
 				if(key == Keys.D) {
 					getOwner().setRelativeX(getOwner().getRelativeX() + speed);
 				}
@@ -44,7 +41,7 @@ public class MyUpdater extends Updater {
 				}
 			}
 			
-			public void onMouseScroll(double scroll) {
+			public void onMouseScroll(double scroll, int x, int y) {
 				speed += scroll / 10000;
 				speed = speed < 0 ? 0 : speed;
 			}

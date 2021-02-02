@@ -34,8 +34,10 @@ public final class Handler extends Thread {
 				boolean found = false;
 				for (Game game : Game.games) {
 					// Detect soft-blocked instances and stop()
-					if (!game.isStopped() && game.isInit() && game.isDead()) {
-						game.stop();
+					if (!game.isStopped()) {
+						if(game.isInit() && (game.isDead() || game.stopSignal)) {
+							game.stop();
+						}
 					}
 
 					// Detect if all games are stopped

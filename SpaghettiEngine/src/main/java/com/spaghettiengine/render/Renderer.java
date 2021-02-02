@@ -1,4 +1,4 @@
-package com.spaghettiengine.core;
+package com.spaghettiengine.render;
 
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
@@ -10,8 +10,10 @@ import org.lwjgl.glfw.GLFW;
 import org.lwjgl.opengl.GLCapabilities;
 
 import com.spaghettiengine.assets.AssetManager;
+import com.spaghettiengine.core.CoreComponent;
+import com.spaghettiengine.core.Game;
+import com.spaghettiengine.core.GameWindow;
 import com.spaghettiengine.objects.Camera;
-import com.spaghettiengine.render.*;
 import com.spaghettiengine.utils.*;
 
 public class Renderer extends CoreComponent {
@@ -30,15 +32,11 @@ public class Renderer extends CoreComponent {
 	protected int fps;
 	protected long lastCheck;
 
-	public Renderer(Game source) {
-		super(source);
-	}
-
 	@Override
 	public void initialize0() throws Throwable {
-		this.window = source.getWindow();
-		this.dispatcher = source.getFunctionDispatcher();
-		this.assetManager = source.getAssetManager();
+		this.window = getSource().getWindow();
+		this.dispatcher = getSource().getFunctionDispatcher();
+		this.assetManager = getSource().getAssetManager();
 
 		window.makeContextCurrent();
 		glCapabilities = GL.createCapabilities();
@@ -76,10 +74,10 @@ public class Renderer extends CoreComponent {
 	@Override
 	protected void loopEvents(double delta) throws Throwable {
 		if (window.shouldClose()) {
-			terminate();
+			getSource().stopAsync();
 		}
 
-		glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT);
+		glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_STENCIL_BUFFER_BIT);
 		assetManager.lazyLoad();
 		dispatcher.computeEvents(1);
 
@@ -149,14 +147,15 @@ public class Renderer extends CoreComponent {
 		fps++;
 
 		if (System.currentTimeMillis() >= lastCheck + 1000) {
-			Logger.info(source, fps + " FPS");
+			Logger.info(fps + " FPS");
 			fps = 0;
 			lastCheck = System.currentTimeMillis();
 		}
 	}
 
-	public void updateRenderMatrix() {
-
+	@Override
+	protected final CoreComponent provideSelf() {
+		return getSource().getRenderer();
 	}
-
+	
 }

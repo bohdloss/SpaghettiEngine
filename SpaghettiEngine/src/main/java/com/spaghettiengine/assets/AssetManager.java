@@ -154,8 +154,7 @@ public final class AssetManager {
 
 	// Loader methods
 
-	private void fillAsset(String type, String name) {
-		try {
+	private void fillAsset(String type, String name) throws Throwable {
 			SheetEntry info = sheet.sheet.get(name);
 			switch (type) {
 			case MODEL:
@@ -183,9 +182,6 @@ public final class AssetManager {
 				AssetLoader.loadCustom(custom, info);
 				break;
 			}
-		} catch (Throwable t) {
-			Logger.error("Could not fill " + type + " " + name, t);
-		}
 	}
 
 	public synchronized void loadAsset(String type, String name) {
@@ -199,6 +195,7 @@ public final class AssetManager {
 			source.getFunctionDispatcher().getReturnValue(load);
 		} catch (Throwable t) {
 			Logger.error("Could not load " + type + " " + name, t);
+			source.stopAsync();
 		}
 	}
 
