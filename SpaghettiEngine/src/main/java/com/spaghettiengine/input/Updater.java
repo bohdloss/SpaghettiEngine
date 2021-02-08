@@ -8,7 +8,7 @@ public class Updater extends CoreComponent {
 	protected void loopEvents(double delta) throws Throwable {
 		getSource().getFunctionDispatcher().computeEvents();
 
-		if(!getSource().isHeadless()) {
+		if (!getSource().isHeadless()) {
 			getSource().getWindow().getInputDispatcher().update();
 		}
 

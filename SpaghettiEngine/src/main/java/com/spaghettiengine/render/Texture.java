@@ -3,7 +3,6 @@ package com.spaghettiengine.render;
 import java.awt.image.BufferedImage;
 import java.nio.ByteBuffer;
 
-import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL13;
 import org.lwjgl.opengl.GL30;
@@ -75,7 +74,7 @@ public class Texture extends Asset {
 		if (valid()) {
 			return;
 		}
-		
+
 		this.buffer = (ByteBuffer) objects[0];
 		this.width = (int) objects[1];
 		this.height = (int) objects[2];
@@ -85,14 +84,10 @@ public class Texture extends Asset {
 
 	@Override
 	public boolean isFilled() {
-		return width > 0 && height > 0 &&
-				(type == COLOR ||
-				type == DEPTH ||
-				type == STENCIL) &&
-				(mode == LINEAR ||
-				mode == NEAREST);
+		return width > 0 && height > 0 && (type == COLOR || type == DEPTH || type == STENCIL)
+				&& (mode == LINEAR || mode == NEAREST);
 	}
-	
+
 	@Override
 	protected void load0() {
 		// Generate a valid id for this texture

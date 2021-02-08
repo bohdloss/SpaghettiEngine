@@ -31,6 +31,7 @@ public class MyUpdater extends Updater {
 		physics = new Physics(level);
 		physics.setGravity(0, 0);
 		square = new Mesh(level, null, Model.get("apple_model"), Material.get("apple_mat")) {
+			@Override
 			public void commonUpdate(double delta) {
 				super.commonUpdate(delta);
 				Vector3d vec = new Vector3d();
@@ -50,39 +51,39 @@ public class MyUpdater extends Updater {
 		square.addComponent(new Controller() {
 
 			double _speed = 1;
-			
+
 			@Override
 			public void commonUpdate(double delta) {
-				
+
 				double x = 0;
 				double y = 0;
-				
-				if(Keys.keydown(Keys.D)) {
+
+				if (Keys.keydown(Keys.D)) {
 					x += 1;
 				}
-				if(Keys.keydown(Keys.A)) {
+				if (Keys.keydown(Keys.A)) {
 					x -= 1;
 				}
-				if(Keys.keydown(Keys.W)) {
+				if (Keys.keydown(Keys.W)) {
 					y += 1;
 				}
-				if(Keys.keydown(Keys.S)) {
+				if (Keys.keydown(Keys.S)) {
 					y -= 1;
 				}
-				
-				if(x == 0 && y == 0) {
+
+				if (x == 0 && y == 0) {
 					return;
 				}
-				
+
 				double angle = CMath.lookAt(x, y);
-				
+
 				double force_x = Math.cos(angle) * 200 * _speed;
 				double force_y = Math.sin(angle) * 200 * _speed;
-				
+
 				getOwner().getComponent(RigidBody.class).applyForce(force_x, force_y);
-				
+
 			}
-			
+
 			@Override
 			public void onMouseScroll(double scroll, int x, int y) {
 				_speed += scroll;
@@ -91,11 +92,11 @@ public class MyUpdater extends Updater {
 
 			@Override
 			public void onKeyPressed(int key, int x, int y) {
-				if(key == Keys.R) {
+				if (key == Keys.R) {
 					getOwner().setWorldPosition(0, 0, 0);
 				}
 			}
-			
+
 		});
 
 //		square.addChild(square2);

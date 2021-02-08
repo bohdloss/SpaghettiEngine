@@ -7,8 +7,6 @@ import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL15;
 import org.lwjgl.opengl.GL20;
-import org.lwjgl.opengl.GL30;
-
 import com.spaghettiengine.assets.Asset;
 import com.spaghettiengine.core.Game;
 
@@ -35,7 +33,8 @@ public class Model extends Asset {
 		load();
 	}
 
-	public void setData(Object...objects) {
+	@Override
+	public void setData(Object... objects) {
 		if (valid()) {
 			return;
 		}
@@ -44,17 +43,14 @@ public class Model extends Asset {
 		this.tex_coords = (float[]) objects[1];
 		this.normals = (float[]) objects[2];
 		this.indices = (int[]) objects[3];
-		
+
 	}
 
 	@Override
 	public boolean isFilled() {
-		return vertices != null &&
-				tex_coords != null &&
-				normals != null &&
-				indices != null;
+		return vertices != null && tex_coords != null && normals != null && indices != null;
 	}
-	
+
 	@Override
 	protected void load0() {
 		if (!isFilled()) {
@@ -77,7 +73,7 @@ public class Model extends Asset {
 
 		GL15.glBindBuffer(GL15.GL_ELEMENT_ARRAY_BUFFER, 0);
 		GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
-		
+
 	}
 
 	public void render() {
@@ -109,7 +105,7 @@ public class Model extends Asset {
 		GL15.glBindBuffer(GL15.GL_ELEMENT_ARRAY_BUFFER, i_id);
 		// Actual draw call
 		GL11.glDrawElements(GL11.GL_TRIANGLES, draw_count, GL11.GL_UNSIGNED_INT, 0);
-		
+
 		// Unbind buffers
 
 		GL15.glBindBuffer(GL15.GL_ELEMENT_ARRAY_BUFFER, 0);

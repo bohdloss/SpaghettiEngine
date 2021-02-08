@@ -198,7 +198,8 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 		return buffer;
 	}
 
-	public final synchronized GameObject[] getChildrenN(Class<? extends GameObject> cls, GameObject[] buffer, int offset) {
+	public final synchronized GameObject[] getChildrenN(Class<? extends GameObject> cls, GameObject[] buffer,
+			int offset) {
 		i = 0;
 		children.forEach((id, object) -> {
 			if (object.getClass().equals(cls)) {
@@ -227,9 +228,9 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 	@SuppressWarnings("unchecked")
 	public final synchronized <T extends GameComponent> T getComponent(int index, Class<T> cls) {
 		i = 0;
-		for(GameComponent comp : components) {
-			if(comp.getClass().equals(cls)) {
-				if(i == index) {
+		for (GameComponent comp : components) {
+			if (comp.getClass().equals(cls)) {
+				if (i == index) {
 					return (T) comp;
 				}
 				i++;
@@ -237,7 +238,7 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 		}
 		throw new IndexOutOfBoundsException("" + index);
 	}
-	
+
 	@SuppressWarnings("unchecked")
 	public final synchronized <T extends GameComponent> T getComponent(Class<T> cls) {
 		_com = null;
@@ -280,8 +281,8 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 		return buffer;
 	}
 
-	public final synchronized GameComponent[] getComponentsN(Class<? extends GameComponent> cls,
-			GameComponent[] buffer, int offset) {
+	public final synchronized GameComponent[] getComponentsN(Class<? extends GameComponent> cls, GameComponent[] buffer,
+			int offset) {
 		i = 0;
 		components.forEach(component -> {
 			if (component.getClass().equals(cls)) {
@@ -293,12 +294,12 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 
 	public final synchronized GameComponent[] getComponents(GameComponent[] buffer, int offset) {
 		int i = 0;
-		for(GameComponent comp : components) {
+		for (GameComponent comp : components) {
 			buffer[i + offset] = comp;
 		}
 		return buffer;
 	}
-	
+
 	// Remove objects or components
 
 	public final synchronized GameObject removeChild(long id) {
@@ -925,13 +926,13 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 	protected final void raiseSignal(long signal) {
 		getGame().getEventDispatcher().raiseSignal(this, signal);
 	}
-	
+
 	protected final void raiseEvent(GameEvent event) {
 		getGame().getEventDispatcher().raiseEvent(this, event);
 	}
-	
+
 	protected final void raiseIntention(long intention) {
 		getGame().getEventDispatcher().raiseIntention(this, intention);
 	}
-	
+
 }

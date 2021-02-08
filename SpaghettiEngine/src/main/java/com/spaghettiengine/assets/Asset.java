@@ -11,7 +11,7 @@ public abstract class Asset {
 	public static Asset require(String name) {
 		return Game.getGame().getAssetManager().requireCustom(name);
 	}
-	
+
 	private String name;
 	private boolean init, deleted;
 
@@ -67,9 +67,9 @@ public abstract class Asset {
 	public String getName() {
 		return name;
 	}
-	
+
 	protected final void setName(String name) {
 		this.name = name;
 	}
-	
+
 }

@@ -56,19 +56,22 @@ public class Material extends Asset {
 		setShader(shader);
 	}
 
-	public void setData(Object...objects) {
+	@Override
+	public void setData(Object... objects) {
 		if (valid()) {
 			return;
 		}
 
 		this.texture = (Texture) objects[0];
-		this.shader = (ShaderProgram) objects[1];;
+		this.shader = (ShaderProgram) objects[1];
+		;
 	}
 
+	@Override
 	public boolean isFilled() {
 		return texture != null && shader != null;
 	}
-	
+
 	// Getters and setters
 
 	public ShaderProgram getShader() {

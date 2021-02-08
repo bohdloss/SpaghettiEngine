@@ -27,17 +27,17 @@ public class RenderBuffer extends Asset {
 		if (valid()) {
 			return;
 		}
-		
+
 		width = (int) objects[0];
 		height = (int) objects[1];
 		type = (int) objects[2];
 	}
 
+	@Override
 	public boolean isFilled() {
-		return (type == COLOR || type == DEPTH || type == STENCIL) &&
-				height > 0 && width > 0;
+		return (type == COLOR || type == DEPTH || type == STENCIL) && height > 0 && width > 0;
 	}
-	
+
 	protected void _use() {
 		GL30.glBindRenderbuffer(GL30.GL_RENDERBUFFER, id);
 	}

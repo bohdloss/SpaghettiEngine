@@ -13,22 +13,16 @@ public class Demo {
 	public static void main(String[] args) {
 
 		try {
-			
-			game = new GameBuilder()
-					.setRenderer(new Renderer())
-					.setUpdater(new MyUpdater())
-					.setClient(new Client())
+
+			game = new GameBuilder().setRenderer(new Renderer()).setUpdater(new MyUpdater()).setClient(new Client())
 					.build();
 			game.getWindow().setSizeLimit(2, 2, 2000, 2000);
-			
-			server = new GameBuilder()
-					.setUpdater(new MyUpdater())
-					.setServer(new Server())
-					.build();
-			
+
+			server = new GameBuilder().setUpdater(new MyUpdater()).setServer(new Server()).build();
+
 			game.depends(server);
 			server.depends(game);
-			
+
 			server.begin();
 			game.begin();
 

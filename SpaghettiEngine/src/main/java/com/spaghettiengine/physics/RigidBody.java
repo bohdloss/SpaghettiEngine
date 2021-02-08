@@ -56,7 +56,7 @@ public class RigidBody extends GameComponent {
 		owner.getWorldPosition(poscache);
 		owner.getWorldScale(scalecache);
 		owner.getWorldRotation(rotcache);
-		
+
 		position.x = poscache.x;
 		position.y = poscache.y;
 	}
@@ -122,7 +122,7 @@ public class RigidBody extends GameComponent {
 			applyForce(force_x, force_y);
 
 		} while ((b = b.next) != null);
-		
+
 		// Air friction
 		double friction_x = -velocity.x * physics.AIR_FRICTION;
 		double friction_y = -velocity.y * physics.AIR_FRICTION;

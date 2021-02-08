@@ -30,5 +30,5 @@ public final class Buttons {
 		Game game = Game.getGame();
 		return (game.isServer() || game.isHeadless()) ? false : game.getWindow().mouseDown(button);
 	}
-	
+
 }

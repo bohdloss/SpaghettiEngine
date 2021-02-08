@@ -18,8 +18,7 @@ public class FrameBuffer extends Asset {
 
 	public FrameBuffer(int width, int height) {
 		setData(new Texture((ByteBuffer) null, width, height, Texture.COLOR),
-				new Texture((ByteBuffer) null, width, height, Texture.DEPTH),
-				null);
+				new Texture((ByteBuffer) null, width, height, Texture.DEPTH), null);
 		load();
 	}
 
@@ -28,10 +27,10 @@ public class FrameBuffer extends Asset {
 
 	@Override
 	public void setData(Object... objects) {
-		if(valid()) {
+		if (valid()) {
 			return;
 		}
-		
+
 		this.color = (Asset) objects[0];
 		this.depth = (Asset) objects[1];
 		this.stencil = (Asset) objects[2];
@@ -45,29 +44,29 @@ public class FrameBuffer extends Asset {
 			this.width = cast.getWidth();
 			this.height = cast.getHeight();
 		}
-		
+
 	}
 
 	@Override
 	public boolean isFilled() {
 		return (color != null || depth != null || stencil != null) && height > 0 && width > 0;
 	}
-	
+
 	@Override
 	protected void load0() {
 
 		// Create frame buffer
 		id = GL30.glGenFramebuffers();
-		
+
 		// Attach color
 		attachColor(color);
-		
+
 		// Attach depth
 		attachDepth(depth);
 
 		// Attach stencil
 		attachStencil(stencil);
-		
+
 		// Check for validity
 		checkValid();
 
@@ -91,7 +90,7 @@ public class FrameBuffer extends Asset {
 			}
 			GL30.glFramebufferTexture2D(GL30.GL_DRAW_FRAMEBUFFER, GL30.GL_COLOR_ATTACHMENT0, GL11.GL_TEXTURE_2D,
 					cast.getId(), 0);
-			
+
 		} else if (RenderBuffer.class.isAssignableFrom(object.getClass())) {
 
 			RenderBuffer cast = (RenderBuffer) object;
@@ -223,8 +222,8 @@ public class FrameBuffer extends Asset {
 			message = "FrameBuffer " + id + " is incomplete! (GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER)";
 			break;
 		default:
-			message = "FrameBuffer: " + id + " in invalid state! (" + framebuffer + "). " +
-					"If you are seeing this message the error is most likely due to the configuration of attachments";
+			message = "FrameBuffer: " + id + " in invalid state! (" + framebuffer + "). "
+					+ "If you are seeing this message the error is most likely due to the configuration of attachments";
 		}
 
 		internal_stop();

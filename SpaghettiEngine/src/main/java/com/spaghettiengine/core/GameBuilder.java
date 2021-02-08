@@ -51,17 +51,17 @@ public final class GameBuilder {
 	}
 
 	public GameBuilder setServer(Server server) {
-		if(game != null) {
+		if (game != null) {
 			return this;
 		}
 		this.server = server;
 		return this;
 	}
-	
+
 	public Server getServer() {
 		return server;
 	}
-	
+
 	public Game build() throws Throwable {
 		return new Game(updater, renderer, client, server);
 	}

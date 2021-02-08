@@ -14,7 +14,7 @@ public final class Physics extends GameObject {
 	protected double AIR_FRICTION = 18.6;
 	@Replicate
 	protected Vector2d gravity = new Vector2d(0, -9.81);
-	
+
 	public Physics(Level level) {
 		super(level, (GameObject) null);
 	}
@@ -93,7 +93,7 @@ public final class Physics extends GameObject {
 	public double getAirFriction() {
 		return AIR_FRICTION;
 	}
-	
+
 	// Setters
 
 	public void setGravity(double x, double y) {
@@ -111,7 +111,7 @@ public final class Physics extends GameObject {
 	public void setAirFriction(double value) {
 		AIR_FRICTION = value;
 	}
-	
+
 	// Interfaces
 
 	@Override

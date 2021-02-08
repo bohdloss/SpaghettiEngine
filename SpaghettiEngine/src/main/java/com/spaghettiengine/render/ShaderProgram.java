@@ -38,26 +38,27 @@ public final class ShaderProgram extends Asset {
 
 	public ShaderProgram(Shader... shaders) {
 		Object[] obj = new Object[shaders.length];
-		for(int i = 0; i < shaders.length; i++) {
+		for (int i = 0; i < shaders.length; i++) {
 			obj[i] = shaders[i];
 		}
-		setData((Object[]) obj);
+		setData(obj);
 		load();
 	}
 
+	@Override
 	public void setData(Object... shaders) {
 		if (valid()) {
 			return;
 		}
-		
+
 		try {
-		
+
 			this.shaders = new Shader[shaders.length];
-			for(int i = 0; i < shaders.length; i++) {
+			for (int i = 0; i < shaders.length; i++) {
 				this.shaders[i] = (Shader) shaders[i];
 			}
-		
-		} catch(Throwable t) {
+
+		} catch (Throwable t) {
 			this.shaders = null;
 			throw t;
 		}
@@ -67,7 +68,7 @@ public final class ShaderProgram extends Asset {
 	public boolean isFilled() {
 		return shaders != null;
 	}
-	
+
 	@Override
 	protected void load0() {
 		// Get a usable id for this s-program

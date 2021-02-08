@@ -216,7 +216,7 @@ public final class AssetLoader {
 
 		// Apply data to Model
 
-		model.setData(new Object[] {__vertices, __tex_coords, __normals, __indices});
+		model.setData(new Object[] { __vertices, __tex_coords, __normals, __indices });
 
 	}
 
@@ -236,7 +236,7 @@ public final class AssetLoader {
 		for (int i = 0; i < data.args.length; i++) {
 			shaders[i] = manager.requireShader(data.args[i]);
 		}
-		shaderProgram.setData((Object[]) shaders);
+		shaderProgram.setData(shaders);
 	}
 
 	// Texture loaders

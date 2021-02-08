@@ -96,8 +96,8 @@ public final class Game {
 	private boolean init;
 
 	protected boolean stopSignal;
-	protected ArrayList<Game> dependencies = new ArrayList<Game>();
-	
+	protected ArrayList<Game> dependencies = new ArrayList<>();
+
 	// Security
 	private boolean starting;
 	private boolean stopping;
@@ -113,11 +113,11 @@ public final class Game {
 
 	// Constructors using custom classes
 	public Game(Updater updater, Renderer renderer, Client client, Server server) throws Throwable {
-		
-		if(client != null && server != null) {
+
+		if (client != null && server != null) {
 			throw new IllegalArgumentException("Cannot have both a client and a server in a Game");
 		}
-		
+
 		this.dispatcher = new FunctionDispatcher();
 		this.options = new GameOptions();
 		this.assetManager = new AssetManager(this);
@@ -142,7 +142,7 @@ public final class Game {
 			this.client.setName("CLIENT");
 			registerThread(this.client);
 		}
-		if(server != null) {
+		if (server != null) {
 			this.server = server;
 			this.server.setName("SERVER");
 			registerThread(this.server);
@@ -152,22 +152,22 @@ public final class Game {
 		this.isMultiplayer = client != null || server != null;
 		this.isClient = (client != null || server == null) || !isMultiplayer;
 		this.hasAutority = server != null || !isMultiplayer;
-		
+
 		dispatcher.setDefaultId(renderer == null ? -1 : renderer.getId());
 	}
 
 	// If the provided game instance dies, this instance does too
 	public void depends(Game game) {
-		if(!dependencies.contains(game)) {
+		if (!dependencies.contains(game)) {
 			dependencies.add(game);
 		}
 	}
-	
+
 	// Reverts the effects of depends()
 	public void not_depends(Game game) {
 		dependencies.remove(game);
 	}
-	
+
 	// Stop all child threads and flag this game instance as stopped
 	public void stop() {
 
@@ -188,10 +188,10 @@ public final class Game {
 		if (client != null) {
 			client.terminate();
 		}
-		if(server != null) {
+		if (server != null) {
 			server.terminate();
 		}
-		
+
 		// Then wait for termination
 
 		if (updater != null) {
@@ -204,10 +204,10 @@ public final class Game {
 		if (client != null) {
 			client.waitTerminate();
 		}
-		if(server != null) {
+		if (server != null) {
 			server.waitTerminate();
 		}
-		
+
 		// Destroy the window if it's there
 
 		if (window != null) {
@@ -257,7 +257,7 @@ public final class Game {
 
 		Logger.loading(this, "Starting game threads...");
 		starting = true;
-		if(assetManager != null) {
+		if (assetManager != null) {
 			assetManager.loadAssetSheet(options.getAssetSheetLocation());
 		}
 
@@ -272,7 +272,7 @@ public final class Game {
 		if (client != null) {
 			client.start(this);
 		}
-		if(server != null) {
+		if (server != null) {
 			server.start(this);
 		}
 
@@ -287,25 +287,25 @@ public final class Game {
 		if (client != null) {
 			client.waitInit();
 		}
-		if(server != null) {
+		if (server != null) {
 			server.waitInit();
 		}
-		
+
 		// Mark this instance as initialized
 
-		if(updater != null) {
+		if (updater != null) {
 			updater.allowRun();
 		}
-		if(renderer != null) {
+		if (renderer != null) {
 			renderer.allowRun();
 		}
-		if(client != null) {
+		if (client != null) {
 			client.allowRun();
 		}
-		if(server != null) {
+		if (server != null) {
 			server.allowRun();
 		}
-		
+
 		init = true;
 		starting = false;
 
@@ -337,7 +337,7 @@ public final class Game {
 	public Server getServer() {
 		return server;
 	}
-	
+
 	public FunctionDispatcher getFunctionDispatcher() {
 		return dispatcher;
 	}
@@ -349,7 +349,7 @@ public final class Game {
 	public EventDispatcher getEventDispatcher() {
 		return eventDispatcher;
 	}
-	
+
 	// Returns true if no renderer or window is associated with this game
 	public boolean isHeadless() {
 		return isHeadless;
@@ -374,7 +374,7 @@ public final class Game {
 	public boolean hasAuthority() {
 		return hasAutority;
 	}
-	
+
 	public boolean isDead() {
 		boolean updNull = updater == null;
 		boolean renderNull = renderer == null;
@@ -394,10 +394,10 @@ public final class Game {
 		if (!clientNull && client.stopped()) {
 			return true;
 		}
-		if(!serverNull && server.stopped()) {
+		if (!serverNull && server.stopped()) {
 			return true;
 		}
-		
+
 		return false;
 	}
 
@@ -436,7 +436,7 @@ public final class Game {
 	public long getServerId() {
 		return server.getId();
 	}
-	
+
 	public AssetManager getAssetManager() {
 		return assetManager;
 	}

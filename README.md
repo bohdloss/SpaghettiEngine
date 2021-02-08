@@ -20,9 +20,10 @@ Spaghetti engine features:
 And you can do the following with it
 - Render 3d models with materials
 - Use the input system to control a player
+- Use the event system to easily dispatch custom events across the level
 - (WIP) Easily manage networking for multiplayer
-- (WIP) Physics
 - (WIP) Run servers
+- (WIP) Physics
 - (SOON) Play sounds and music
 
 ### How to set it up

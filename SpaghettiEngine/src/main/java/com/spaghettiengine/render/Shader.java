@@ -41,7 +41,8 @@ public final class Shader extends Asset {
 		load();
 	}
 
-	public void setData(Object...objects) {
+	@Override
+	public void setData(Object... objects) {
 		if (valid()) {
 			return;
 		}
@@ -52,14 +53,10 @@ public final class Shader extends Asset {
 
 	@Override
 	public boolean isFilled() {
-		return (type == VERTEX_SHADER ||
-				type == FRAGMENT_SHADER ||
-				type == GEOMETRY_SHADER ||
-				type == TESS_CONTROL_SHADER ||
-				type == TESS_EVALUATION_SHADER) &&
-				source != null;
+		return (type == VERTEX_SHADER || type == FRAGMENT_SHADER || type == GEOMETRY_SHADER
+				|| type == TESS_CONTROL_SHADER || type == TESS_EVALUATION_SHADER) && source != null;
 	}
-	
+
 	@Override
 	protected void load0() {
 		if (!validateType(type) || source == null) {
