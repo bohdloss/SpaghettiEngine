@@ -5,9 +5,10 @@ import org.lwjgl.opengl.GL20;
 import org.lwjgl.opengl.GL32;
 import org.lwjgl.opengl.GL40;
 
+import com.spaghettiengine.assets.Asset;
 import com.spaghettiengine.core.Game;
 
-public final class Shader extends RenderObject {
+public final class Shader extends Asset {
 
 	public static Shader get(String name) {
 		return Game.getGame().getAssetManager().shader(name);
@@ -40,17 +41,25 @@ public final class Shader extends RenderObject {
 		load();
 	}
 
-	public void setData(String source, int type) {
+	public void setData(Object...objects) {
 		if (valid()) {
 			return;
 		}
 
-		this.source = source;
-		this.type = type;
-
-		setFilled(true);
+		this.source = (String) objects[0];
+		this.type = (int) objects[1];
 	}
 
+	@Override
+	public boolean isFilled() {
+		return (type == VERTEX_SHADER ||
+				type == FRAGMENT_SHADER ||
+				type == GEOMETRY_SHADER ||
+				type == TESS_CONTROL_SHADER ||
+				type == TESS_EVALUATION_SHADER) &&
+				source != null;
+	}
+	
 	@Override
 	protected void load0() {
 		if (!validateType(type) || source == null) {

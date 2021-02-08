@@ -9,9 +9,10 @@ import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL20;
 
+import com.spaghettiengine.assets.Asset;
 import com.spaghettiengine.core.Game;
 
-public final class ShaderProgram extends RenderObject {
+public final class ShaderProgram extends Asset {
 
 	public static ShaderProgram get(String name) {
 		return Game.getGame().getAssetManager().shaderProgram(name);
@@ -36,20 +37,37 @@ public final class ShaderProgram extends RenderObject {
 	}
 
 	public ShaderProgram(Shader... shaders) {
-		setData(shaders);
+		Object[] obj = new Object[shaders.length];
+		for(int i = 0; i < shaders.length; i++) {
+			obj[i] = shaders[i];
+		}
+		setData((Object[]) obj);
 		load();
 	}
 
-	public void setData(Shader... shaders) {
+	public void setData(Object... shaders) {
 		if (valid()) {
 			return;
 		}
-
-		this.shaders = shaders;
-
-		setFilled(true);
+		
+		try {
+		
+			this.shaders = new Shader[shaders.length];
+			for(int i = 0; i < shaders.length; i++) {
+				this.shaders[i] = (Shader) shaders[i];
+			}
+		
+		} catch(Throwable t) {
+			this.shaders = null;
+			throw t;
+		}
 	}
 
+	@Override
+	public boolean isFilled() {
+		return shaders != null;
+	}
+	
 	@Override
 	protected void load0() {
 		// Get a usable id for this s-program

@@ -12,8 +12,9 @@ public abstract class CoreComponent extends Thread {
 	private long lastTime;
 
 	public final void initialize() throws Throwable {
-		if(!validStarting()) {
-			throw new IllegalStateException("Error: attempted to initialize core thread state outside the context of a game");
+		if (!validStarting()) {
+			throw new IllegalStateException(
+					"Error: attempted to initialize core thread state outside the context of a game");
 		}
 		try {
 			initialize0();
@@ -25,7 +26,7 @@ public abstract class CoreComponent extends Thread {
 	protected abstract void initialize0() throws Throwable; // Your custom initialization code here!
 
 	public final void terminate() {
-		if(!validStopping()) {
+		if (!validStopping()) {
 			throw new IllegalStateException("Error: attempted to stop core thread outside the context of a game");
 		}
 		stop = true;
@@ -46,28 +47,29 @@ public abstract class CoreComponent extends Thread {
 	}
 
 	public final void allowRun() {
-		if(!validStarting()) {
-			throw new IllegalStateException("Error: attempted to modify core thread state outside the context of a game");
+		if (!validStarting()) {
+			throw new IllegalStateException(
+					"Error: attempted to modify core thread state outside the context of a game");
 		}
 		allowRun = true;
 	}
 
 	@Override
 	public final void start() {
-		if(!validStarting()) {
+		if (!validStarting()) {
 			throw new IllegalStateException("Error: attempted to start core thread outside the context of a game");
 		}
 		super.start();
 	}
-	
+
 	public final void start(Game source) {
 		this.source = source;
 		start();
 	}
-	
+
 	@Override
 	public final void run() {
-		if(Thread.currentThread().getId() != this.getId()) {
+		if (Thread.currentThread().getId() != this.getId()) {
 			throw new IllegalStateException("Error: run() called but no new thread started");
 		}
 		try {
@@ -114,21 +116,21 @@ public abstract class CoreComponent extends Thread {
 	}
 
 	protected abstract CoreComponent provideSelf();
-	
+
 	private final boolean validStarting() {
 		return source != null && source.isStarting() && this == provideSelf();
 	}
-	
+
 	private final boolean validStopping() {
 		return source != null && source.isStopping() && this == provideSelf();
 	}
-	
+
 	// Getters and setters
 
 	protected final Game getSource() {
 		return source;
 	}
-	
+
 	protected final Level getLevel() {
 		return source.getActiveLevel();
 	}

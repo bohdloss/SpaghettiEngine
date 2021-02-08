@@ -1,15 +1,14 @@
 package com.spaghettiengine.assets;
 
 import java.awt.image.BufferedImage;
-import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
 import org.joml.Vector2f;
 import org.joml.Vector3f;
-import org.lwjgl.BufferUtils;
 
 import com.spaghettiengine.render.*;
 import com.spaghettiengine.utils.ResourceLoader;
+import com.spaghettiengine.utils.Utils;
 
 public final class AssetLoader {
 
@@ -217,7 +216,7 @@ public final class AssetLoader {
 
 		// Apply data to Model
 
-		model.setData(__vertices, __tex_coords, __normals, __indices);
+		model.setData(new Object[] {__vertices, __tex_coords, __normals, __indices});
 
 	}
 
@@ -233,37 +232,18 @@ public final class AssetLoader {
 
 	public static void loadShaderProgram(AssetManager manager, ShaderProgram shaderProgram, SheetEntry data)
 			throws Throwable {
-		Shader[] shaders = new Shader[data.args.length];
+		Object[] shaders = new Object[data.args.length];
 		for (int i = 0; i < data.args.length; i++) {
 			shaders[i] = manager.requireShader(data.args[i]);
 		}
-		shaderProgram.setData(shaders);
+		shaderProgram.setData((Object[]) shaders);
 	}
 
 	// Texture loaders
 
 	public static void loadTexture(Texture texture, SheetEntry data) throws Throwable {
 		BufferedImage img = ResourceLoader.loadImage(data.location());
-
-		int w = img.getWidth();
-		int h = img.getHeight();
-
-		// Prepare for copy
-		int pixels_raw[] = new int[w * h * 4];
-		pixels_raw = img.getRGB(0, 0, w, h, null, 0, w);
-		ByteBuffer pixels = BufferUtils.createByteBuffer(w * h * 4);
-
-		// Copy data into the byte buffer
-		for (int pixel : pixels_raw) {
-			pixels.put((byte) ((pixel >> 16) & 0xFF)); // Red
-			pixels.put((byte) ((pixel >> 8) & 0xFF)); // Green
-			pixels.put((byte) ((pixel) & 0xFF)); // Blue
-			pixels.put((byte) ((pixel >> 24) & 0xFF)); // Alpha
-		}
-
-		pixels.flip();
-
-		texture.setData(pixels, w, h, Texture.COLOR, Texture.NEAREST);
+		texture.setData(Utils.parseImage(img), img.getWidth(), img.getHeight(), Texture.COLOR, Texture.NEAREST);
 	}
 
 	// Material loaders
@@ -274,7 +254,7 @@ public final class AssetLoader {
 
 	// Custom loaders
 
-	public static void loadCustom(RenderObject ro, SheetEntry data) throws Throwable {
+	public static void loadCustom(Asset ro, SheetEntry data) throws Throwable {
 		Object[] strings = new Object[data.args.length];
 		for (int i = 0; i < strings.length; i++) {
 			strings[i] = data.args[i];

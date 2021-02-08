@@ -29,26 +29,22 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 		}
 	}
 
-	private static final void rebuildLevel(GameObject caller, GameObject child) {
+	private static final void rebuildLevel(GameObject child) {
 		if (child.hierarchy == 0) {
-			if (child.level != null) {
-				child.level.removeObject(child.id);
-			}
-		} else {
-			if (child.parent != null) {
-				child.parent.removeChild(child.id);
-			}
+			child.level.removeObject(child.id);
+			child.level.ordered.put(child.id, child);
+		} else if (child.parent != null) {
+			child.parent.removeChild(child.id);
 		}
-		child.level = caller.level;
 		child.children.forEach((id, childObject) -> {
-			rebuildLevel(child, childObject);
+			rebuildLevel(childObject);
 		});
 	}
 
 	private static final void rebuildHierarchy(GameObject caller, GameObject child) {
 
 		child.parent = caller;
-		child.hierarchy = caller.hierarchy + 1;
+		child.hierarchy = (caller == null ? -1 : caller.hierarchy) + 1;
 
 		child.children.forEach((id, childObject) -> {
 			rebuildHierarchy(child, childObject);
@@ -56,8 +52,8 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 
 	}
 
-	private static final void rebuildObject(GameObject caller, GameObject child) {
-		rebuildLevel(caller, child);
+	public static final void rebuildObject(GameObject caller, GameObject child) {
+		rebuildLevel(child);
 		rebuildHierarchy(caller, child);
 	}
 
@@ -95,10 +91,11 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 		if (parent == null || parent.isDestroyed()) {
 			level.objects.add(this);
 			hierarchy = 0;
+			level.ordered.put(this.id, this);
+			_begin();
 		} else {
 			parent.addChild(this);
 		}
-		level.ordered.put(this.id, this);
 	}
 
 	// Add objects or components
@@ -190,22 +187,22 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 	}
 
 	@SuppressWarnings("unchecked")
-	public final synchronized <T extends GameObject> T[] getChildren(Class<T> cls, T[] buffer) {
+	public final synchronized <T extends GameObject> T[] getChildren(Class<T> cls, T[] buffer, int offset) {
 		i = 0;
 		children.forEach((id, object) -> {
 			if (object.getClass().equals(cls)) {
-				buffer[i] = (T) object;
+				buffer[i + offset] = (T) object;
 				i++;
 			}
 		});
 		return buffer;
 	}
 
-	public final synchronized GameObject[] getChildrenN(Class<? extends GameObject> cls, GameObject[] buffer) {
+	public final synchronized GameObject[] getChildrenN(Class<? extends GameObject> cls, GameObject[] buffer, int offset) {
 		i = 0;
 		children.forEach((id, object) -> {
 			if (object.getClass().equals(cls)) {
-				buffer[i] = object;
+				buffer[i + offset] = object;
 				i++;
 			}
 		});
@@ -227,6 +224,20 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 		return components.get(index);
 	}
 
+	@SuppressWarnings("unchecked")
+	public final synchronized <T extends GameComponent> T getComponent(int index, Class<T> cls) {
+		i = 0;
+		for(GameComponent comp : components) {
+			if(comp.getClass().equals(cls)) {
+				if(i == index) {
+					return (T) comp;
+				}
+				i++;
+			}
+		}
+		throw new IndexOutOfBoundsException("" + index);
+	}
+	
 	@SuppressWarnings("unchecked")
 	public final synchronized <T extends GameComponent> T getComponent(Class<T> cls) {
 		_com = null;
@@ -259,41 +270,55 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 	}
 
 	@SuppressWarnings("unchecked")
-	public final synchronized <T extends GameComponent> T[] getComponents(Class<T> cls, T[] buffer) {
+	public final synchronized <T extends GameComponent> T[] getComponents(Class<T> cls, T[] buffer, int offset) {
 		i = 0;
 		components.forEach(component -> {
 			if (component.getClass().equals(cls)) {
-				buffer[i] = (T) component;
+				buffer[i + offset] = (T) component;
 			}
 		});
 		return buffer;
 	}
 
 	public final synchronized GameComponent[] getComponentsN(Class<? extends GameComponent> cls,
-			GameComponent[] buffer) {
+			GameComponent[] buffer, int offset) {
 		i = 0;
 		components.forEach(component -> {
 			if (component.getClass().equals(cls)) {
-				buffer[i] = component;
+				buffer[i + offset] = component;
 			}
 		});
 		return buffer;
 	}
 
+	public final synchronized GameComponent[] getComponents(GameComponent[] buffer, int offset) {
+		int i = 0;
+		for(GameComponent comp : components) {
+			buffer[i + offset] = comp;
+		}
+		return buffer;
+	}
+	
 	// Remove objects or components
 
 	public final synchronized GameObject removeChild(long id) {
 		GameObject removed = children.get(id);
 
 		if (removed != null) {
-			
+
 			removed._end();
 			children.remove(id);
 			removed.parent = null;
-			
+			level.objects.remove(removed);
+			level.ordered.remove(id);
+
 			return removed;
 		}
 		return null;
+	}
+
+	public final synchronized GameObject removeChild(GameObject object) {
+		return removeChild(object.id);
 	}
 
 	public final synchronized void removeChildren() {
@@ -311,7 +336,7 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 			removed.onEndPlay();
 			components.remove(index);
 			setComponentOwner(removed, null);
-			
+
 			return removed;
 		}
 		return null;
@@ -336,6 +361,10 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 		return false;
 	}
 
+	public final synchronized boolean deleteChild(GameObject child) {
+		return deleteChild(child.id);
+	}
+
 	@SuppressWarnings("unchecked")
 	public final synchronized void deleteChildren() {
 		Object[] entries = children.entrySet().toArray();
@@ -348,10 +377,10 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 
 	public final synchronized GameComponent deleteComponent(int index) {
 		GameComponent component = components.get(index);
-		if(component != null) {
-			
+		if (component != null) {
+
 			component.destroy();
-			
+
 			return component;
 		}
 		return null;
@@ -372,12 +401,12 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 		if (isDestroyed()) {
 			return;
 		}
+		_end();
 		_destroy();
-		destroySimple();
 	}
 
 	private final void destroySimple() {
-		if(parent != null) {
+		if (parent != null) {
 			parent.children.remove(id);
 		}
 		if (level != null) {
@@ -390,49 +419,41 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 		children = null;
 		destroyed = true;
 	}
-	
+
 	// Propagate onBeginPlay, onEndPlay and onDestroy to children
-	
+
 	protected final void _begin() {
-		children.forEach((id, child) -> {
-			child.onBeginPlay();
-			child.components.forEach(component -> {
-				component.onBeginPlay();
-			});
-			child._begin();
-		});
 		onBeginPlay();
 		components.forEach(component -> {
 			component.onBeginPlay();
 		});
+		children.forEach((id, child) -> {
+			child._begin();
+		});
 	}
-	
+
 	protected final void _end() {
 		children.forEach((id, child) -> {
 			child._end();
-			child.components.forEach(component -> {
-				component.onEndPlay();
-			});
-			child.onEndPlay();
 		});
 		components.forEach(component -> {
 			component.onEndPlay();
 		});
 		onEndPlay();
 	}
-	
+
 	protected final void _destroy() {
-		_end();
-		children.forEach((id, child) -> {
+		for (Object obj : children.values().toArray()) {
+			GameObject child = (GameObject) obj;
 			child._destroy();
-			child.components.forEach(component -> {
-				component.destroy();
-			});
-			child.onDestroy();
-			child.destroySimple();
+		}
+		components.forEach(component -> {
+			component.destroy();
 		});
+		onDestroy();
+		destroySimple();
 	}
-	
+
 	// Getters
 
 	public final synchronized int getChildrenAmount() {
@@ -570,7 +591,7 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 		double xdiff = vec3.x - x;
 		double ydiff = vec3.y - y;
 		double zdiff = vec3.z - z;
-		
+
 		setRelativePosition(relativePos.x - xdiff, relativePos.y - ydiff, relativePos.z - zdiff);
 	}
 
@@ -687,7 +708,7 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 		double xdiff = vec3.x / x;
 		double ydiff = vec3.y / y;
 		double zdiff = vec3.z / z;
-		
+
 		setRelativeScale(relativeScale.x / xdiff, relativeScale.y / ydiff, relativeScale.z / zdiff);
 	}
 
@@ -804,7 +825,7 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 		double xdiff = vec3.x - x;
 		double ydiff = vec3.y - y;
 		double zdiff = vec3.z - z;
-		
+
 		setRelativeRotation(relativeRotation.x - xdiff, relativeRotation.y - ydiff, relativeRotation.z - zdiff);
 	}
 
@@ -848,14 +869,16 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 
 	protected void onDestroy() {
 	}
-	
+
 	@Override
 	public final void update(double delta) {
 		components.forEach(component -> {
 			component.update(delta);
 		});
-		// TODO Detect if this is a server or client instance
-		clientUpdate(delta);
+		commonUpdate(delta);
+		if (getGame().isClient()) {
+			clientUpdate(delta);
+		}
 
 		children.forEach((id, object) -> {
 			object.update(delta);
@@ -879,16 +902,36 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 		// code in update methods
 	}
 
+	protected void commonUpdate(double delta) {
+		// Happens on both server and client regardless
+		// So follow all the warnings reported on the serverUpdate
+		// method plus the ones on clientUpdate
+	}
+
 	@Override
 	public void render(Matrix4d projection, double delta) {
 	}
 
 	@Override
-	public void getReplicateData(NetworkBuffer buffer) {
+	public void writeData(NetworkBuffer buffer) {
 	}
 
 	@Override
-	public void setReplicateData(NetworkBuffer buffer) {
+	public void readData(NetworkBuffer buffer) {
 	}
 
+	// Event dispatching
+
+	protected final void raiseSignal(long signal) {
+		getGame().getEventDispatcher().raiseSignal(this, signal);
+	}
+	
+	protected final void raiseEvent(GameEvent event) {
+		getGame().getEventDispatcher().raiseEvent(this, event);
+	}
+	
+	protected final void raiseIntention(long intention) {
+		getGame().getEventDispatcher().raiseIntention(this, intention);
+	}
+	
 }

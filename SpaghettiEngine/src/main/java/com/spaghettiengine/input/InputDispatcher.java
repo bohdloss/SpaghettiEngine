@@ -10,23 +10,21 @@ import com.spaghettiengine.utils.*;
 import com.spaghettiengine.interfaces.*;
 
 public final class InputDispatcher {
-	
-	private static enum MouseEvent{
-		BUTTONCHANGE,
-		MOVE,
-		SCROLL
+
+	private static enum MouseEvent {
+		BUTTONCHANGE, MOVE, SCROLL
 	}
-	
+
 	private GameWindow window;
 	public double scroll;
 	private int x, y;
 	private boolean[] mouseButtons;
 	private boolean[] keyboardButtons;
 	private ArrayList<Controllable> listeners;
-	
+
 	public InputDispatcher(GameWindow window) {
 		this.window = window;
-		
+
 		// Initialize variables
 		scroll = 0;
 		x = 0;
@@ -35,73 +33,67 @@ public final class InputDispatcher {
 		keyboardButtons = new boolean[GLFW.GLFW_KEY_LAST];
 		listeners = new ArrayList<>();
 	}
-	
+
 	public synchronized void update() {
-		
+
 		// Fire mouse movement events
 		Vector2i pointer = new Vector2i();
 		window.getMousePosition(pointer);
-		
-		if(pointer.x != x || pointer.y != y) {
+
+		if (pointer.x != x || pointer.y != y) {
 			// If the cursor is outside the bounds
 			// of the window, ignore the event
-			if(CMath.inrange(pointer.x, 0, window.getWidth()) && CMath.inrange(pointer.y, 0, window.getHeight())) {
+			if (CMath.inrange(pointer.x, 0, window.getWidth()) && CMath.inrange(pointer.y, 0, window.getHeight())) {
 				fireMouseEvent(MouseEvent.MOVE, 0, false);
 			}
 			x = pointer.x;
 			y = pointer.y;
 		}
-		
+
 		// Fire mouse scroll events
 		// the scroll variable is set by the window itself
-		if(scroll != 0) {
+		if (scroll != 0) {
 			fireMouseEvent(MouseEvent.SCROLL, 0, false);
 			scroll = 0;
 		}
 
-		for(int i = 0; i < mouseButtons.length; i++) {
-			
+		for (int i = 0; i < mouseButtons.length; i++) {
+
 			// Update mouse buttons
-			if(i < mouseButtons.length) {
+			if (i < mouseButtons.length) {
 				boolean current = window.mouseDown(i);
-				
-				if(current != mouseButtons[i]) {
+
+				if (current != mouseButtons[i]) {
 					fireMouseEvent(MouseEvent.BUTTONCHANGE, i, current);
 				}
-				if(current) {
-					fireContinuousMouseEvent(i);
-				}
-				
+
 				mouseButtons[i] = current;
 			}
-			
+
 		}
-		
-		for(int i = 0; i < keyboardButtons.length; i++) {
-			
+
+		for (int i = 0; i < keyboardButtons.length; i++) {
+
 			// Update keyboard keys
-			if(i < keyboardButtons.length) {
+			if (i < keyboardButtons.length) {
 				boolean current = window.keyDown(i);
-				if(current != keyboardButtons[i]) {
+				if (current != keyboardButtons[i]) {
 					fireKeyEvent(i, current);
 				}
-				if(current) {
-					fireContinuousKeyEvent(i);
-				}
-				
+
 				keyboardButtons[i] = current;
 			}
-			
+
 		}
-		
+
 	}
 
 	// Fire events to listeners
-	
+
 	private void fireMouseEvent(MouseEvent event, int button, boolean pressed) {
-		switch(event) {
+		switch (event) {
 		case BUTTONCHANGE:
-			if(pressed) {
+			if (pressed) {
 				listeners.forEach(listener -> listener.onMouseButtonPressed(button, x, y));
 			} else {
 				listeners.forEach(listener -> listener.onMouseButtonReleased(button, x, y));
@@ -115,33 +107,25 @@ public final class InputDispatcher {
 			break;
 		}
 	}
-	
+
 	private void fireKeyEvent(int key, boolean pressed) {
-		if(pressed) {
+		if (pressed) {
 			listeners.forEach(listener -> listener.onKeyPressed(key, x, y));
 		} else {
 			listeners.forEach(listener -> listener.onKeyReleased(key, x, y));
 		}
 	}
-	
-	private void fireContinuousMouseEvent(int button) {
-		listeners.forEach(listener -> listener.ifButtonDown(button, x, y));
-	}
-	
-	private void fireContinuousKeyEvent(int key) {
-		listeners.forEach(listener -> listener.ifKeyDown(key, x, y));
-	}
-	
+
 	// Register listeners
-	
+
 	public synchronized void registerListener(Controllable listener) {
-		if(!listeners.contains(listener)) {
+		if (!listeners.contains(listener)) {
 			listeners.add(listener);
 		}
 	}
-	
+
 	public synchronized void unregisterListener(Controllable listener) {
 		listeners.remove(listener);
 	}
-	
+
 }

@@ -27,10 +27,25 @@ And you can do the following with it
 
 ### How to set it up
 
-The best way would be to use eclipse and:
-- Add this repository to the repository view
-- Clone the repository
-- Import the project (or check the import option when cloning)
+Requires the following commands installed on your system:
+- git
+- maven
+- jdk-8
+
+First clone this repository to a folder of your choice
+
+```
+cd MyFolder
+git clone https://github.com/bohdloss/SpaghettiEngine.git
+```
+
+Then use maven to build it as follows
+```
+cd SpaghettiEngine/SpaghettiEngine
+mvn clean package
+```
+
+This will create a new folder called ```target``` which contains the compiled library as a ```.jar``` file
 
 # Code examples
 
@@ -141,15 +156,15 @@ public void loopEvents(double delta) {
 
 }
 ```
-All the following code can be found in the demo pacakge of this repository (com.spaghettiengine.demo)
+All the following code can be found in the demo pacakge of this repository (```com.spaghettiengine.demo```)
 
 To understand how to actually import your assets read the next example
 
 ### Import assets
 
-Spaghetti engine offers a dynamic asset import system: all you have to do is specify the assets to import in a .txt file!
+Spaghetti engine offers a dynamic asset import system: all you have to do is specify the assets to import in a ```.txt``` file!
 
-By default, a file called main.txt will be searched for asset import
+By default, a file called ```main.txt``` will be searched for asset import
 
 Each line in the file indicates a different asset
 
@@ -179,6 +194,6 @@ Here is the full documentation for the arguments that are needed for each asset 
 5) Model
   - Model location (currently only .obj supported, use triangulate modifier on the model before exporting it in your model editor)
   
-This .txt file type may be referred to Asset Sheet later in the documentation
+This ```.txt``` file type may be referred to Asset Sheet later in the documentation
 
-An example of an asset sheet can be found in the folder /res/main.txt of this repository
+An example of an asset sheet can be found in the folder ```/res/main.txt``` of this repository

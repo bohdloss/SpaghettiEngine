@@ -4,7 +4,6 @@ import java.util.HashMap;
 
 import com.spaghettiengine.render.Material;
 import com.spaghettiengine.render.Model;
-import com.spaghettiengine.render.RenderObject;
 import com.spaghettiengine.render.Shader;
 import com.spaghettiengine.render.ShaderProgram;
 import com.spaghettiengine.render.Texture;
@@ -15,32 +14,27 @@ import static com.spaghettiengine.assets.AssetType.*;
 public final class AssetSheet {
 
 	private AssetManager owner;
-	
+
 	protected AssetSheet(AssetManager owner) {
 		this.owner = owner;
 	}
-	
+
 	// Store sheet entries here
 	public HashMap<String, SheetEntry> sheet;
-	private static final String append = ""
-			+ "shader defaultVS /internal/default.vs vertex\n"
-			+ "shader defaultFS /internal/default.fs fragment\n"
-			+ "shaderprogram defaultSP defaultVS defaultFS\n"
-			+ "shader rendererVS /internal/renderer.vs vertex\n"
-			+ "shader rendererFS /internal/renderer.fs fragment\n"
-			+ "shaderprogram rendererSP rendererVS rendererFS\n"
-			+ "model square /internal/square.obj\n"
-			+ "texture defaultTXT /internal/default.png\n"
-			+ "material defaultMAT defaultTXT defaultSP";
+	private static final String append = "" + "shader defaultVS /internal/default.vs vertex\n"
+			+ "shader defaultFS /internal/default.fs fragment\n" + "shaderprogram defaultSP defaultVS defaultFS\n"
+			+ "shader rendererVS /internal/renderer.vs vertex\n" + "shader rendererFS /internal/renderer.fs fragment\n"
+			+ "shaderprogram rendererSP rendererVS rendererFS\n" + "model square /internal/square.obj\n"
+			+ "texture defaultTXT /internal/default.png\n" + "material defaultMAT defaultTXT defaultSP";
 
 	public void clear() {
 		sheet.clear();
 	}
 
 	public void loadAssetSheet(String sheetSource) throws ClassNotFoundException {
-		
+
 		sheetSource = append + "\n" + sheetSource;
-		
+
 		HashMap<String, SheetEntry> result = new HashMap<>();
 
 		// Split into lines
@@ -171,7 +165,7 @@ public final class AssetSheet {
 					valid = true;
 				} else if (Material.class.isAssignableFrom(ctype)) {
 					valid = true;
-				} else if (RenderObject.class.isAssignableFrom(ctype)) {
+				} else if (Asset.class.isAssignableFrom(ctype)) {
 					valid = true;
 				}
 

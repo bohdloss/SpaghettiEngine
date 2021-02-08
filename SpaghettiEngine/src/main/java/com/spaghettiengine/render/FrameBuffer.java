@@ -5,20 +5,21 @@ import java.nio.ByteBuffer;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL30;
 
+import com.spaghettiengine.assets.Asset;
 import com.spaghettiengine.core.Game;
 import com.spaghettiengine.core.GameWindow;
 import com.spaghettiengine.utils.Logger;
 
-public class FrameBuffer extends RenderObject {
+public class FrameBuffer extends Asset {
 
 	protected int id;
-	protected RenderObject color, depth, stencil;
+	protected Asset color, depth, stencil;
 	protected int width, height;
 
 	public FrameBuffer(int width, int height) {
 		setData(new Texture((ByteBuffer) null, width, height, Texture.COLOR),
 				new Texture((ByteBuffer) null, width, height, Texture.DEPTH),
-				new RenderBuffer(width, height, RenderBuffer.STENCIL));
+				null);
 		load();
 	}
 
@@ -27,10 +28,13 @@ public class FrameBuffer extends RenderObject {
 
 	@Override
 	public void setData(Object... objects) {
-
-		this.color = (RenderObject) objects[0];
-		this.depth = (RenderObject) objects[1];
-		this.stencil = (RenderObject) objects[2];
+		if(valid()) {
+			return;
+		}
+		
+		this.color = (Asset) objects[0];
+		this.depth = (Asset) objects[1];
+		this.stencil = (Asset) objects[2];
 
 		if (Texture.class.isAssignableFrom(color.getClass())) {
 			Texture cast = (Texture) color;
@@ -41,25 +45,29 @@ public class FrameBuffer extends RenderObject {
 			this.width = cast.getWidth();
 			this.height = cast.getHeight();
 		}
-
-		setFilled(true);
+		
 	}
 
+	@Override
+	public boolean isFilled() {
+		return (color != null || depth != null || stencil != null) && height > 0 && width > 0;
+	}
+	
 	@Override
 	protected void load0() {
 
 		// Create frame buffer
 		id = GL30.glGenFramebuffers();
-
+		
 		// Attach color
 		attachColor(color);
-
+		
 		// Attach depth
 		attachDepth(depth);
 
 		// Attach stencil
 		attachStencil(stencil);
-
+		
 		// Check for validity
 		checkValid();
 
@@ -69,12 +77,12 @@ public class FrameBuffer extends RenderObject {
 		Logger.warning("Trying to attach object of invalid format to FrameBuffer " + id);
 	}
 
-	protected void attachColor(RenderObject object) {
+	protected void attachColor(Asset object) {
 		if (object == null) {
 			return;
 		}
 
-		_use();
+		internal_use();
 		if (Texture.class.isAssignableFrom(object.getClass())) {
 			Texture cast = (Texture) object;
 			if (cast.getType() != Texture.COLOR) {
@@ -83,7 +91,7 @@ public class FrameBuffer extends RenderObject {
 			}
 			GL30.glFramebufferTexture2D(GL30.GL_DRAW_FRAMEBUFFER, GL30.GL_COLOR_ATTACHMENT0, GL11.GL_TEXTURE_2D,
 					cast.getId(), 0);
-
+			
 		} else if (RenderBuffer.class.isAssignableFrom(object.getClass())) {
 
 			RenderBuffer cast = (RenderBuffer) object;
@@ -95,16 +103,16 @@ public class FrameBuffer extends RenderObject {
 					cast.getId());
 
 		}
-		_stop();
+		internal_stop();
 
 	}
 
-	protected void attachDepth(RenderObject object) {
+	protected void attachDepth(Asset object) {
 		if (object == null) {
 			return;
 		}
 
-		_use();
+		internal_use();
 		if (Texture.class.isAssignableFrom(object.getClass())) {
 
 			Texture cast = (Texture) object;
@@ -126,16 +134,16 @@ public class FrameBuffer extends RenderObject {
 					cast.getId());
 
 		}
-		_stop();
+		internal_stop();
 
 	}
 
-	protected void attachStencil(RenderObject object) {
+	protected void attachStencil(Asset object) {
 		if (object == null) {
 			return;
 		}
 
-		_use();
+		internal_use();
 		if (Texture.class.isAssignableFrom(object.getClass())) {
 
 			Texture cast = (Texture) object;
@@ -155,9 +163,8 @@ public class FrameBuffer extends RenderObject {
 			}
 			GL30.glFramebufferRenderbuffer(GL30.GL_DRAW_FRAMEBUFFER, GL30.GL_STENCIL_ATTACHMENT, GL30.GL_RENDERBUFFER,
 					cast.getId());
-
 		}
-		_stop();
+		internal_stop();
 
 	}
 
@@ -167,14 +174,14 @@ public class FrameBuffer extends RenderObject {
 		}
 
 		GL11.glBindTexture(GL11.GL_TEXTURE_2D, 0);
-		_use();
+		internal_use();
 		GL11.glViewport(0, 0, width, height);
 		GL11.glOrtho(-width / 2, width / 2, -height / 2, height / 2, -1, 1);
 	}
 
 	public void stop() {
 		GameWindow window = Game.getGame().getWindow();
-		_stop();
+		internal_stop();
 		GL11.glViewport(0, 0, window.getWidth(), window.getHeight());
 		GL11.glOrtho(-window.getWidth() / 2, window.getWidth() / 2, -window.getHeight() / 2, window.getHeight() / 2, -1,
 				1);
@@ -185,16 +192,16 @@ public class FrameBuffer extends RenderObject {
 		GL30.glDeleteFramebuffers(id);
 	}
 
-	protected void _use() {
+	protected void internal_use() {
 		GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, id);
 	}
 
-	protected void _stop() {
+	protected void internal_stop() {
 		GL30.glBindFramebuffer(GL30.GL_FRAMEBUFFER, 0);
 	}
 
 	public final void checkValid() {
-		_use();
+		internal_use();
 		int framebuffer = GL30.glCheckFramebufferStatus(GL30.GL_FRAMEBUFFER);
 		String message;
 		boolean statusOK = false;
@@ -216,10 +223,11 @@ public class FrameBuffer extends RenderObject {
 			message = "FrameBuffer " + id + " is incomplete! (GL_FRAMEBUFFER_INCOMPLETE_READ_BUFFER)";
 			break;
 		default:
-			message = "FrameBuffer: " + id + " in invalid state! (" + framebuffer + ")";
+			message = "FrameBuffer: " + id + " in invalid state! (" + framebuffer + "). " +
+					"If you are seeing this message the error is most likely due to the configuration of attachments";
 		}
 
-		_stop();
+		internal_stop();
 
 		if (statusOK) {
 			Logger.info(message);

@@ -2,7 +2,9 @@ package com.spaghettiengine.render;
 
 import org.lwjgl.opengl.GL30;
 
-public class RenderBuffer extends RenderObject {
+import com.spaghettiengine.assets.Asset;
+
+public class RenderBuffer extends Asset {
 
 	public static final int COLOR = GL30.GL_RGBA;
 	public static final int DEPTH = GL30.GL_DEPTH_COMPONENT;
@@ -22,11 +24,20 @@ public class RenderBuffer extends RenderObject {
 
 	@Override
 	public void setData(Object... objects) {
+		if (valid()) {
+			return;
+		}
+		
 		width = (int) objects[0];
 		height = (int) objects[1];
 		type = (int) objects[2];
 	}
 
+	public boolean isFilled() {
+		return (type == COLOR || type == DEPTH || type == STENCIL) &&
+				height > 0 && width > 0;
+	}
+	
 	protected void _use() {
 		GL30.glBindRenderbuffer(GL30.GL_RENDERBUFFER, id);
 	}
@@ -44,7 +55,7 @@ public class RenderBuffer extends RenderObject {
 
 		// Allocate buffer storage
 
-		GL30.glRenderbufferStorage(id, type, width, height);
+		GL30.glRenderbufferStorage(GL30.GL_RENDERBUFFER, type, width, height);
 
 	}
 

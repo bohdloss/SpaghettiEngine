@@ -2,12 +2,15 @@ package com.spaghettiengine.input;
 
 import org.lwjgl.glfw.GLFW;
 
+import com.spaghettiengine.core.Game;
+
 public final class Keys {
 
-	private Keys() {}
-	
+	private Keys() {
+	}
+
 	// Auto generated code
-	
+
 	public static final int UNKNOWN = GLFW.GLFW_KEY_UNKNOWN;
 	public static final int SPACE = GLFW.GLFW_KEY_SPACE;
 	public static final int APOSTROPHE = GLFW.GLFW_KEY_APOSTROPHE;
@@ -129,6 +132,12 @@ public final class Keys {
 	public static final int RIGHT_ALT = GLFW.GLFW_KEY_RIGHT_ALT;
 	public static final int RIGHT_SUPER = GLFW.GLFW_KEY_RIGHT_SUPER;
 	public static final int MENU = GLFW.GLFW_KEY_MENU;
+	
 	public static final int LAST = GLFW.GLFW_KEY_LAST;
+
+	public static boolean keydown(int key) {
+		Game game = Game.getGame();
+		return (game.isServer() || game.isHeadless()) ? false : game.getWindow().keyDown(key);
+	}
 	
 }

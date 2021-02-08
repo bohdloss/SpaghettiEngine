@@ -3,12 +3,14 @@ package com.spaghettiengine.objects;
 import org.joml.Matrix4d;
 
 import com.spaghettiengine.core.*;
+import com.spaghettiengine.interfaces.Replicate;
 import com.spaghettiengine.render.*;
-import com.spaghettiengine.utils.NetworkBuffer;
 
 public class Mesh extends GameObject {
 
+	@Replicate
 	protected Model model;
+	@Replicate
 	protected Material material;
 
 	public Mesh(Level level, GameObject parent, Model model, Material material) {
@@ -42,30 +44,6 @@ public class Mesh extends GameObject {
 
 	public void setMaterial(Material material) {
 		this.material = material;
-	}
-
-	// Interface
-
-	@Override
-	public void getReplicateData(NetworkBuffer buffer) {
-
-		// TODO when asset manager is implemented
-
-	}
-
-	@Override
-	public void setReplicateData(NetworkBuffer buffer) {
-
-		// TODO - - - - -
-
-	}
-
-	@Override
-	public void serverUpdate(double delta) {
-	}
-
-	@Override
-	public void clientUpdate(double delta) {
 	}
 
 }

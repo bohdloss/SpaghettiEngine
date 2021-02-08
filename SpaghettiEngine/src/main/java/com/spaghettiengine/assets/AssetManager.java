@@ -17,7 +17,7 @@ public final class AssetManager {
 	private AssetSheet sheet;
 
 	// Cache empty assets
-	private HashMap<String, RenderObject> cache = new HashMap<>();
+	private HashMap<String, Asset> cache = new HashMap<>();
 	// Indicates flags associated with an asset
 	private HashMap<String, AssetFlag> flags = new HashMap<>();
 
@@ -85,9 +85,11 @@ public final class AssetManager {
 	@SuppressWarnings("unchecked")
 	private void instantiate(SheetEntry cls) throws Throwable {
 		try {
-			Class<? extends RenderObject> customClass = (Class<? extends RenderObject>) Class.forName(cls.customType);
-			Constructor<? extends RenderObject> custom = customClass.getConstructor(new Class<?>[0]);
-			cache.put(cls.name, custom.newInstance(new Object[0]));
+			Class<? extends Asset> customClass = (Class<? extends Asset>) Class.forName(cls.customType);
+			Constructor<? extends Asset> custom = customClass.getConstructor(new Class<?>[0]);
+			Asset asset = custom.newInstance(new Object[0]);
+			asset.setName(cls.name);
+			cache.put(cls.name, asset);
 			flags.put(cls.name, new AssetFlag());
 		} catch (Throwable t) {
 			Logger.error(source, "Could not instantiate asset:" + "\nname=" + cls.name + "\nlocation=" + cls.location
@@ -155,33 +157,33 @@ public final class AssetManager {
 	// Loader methods
 
 	private void fillAsset(String type, String name) throws Throwable {
-			SheetEntry info = sheet.sheet.get(name);
-			switch (type) {
-			case MODEL:
-				Model model = model(name);
-				AssetLoader.loadModel(model, info);
-				break;
-			case SHADER:
-				Shader shader = shader(name);
-				AssetLoader.loadShader(shader, info);
-				break;
-			case SHADERPROGRAM:
-				ShaderProgram shaderProgram = shaderProgram(name);
-				AssetLoader.loadShaderProgram(this, shaderProgram, info);
-				break;
-			case TEXTURE:
-				Texture texture = texture(name);
-				AssetLoader.loadTexture(texture, info);
-				break;
-			case MATERIAL:
-				Material material = material(name);
-				AssetLoader.loadMaterial(this, material, info);
-				break;
-			case CUSTOM:
-				RenderObject custom = custom(name);
-				AssetLoader.loadCustom(custom, info);
-				break;
-			}
+		SheetEntry info = sheet.sheet.get(name);
+		switch (type) {
+		case MODEL:
+			Model model = model(name);
+			AssetLoader.loadModel(model, info);
+			break;
+		case SHADER:
+			Shader shader = shader(name);
+			AssetLoader.loadShader(shader, info);
+			break;
+		case SHADERPROGRAM:
+			ShaderProgram shaderProgram = shaderProgram(name);
+			AssetLoader.loadShaderProgram(this, shaderProgram, info);
+			break;
+		case TEXTURE:
+			Texture texture = texture(name);
+			AssetLoader.loadTexture(texture, info);
+			break;
+		case MATERIAL:
+			Material material = material(name);
+			AssetLoader.loadMaterial(this, material, info);
+			break;
+		case CUSTOM:
+			Asset custom = custom(name);
+			AssetLoader.loadCustom(custom, info);
+			break;
+		}
 	}
 
 	public synchronized void loadAsset(String type, String name) {
@@ -207,9 +209,9 @@ public final class AssetManager {
 		}
 	}
 
-	public RenderObject custom(String name) {
+	public Asset custom(String name) {
 		check(name);
-		RenderObject ret = cache.get(name);
+		Asset ret = cache.get(name);
 		flagAsset(CUSTOM, name);
 		return ret;
 	}
@@ -251,9 +253,9 @@ public final class AssetManager {
 
 	// Instant-loading getters
 
-	public RenderObject requireCustom(String name) {
+	public Asset requireCustom(String name) {
 		check(name);
-		RenderObject ret = cache.get(name);
+		Asset ret = cache.get(name);
 		loadAsset(CUSTOM, name);
 		return ret;
 	}

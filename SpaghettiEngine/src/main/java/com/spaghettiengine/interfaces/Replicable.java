@@ -4,8 +4,8 @@ import com.spaghettiengine.utils.NetworkBuffer;
 
 public interface Replicable {
 
-	public abstract void getReplicateData(NetworkBuffer dataBuffer);
+	public abstract void writeData(NetworkBuffer dataBuffer);
 
-	public abstract void setReplicateData(NetworkBuffer dataBuffer);
+	public abstract void readData(NetworkBuffer dataBuffer);
 
 }

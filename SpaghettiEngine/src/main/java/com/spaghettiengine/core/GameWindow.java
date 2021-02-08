@@ -21,7 +21,7 @@ public final class GameWindow {
 	public static int defaultMinimumWidth = 100, defaultMinimumHeight = 100;
 	public static int defaultMaximumWidth = 800, defaultMaximumHeight = 800;
 	public static boolean defaultResizable = true;
-	
+
 	public static void pollEvents() {
 		GLFW.glfwPollEvents();
 	}
@@ -73,7 +73,7 @@ public final class GameWindow {
 			// In case the window does not initialize properly
 			throw new IllegalStateException("GLFW window initialization failed");
 		}
-		
+
 		GameWindow self = this;
 
 		GLFW.glfwSetWindowSizeCallback(id, new GLFWWindowSizeCallback() {
@@ -106,7 +106,7 @@ public final class GameWindow {
 			public void invoke(long window, double xoffset, double yoffset) {
 				inputDispatcher.scroll = yoffset;
 			}
-			
+
 		});
 		gatherSize();
 		center();
@@ -360,7 +360,7 @@ public final class GameWindow {
 	public InputDispatcher getInputDispatcher() {
 		return inputDispatcher;
 	}
-	
+
 	private Object quickQueue(FuncAction action) {
 		try {
 			long funcId = Game.handler.dispatcher.queue(new Function(action));

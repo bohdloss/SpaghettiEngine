@@ -10,12 +10,14 @@ public final class GameOptions {
 	protected Vector2i resolution;
 	protected double tick;
 	protected String assetSheetLocation;
+	protected int networkBufferSize;
 
 	public GameOptions() {
 
 		findResolution();
 		findTick();
 		findAssetSheetLocation();
+		findNetworkBufferSize();
 
 	}
 
@@ -45,6 +47,10 @@ public final class GameOptions {
 		assetSheetLocation = "/res/main.txt";
 	}
 
+	private void findNetworkBufferSize() {
+		networkBufferSize = 1000 * 1000 * 10; // B * KB * MB = 10 MB
+	}
+
 	// Public getters and setters
 
 	public void setTick(double tick) {
@@ -70,6 +76,14 @@ public final class GameOptions {
 
 	public String getAssetSheetLocation() {
 		return assetSheetLocation;
+	}
+
+	public void setNetworkBufferSize(int size) {
+		this.networkBufferSize = size;
+	}
+
+	public int getNetworkBufferSize() {
+		return networkBufferSize;
 	}
 
 }

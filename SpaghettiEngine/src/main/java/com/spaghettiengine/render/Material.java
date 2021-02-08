@@ -15,9 +15,10 @@ import org.joml.Vector3f;
 import org.joml.Vector4d;
 import org.joml.Vector4f;
 
+import com.spaghettiengine.assets.Asset;
 import com.spaghettiengine.core.Game;
 
-public class Material extends RenderObject {
+public class Material extends Asset {
 
 	public static Material get(String name) {
 		return Game.getGame().getAssetManager().material(name);
@@ -55,17 +56,19 @@ public class Material extends RenderObject {
 		setShader(shader);
 	}
 
-	public void setData(Texture texture, ShaderProgram shader) {
+	public void setData(Object...objects) {
 		if (valid()) {
 			return;
 		}
 
-		this.texture = texture;
-		this.shader = shader;
-
-		setFilled(true);
+		this.texture = (Texture) objects[0];
+		this.shader = (ShaderProgram) objects[1];;
 	}
 
+	public boolean isFilled() {
+		return texture != null && shader != null;
+	}
+	
 	// Getters and setters
 
 	public ShaderProgram getShader() {

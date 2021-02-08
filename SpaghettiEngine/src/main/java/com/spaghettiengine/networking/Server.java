@@ -3,7 +3,7 @@ package com.spaghettiengine.networking;
 import com.spaghettiengine.core.*;
 import com.spaghettiengine.utils.*;
 
-public class Client extends CoreComponent {
+public class Server extends CoreComponent {
 
 	protected NetworkBuffer buffer;
 
@@ -24,7 +24,7 @@ public class Client extends CoreComponent {
 
 	@Override
 	protected final CoreComponent provideSelf() {
-		return getSource().getClient();
+		return getSource().getServer();
 	}
 
 }

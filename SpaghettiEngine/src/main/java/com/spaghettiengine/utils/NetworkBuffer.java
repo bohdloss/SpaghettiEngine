@@ -122,4 +122,16 @@ public final class NetworkBuffer {
 		}
 	}
 
+	public int getSize() {
+		return buffer.capacity();
+	}
+
+	public int getUsedSpace() {
+		return buffer.position();
+	}
+
+	public int getFreeSpace() {
+		return getSize() - getUsedSpace();
+	}
+
 }

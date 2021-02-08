@@ -1,21 +1,22 @@
-package com.spaghettiengine.render;
+package com.spaghettiengine.assets;
 
 import com.spaghettiengine.core.Game;
 
-public abstract class RenderObject {
+public abstract class Asset {
 
-	public static RenderObject get(String name) {
+	public static Asset get(String name) {
 		return Game.getGame().getAssetManager().custom(name);
 	}
 
-	public static RenderObject require(String name) {
+	public static Asset require(String name) {
 		return Game.getGame().getAssetManager().requireCustom(name);
 	}
-
-	private boolean init, deleted, filled;
+	
+	private String name;
+	private boolean init, deleted;
 
 	public final void load() {
-		if (!init && filled) {
+		if (!init && isFilled()) {
 			load0();
 			deleted = false;
 			init = true;
@@ -32,20 +33,19 @@ public abstract class RenderObject {
 		}
 	}
 
-	public void setData(Object... objects) {
-	}
+	public abstract void setData(Object... objects);
 
 	protected abstract void delete0();
 
-	public boolean isInitialized() {
+	public final boolean isInitialized() {
 		return init;
 	}
 
-	public boolean isDeleted() {
+	public final boolean isDeleted() {
 		return deleted;
 	}
 
-	public void reload() {
+	public final void reload() {
 		delete();
 		load();
 	}
@@ -54,22 +54,22 @@ public abstract class RenderObject {
 		return !deleted && init;
 	}
 
-	// Call on your custom setData() method!!!
-	protected void setFilled(boolean filled) {
-		this.filled = filled;
-	}
+	public abstract boolean isFilled();
 
-	public boolean isFilled() {
-		return filled;
-	}
-
-	public void reset() {
+	public final void reset() {
 		delete();
 		reset0();
-		filled = true;
 	}
 
 	// Revert the effects of setData()
 	protected abstract void reset0();
 
+	public String getName() {
+		return name;
+	}
+	
+	protected final void setName(String name) {
+		this.name = name;
+	}
+	
 }

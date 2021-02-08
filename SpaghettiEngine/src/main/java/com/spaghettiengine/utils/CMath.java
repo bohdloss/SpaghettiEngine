@@ -130,7 +130,7 @@ public final class CMath {
 
 	// Converts a pixel coordinate to a world coordinate
 	public static void toGLCoord(double x, double y, double scale, double width, double height, Vector2d pointer) {
-		
+
 		double visiblex, visibley, resx, resy;
 
 		visiblex = width / scale;
@@ -150,7 +150,7 @@ public final class CMath {
 
 		pointer.x = resx;
 		pointer.y = resy;
-		
+
 	}
 
 	// Overload of toGLCoord
@@ -196,26 +196,30 @@ public final class CMath {
 		return lookAt(x, y) + Math.PI;
 	}
 
-	// Finds the angle from the given coordinates (x, y) to the second pair of coordinates (x2, y2)
+	// Finds the angle from the given coordinates (x, y) to the second pair of
+	// coordinates (x2, y2)
 	public static double lookAt(double x, double y, double x2, double y2) {
 		return Math.atan2(y2 - y, x2 - x);
 	}
-	
-	// Finds the angle from the given coordinates (from) to the second pair of coordinates (to)
+
+	// Finds the angle from the given coordinates (from) to the second pair of
+	// coordinates (to)
 	public static double lookAt(Vector2d from, Vector2d to) {
 		return lookAt(from.x, from.y, to.x, to.y);
 	}
-	
-	// Finds the angle from the given coordinates (x, y) to the second pair of coordinates (x2, y2) and adds PI to it
+
+	// Finds the angle from the given coordinates (x, y) to the second pair of
+	// coordinates (x2, y2) and adds PI to it
 	public static double oppositeTo(double x, double y, double x2, double y2) {
 		return lookAt(x, y, x2, y2) + Math.PI;
 	}
-	
-	// Finds the angle from the given coordinates (from) to the second pair of coordinates (to) and adds PI to it
+
+	// Finds the angle from the given coordinates (from) to the second pair of
+	// coordinates (to) and adds PI to it
 	public static double oppositeTo(Vector2d from, Vector2d to) {
 		return lookAt(from, to) + Math.PI;
 	}
-	
+
 	// Smooth lerp methods
 
 	public static double lerpEaseIn(double in, double a, double b) {

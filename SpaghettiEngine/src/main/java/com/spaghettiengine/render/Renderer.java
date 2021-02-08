@@ -11,7 +11,6 @@ import org.lwjgl.opengl.GLCapabilities;
 
 import com.spaghettiengine.assets.AssetManager;
 import com.spaghettiengine.core.CoreComponent;
-import com.spaghettiengine.core.Game;
 import com.spaghettiengine.core.GameWindow;
 import com.spaghettiengine.objects.Camera;
 import com.spaghettiengine.utils.*;
@@ -53,16 +52,7 @@ public class Renderer extends CoreComponent {
 				new float[] { 0f, 0f, 1f, 0f, 1f, 1f, 0f, 1f }, new float[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
 				new int[] { 0, 1, 2, 2, 3, 0 });
 
-		String vertSource = ResourceLoader.loadText("/internal/renderer.vs");
-		String fragSource = ResourceLoader.loadText("/internal/renderer.fs");
-
-		Shader vertex = new Shader(vertSource, Shader.VERTEX_SHADER);
-		Shader fragment = new Shader(fragSource, Shader.FRAGMENT_SHADER);
-
-		defaultShader = new ShaderProgram(vertex, fragment);
-
-		vertex.delete();
-		fragment.delete();
+		defaultShader = ShaderProgram.require("rendererSP");
 
 	}
 
@@ -157,5 +147,5 @@ public class Renderer extends CoreComponent {
 	protected final CoreComponent provideSelf() {
 		return getSource().getRenderer();
 	}
-	
+
 }

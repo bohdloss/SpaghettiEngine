@@ -8,9 +8,11 @@ import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL13;
 import org.lwjgl.opengl.GL30;
 
+import com.spaghettiengine.assets.Asset;
 import com.spaghettiengine.core.Game;
+import com.spaghettiengine.utils.Utils;
 
-public class Texture extends RenderObject {
+public class Texture extends Asset {
 
 	public static Texture get(String name) {
 		return Game.getGame().getAssetManager().texture(name);
@@ -20,36 +22,13 @@ public class Texture extends RenderObject {
 		return Game.getGame().getAssetManager().requireTexture(name);
 	}
 
-	// Static method necessary for ausiliary constructor
-	private static final ByteBuffer parseImage(BufferedImage img) {
-		int w = img.getWidth();
-		int h = img.getHeight();
-
-		// Prepare for copy
-		int pixels_raw[] = new int[w * h * 4];
-		pixels_raw = img.getRGB(0, 0, w, h, null, 0, w);
-		ByteBuffer pixels = BufferUtils.createByteBuffer(w * h * 4);
-
-		// Copy data into a byte buffer
-		for (int pixel : pixels_raw) {
-			pixels.put((byte) ((pixel >> 16) & 0xFF)); // Red
-			pixels.put((byte) ((pixel >> 8) & 0xFF)); // Green
-			pixels.put((byte) ((pixel) & 0xFF)); // Blue
-			pixels.put((byte) ((pixel >> 24) & 0xFF)); // Alpha
-		}
-
-		pixels.flip();
-
-		return pixels;
-	}
-
 	public static final int COLOR = GL30.GL_RGBA;
 	public static final int DEPTH = GL30.GL_DEPTH_COMPONENT;
 	public static final int STENCIL = GL30.GL_STENCIL_INDEX8;
 
 	public static final int LINEAR = GL11.GL_LINEAR;
 	public static final int NEAREST = GL11.GL_NEAREST;
-	
+
 	protected int id;
 	protected int width, height;
 	protected int type, mode;
@@ -58,7 +37,6 @@ public class Texture extends RenderObject {
 	// This can be overridden to easily modify the behaviour of the construction
 	// process
 	protected void setParameters(ByteBuffer buffer, int width, int height, int type, int mode) {
-
 		GL11.glBindTexture(GL11.GL_TEXTURE_2D, id);
 
 		GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, mode);
@@ -83,13 +61,13 @@ public class Texture extends RenderObject {
 		setData(buffer, width, height, type, mode);
 		load();
 	}
-	
+
 	public Texture(int width, int height) {
 		this((ByteBuffer) null, width, height);
 	}
 
 	public Texture(BufferedImage img) {
-		this(parseImage(img), img.getWidth(), img.getHeight());
+		this(Utils.parseImage(img), img.getWidth(), img.getHeight());
 	}
 
 	@Override
@@ -97,16 +75,24 @@ public class Texture extends RenderObject {
 		if (valid()) {
 			return;
 		}
-
+		
 		this.buffer = (ByteBuffer) objects[0];
 		this.width = (int) objects[1];
 		this.height = (int) objects[2];
 		this.type = (int) objects[3];
 		this.mode = (int) objects[4];
-
-		setFilled(true);
 	}
 
+	@Override
+	public boolean isFilled() {
+		return width > 0 && height > 0 &&
+				(type == COLOR ||
+				type == DEPTH ||
+				type == STENCIL) &&
+				(mode == LINEAR ||
+				mode == NEAREST);
+	}
+	
 	@Override
 	protected void load0() {
 		// Generate a valid id for this texture
