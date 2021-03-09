@@ -5,13 +5,14 @@ import com.spaghetti.utils.*;
 
 public abstract class CoreComponent extends Thread {
 	
-	private Game source;
-	private FunctionDispatcher functionDispatcher;
-	private boolean stop;
-	private boolean init;
-	private boolean allowRun;
-	private boolean executionEnd;
-	private long lastTime;
+	private volatile Game source;
+	private volatile FunctionDispatcher functionDispatcher;
+	private volatile boolean stop;
+	private volatile boolean init;
+	private volatile boolean allowRun;
+	private volatile boolean allowStop;
+	private volatile boolean executionEnd;
+	private volatile long lastTime;
 
 	public final void initialize() throws Throwable {
 		if (!validStarting()) {
@@ -63,6 +64,14 @@ public abstract class CoreComponent extends Thread {
 		allowRun = true;
 	}
 
+	public final void allowStop() {
+		if (!validStopping()) {
+			throw new IllegalStateException(
+					"Error: attempted to modify core thread state outside the context of a game");
+		}
+		allowStop = true;
+	}
+	
 	@Override
 	public final void start() {
 		if (!validStarting()) {
@@ -120,6 +129,9 @@ public abstract class CoreComponent extends Thread {
 		
 		// Termination try catch
 		try {
+			while(!allowStop) {
+				Utils.sleep(1);
+			}
 			terminate0();
 		} catch (Throwable t) {
 			_uncaught(t);

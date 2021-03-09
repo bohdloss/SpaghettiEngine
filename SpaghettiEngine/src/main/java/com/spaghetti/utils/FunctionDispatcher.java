@@ -155,6 +155,7 @@ public final class FunctionDispatcher {
 			processFunction(entry.getKey(), entry.getValue());
 			i++;
 		}
+		calls.clear();
 	}
 
 	public synchronized void computeEvents() {

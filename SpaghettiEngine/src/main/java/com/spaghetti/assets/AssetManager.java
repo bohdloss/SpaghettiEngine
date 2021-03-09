@@ -51,7 +51,6 @@ public final class AssetManager {
 	public void deleteAll() {
 		del1 = false;
 		cache.forEach((name, asset) -> {
-			Logger.info(source, "Delete " + asset.getClass().getSimpleName() + " " + name);
 			asset.delete();
 			del1 = true;
 		});
@@ -90,8 +89,6 @@ public final class AssetManager {
 		sheet.sheet.forEach((name, asset) -> {
 			try {
 
-				String[] split = asset.customType.split("\\.");
-				Logger.loading(source, "Instantiate " + split[split.length - 1] + " " + name);
 				instantiate(asset);
 
 			} catch (Throwable t) {
@@ -250,7 +247,7 @@ public final class AssetManager {
 
 	private void check(String name) {
 		if (cache.get(name) == null) {
-			throw new NullPointerException("Non existant asset requested");
+			throw new NullPointerException("Non existant asset requested: " + name);
 		}
 	}
 

@@ -39,9 +39,7 @@ public final class AssetLoader {
 		 */
 		ArrayList<Integer[][]> faces = new ArrayList<>();
 
-		int af = 0;
 		for (String line : lines) {
-			af++;
 			String[] tokens = line.split(" ");
 			String type = tokens[0];
 
@@ -67,7 +65,6 @@ public final class AssetLoader {
 				break;
 			case "vn":
 				
-				System.out.println(af + " / " + lines.length + ": " + line);
 				float nx = Float.parseFloat(tokens[1]);
 				float ny = Float.parseFloat(tokens[2]);
 				float nz = Float.parseFloat(tokens[3]);

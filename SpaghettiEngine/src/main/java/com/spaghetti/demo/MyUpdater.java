@@ -20,7 +20,7 @@ public class MyUpdater extends Updater {
 	@Override
 	public void initialize0() throws Throwable {
 		if (!getGame().hasAuthority()) {
-//			return;
+			return;
 		}
 		
 		level = new Level();
@@ -33,9 +33,6 @@ public class MyUpdater extends Updater {
 		floor.setRelativePosition(0, -3, 0);
 
 		square = new MovingMesh(level, null, Model.get("apple_model"), Material.get("apple_mat"));
-//		for(int i = 0; i < 200; i++) {
-//			new MovingMesh(level, null, Model.get("apple_model"), Material.get("apple_mat"));
-//		}
 		
 		
 		level.attachCamera(camera);
@@ -63,14 +60,14 @@ class MovingMesh extends Mesh {
 	}
 	
 	double random = new Random().nextDouble() * 7;
+	
 	double i = 0;
 
 	@Override
-	public void commonUpdate(double delta) {
+	public void serverUpdate(double delta) {
 		i += 10 * getGame().getTickMultiplier(delta);
 
 		double mod = Math.sin(i);
-		
 		setRelativePosition(Math.cos(random) * mod, Math.sin(random) * mod, 0);
 	}
 	

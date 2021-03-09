@@ -610,8 +610,8 @@ public class NetworkWorker {
 			if ((object = level.getObject(id)) == null) {
 				// Build the object if not present
 				object = (GameObject) o_constr(cls(clazz)).newInstance(level, parent);
+				f_oid.set(object, id);
 			}
-			f_oid.set(object, id);
 			readObjectCustom(object);
 
 			// Parse its components
@@ -623,9 +623,9 @@ public class NetworkWorker {
 				if ((component = object.getComponent(id)) == null) {
 					// Build and add the component if not present
 					component = (GameComponent) c_constr(cls(comp_clazz)).newInstance();
+					f_cid.set(component, comp_id);
 					object.addComponent(component);
 				}
-				f_cid.set(component, comp_id);
 				readComponentCustom(component);
 			}
 

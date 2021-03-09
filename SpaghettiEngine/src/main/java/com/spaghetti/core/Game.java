@@ -179,80 +179,7 @@ public final class Game {
 		dependencies.remove(game);
 	}
 
-	// Stop all child threads and flag this game instance as stopped
-	public void stop() {
-
-		if (stopped || stopping || starting) {
-			return;
-		}
-		Logger.info(this, "Waiting for game threads...");
-		stopping = true;
-
-		// First send stop signal to all threads
-
-		if (updater != null) {
-			updater.terminate();
-		}
-		if (renderer != null) {
-			renderer.terminate();
-		}
-		if (client != null) {
-			client.terminate();
-		}
-		if (server != null) {
-			server.terminate();
-		}
-
-		// Wait for execution to stop
-		
-		if (updater != null) {
-			updater.waitExecution();
-		}
-		if (renderer != null) {
-			renderer.waitExecution();
-		}
-		if (client != null) {
-			client.waitExecution();
-		}
-		if (server != null) {
-			server.waitExecution();
-		}
-		
-		// Raise shutdown signal
-
-		eventDispatcher.raiseSignal((GameObject) null, Signals.SIGSTOP);
-		
-		// Then wait for finalization
-
-		if (updater != null) {
-			updater.waitTerminate();
-		}
-
-		if (renderer != null) {
-			renderer.waitTerminate();
-		}
-		if (client != null) {
-			client.waitTerminate();
-		}
-		if (server != null) {
-			server.waitTerminate();
-		}
-
-		// Destroy the window if it's there
-
-		if (window != null) {
-			window.destroy();
-		}
-
-		stopped = true;
-		stopping = false;
-
-		Logger.info(this, "Stopped");
-	}
-
-	public void stopAsync() {
-		stopSignal = true;
-	}
+	
 
 	// Linking/Unlinking of threads to this game instance
 
@@ -285,14 +212,15 @@ public final class Game {
 			return;
 		}
 
-		Logger.loading(this, "Starting game threads...");
+		Logger.loading(this, "Allocating assets...");
 		starting = true;
 		if (assetManager != null) {
 			assetManager.loadAssetSheet(options.getAssetSheetLocation());
 		}
 
 		// First start all threads
-
+		
+		Logger.loading(this, "Telling threads to start...");
 		if (updater != null) {
 			updater.start(this);
 		}
@@ -308,6 +236,7 @@ public final class Game {
 
 		// Then wait for initialization
 
+		Logger.loading(this, "Waiting for initialization to end...");
 		if (updater != null) {
 			updater.waitInit();
 		}
@@ -322,7 +251,8 @@ public final class Game {
 		}
 
 		// Mark this instance as initialized
-
+		
+		Logger.loading(this, "Allowing threads to run...");
 		if (updater != null) {
 			updater.allowRun();
 		}
@@ -341,10 +271,103 @@ public final class Game {
 
 		eventDispatcher.raiseSignal((GameObject) null, Signals.SIGSTART);
 
-		Logger.loading(this, "Ready!");
+		Logger.info(this, "Ready!");
 	}
 
 	// Getters
+
+	// Stop all child threads and flag this game instance as stopped
+	public void stop() {
+	
+		if (stopped || stopping || starting) {
+			return;
+		}
+		stopping = true;
+	
+		// Raise shutdown signal
+		
+		Logger.info(this, "Executing shutdown hooks...");
+		eventDispatcher.raiseSignal((GameObject) null, Signals.SIGSTOP);
+		
+		// First send stop signal to all threads
+
+		Logger.info(this, "Telling threads to shut down...");
+		if (renderer != null) {
+			renderer.terminate();
+		}
+		if (updater != null) {
+			updater.terminate();
+		}
+		if (client != null) {
+			client.terminate();
+		}
+		if (server != null) {
+			server.terminate();
+		}
+		
+		// Wait for execution to stop
+		
+		Logger.info(this, "Waiting for execution to end...");
+		if (updater != null) {
+			updater.waitExecution();
+		}
+		if (renderer != null) {
+			renderer.waitExecution();
+		}
+		if (client != null) {
+			client.waitExecution();
+		}
+		if (server != null) {
+			server.waitExecution();
+		}
+		
+		// Allow finalization to begin
+		
+		Logger.info(this, "Allowing threads to stop...");
+		if (updater != null) {
+			updater.allowStop();
+		}
+		if (renderer != null) {
+			renderer.allowStop();
+		}
+		if (client != null) {
+			client.allowStop();
+		}
+		if (server != null) {
+			server.allowStop();
+		}
+		
+		// Then wait for finalization
+		
+		Logger.info(this, "Executing gloabl shutdown hooks...");
+		if (updater != null) {
+			updater.waitTerminate();
+		}
+		if (renderer != null) {
+			renderer.waitTerminate();
+		}
+		if (client != null) {
+			client.waitTerminate();
+		}
+		if (server != null) {
+			server.waitTerminate();
+		}
+	
+		// Destroy the window if it's there
+	
+		if (window != null) {
+			window.destroy();
+		}
+	
+		stopped = true;
+		stopping = false;
+	
+		Logger.info(this, "Stopped");
+	}
+
+	public void stopAsync() {
+		stopSignal = true;
+	}
 
 	public boolean isStarting() {
 		return starting;

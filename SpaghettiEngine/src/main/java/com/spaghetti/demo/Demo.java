@@ -1,8 +1,8 @@
 package com.spaghetti.demo;
 
 import com.spaghetti.core.*;
-import com.spaghetti.networking.Server;
-import com.spaghetti.render.Renderer;
+import com.spaghetti.networking.*;
+import com.spaghetti.render.*;
 
 public class Demo {
 
@@ -13,15 +13,15 @@ public class Demo {
 
 		try {
 //			Utils.sleep(10000);
-			game = new GameBuilder().setRenderer(new Renderer()).setUpdater(new MyUpdater()).build();
+			game = new GameBuilder().setRenderer(new Renderer()).setUpdater(new MyUpdater()).setClient(new Client()).build();
 			game.getWindow().setSizeLimit(2, 2, 2000, 2000);
 
-//			server = new GameBuilder().setUpdater(new MyUpdater()).setServer(new Server()).build();
+			server = new GameBuilder().setUpdater(new MyUpdater()).setServer(new Server()).build();
 
-//			game.depends(server);
-//			server.depends(game);
+			game.depends(server);
+			server.depends(game);
 
-//			server.begin();
+			server.begin();
 			game.begin();
 
 			Game.idle();

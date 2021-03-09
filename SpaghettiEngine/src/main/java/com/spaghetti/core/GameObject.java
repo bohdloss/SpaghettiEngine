@@ -960,6 +960,8 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 		commonUpdate(delta);
 		if (getGame().isClient()) {
 			clientUpdate(delta);
+		} else {
+			serverUpdate(delta);
 		}
 
 		children.forEach((id, object) -> {

@@ -46,7 +46,7 @@ public class AsyncSocket {
 		return channel;
 	}
 
-	public Socket getServerSocket() {
+	public Socket getSocket() {
 		return socket;
 	}
 

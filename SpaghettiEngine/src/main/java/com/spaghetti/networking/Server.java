@@ -17,7 +17,7 @@ public class Server extends CoreComponent {
 
 	@Override
 	protected void initialize0() throws Throwable {
-		internal_bind(6969);
+		internal_bind(9018);
 	}
 
 	@Override

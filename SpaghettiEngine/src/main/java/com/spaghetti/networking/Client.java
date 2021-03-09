@@ -16,7 +16,7 @@ public class Client extends CoreComponent {
 	@Override
 	protected void initialize0() throws Throwable {
 		worker = new NetworkWorker(this);
-		internal_connect("localhost", 6969);
+		internal_connect("localhost", 9018);
 	}
 
 	@Override
@@ -25,6 +25,8 @@ public class Client extends CoreComponent {
 		worker.destroy();
 	}
 
+	
+	long last = 0;
 	@Override
 	protected void loopEvents(double delta) throws Throwable {
 		Utils.sleep(25);
@@ -33,6 +35,10 @@ public class Client extends CoreComponent {
 			worker.writeSocket();
 			worker.readSocket();
 
+//			if(System.currentTimeMillis() > last + 1000) {
+//				worker.readData();
+//				last = System.currentTimeMillis();
+//			}
 			worker.readData();
 		}
 	}
