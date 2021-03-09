@@ -15,23 +15,23 @@ Every dependency is included in the pom.xml file
 Spaghetti engine features:
 - Asset import system (models, textures, shaders, and custom asset types too)
 - Multi-threaded asset manager
-- Levels, game components and game objects framework (WIP): no need to worry about weird openGL stuff
+- Levels, game components and game objects framework: no need to worry about weird openGL stuff
 
 And you can do the following with it
 - Render 3d models with materials
 - Use the input system to control a player
 - Use the event system to easily dispatch custom events across the level
-- (WIP) Easily manage networking for multiplayer
-- (WIP) Run servers
+- Easily manage networking for multiplayer
+- Run servers
 - (WIP) Physics
-- (SOON) Play sounds and music
+- (WIP) Play sounds and music
 
 ### How to set it up
 
 Requires the following commands installed on your system:
-- git
-- maven
-- jdk-8
+- javac (Windows: [Website](https://adoptopenjdk.net/releases.html?variant=openjdk8&jvmVariant=hotspot) - Linux: ```sudo apt install openjdk-8-jdk```)
+- git (Windows: [Website](https://gitforwindows.org/) - Linux: ```sudo apt install git```)
+- mvn (Windows: [Website](https://maven.apache.org/download.cgi) - Linux ```sudp apt install maven```)
 
 First clone this repository to a folder of your choice
 
@@ -40,13 +40,22 @@ cd MyFolder
 git clone https://github.com/bohdloss/SpaghettiEngine.git
 ```
 
-Then use maven to build it as follows
+Then cd into the project directory
 ```
 cd SpaghettiEngine/SpaghettiEngine
-mvn clean package
 ```
 
-This will create a new folder called ```target``` which contains the compiled library as a ```.jar``` file
+Compilation:
+- ```mvn clean compile``` To compile only the source files
+- ```mvn clean package``` To compile the source files to a jar file
+- ```mvn clean compile assembly:single``` To compile the source files to an executable jar file with dependencies included
+
+This will create a new folder called ```target``` which contains the compiled files
+
+Alternatively you can:
+- Compile and run directly with the ```make-and-run``` script
+- Compile only with the ```make``` script
+- Run only with the ```run``` script
 
 # Code examples
 
@@ -80,7 +89,7 @@ You will have to create a new class that extends Updater and implement 3 methods
 The code of an example class is:
 ```java
 // Import the parent class
-import com.spaghettiengine.core.Updater;
+import com.spaghetti.core.Updater;
 
 // Extends Updater
 public class MyUpdater extends Updater {
