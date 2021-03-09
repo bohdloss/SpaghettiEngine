@@ -31,7 +31,7 @@ And you can do the following with it
 Requires the following commands installed on your system:
 - javac (Windows: [Website](https://adoptopenjdk.net/releases.html?variant=openjdk8&jvmVariant=hotspot) - Linux: ```sudo apt install openjdk-8-jdk```)
 - git (Windows: [Website](https://gitforwindows.org/) - Linux: ```sudo apt install git```)
-- mvn (Windows: [Website](https://maven.apache.org/download.cgi) - Linux ```sudp apt install maven```)
+- mvn (Windows: [Website](https://maven.apache.org/download.cgi) - Linux ```sudo apt install maven```)
 
 First clone this repository to a folder of your choice
 
@@ -88,9 +88,6 @@ You will have to create a new class that extends Updater and implement 3 methods
 
 The code of an example class is:
 ```java
-// Import the parent class
-import com.spaghetti.core.Updater;
-
 // Extends Updater
 public class MyUpdater extends Updater {
 
