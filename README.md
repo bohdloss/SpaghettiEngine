@@ -21,8 +21,8 @@ And you can do the following with it
 - Render 3d models with materials
 - Use the input system to control a player
 - Use the event system to easily dispatch custom events across the level
-- Easily manage networking for multiplayer
-- Run servers
+- (FIXING) Easily manage networking for multiplayer
+- (FIXING) Run servers
 - (WIP) Physics
 - (WIP) Play sounds and music
 
@@ -79,7 +79,7 @@ Where Renderer is already implemented in the core package of the engine, while y
 
 ### Implement Updater class
 
-This step is necessary to load the first level
+In the near future level management will be made easier and overriding the Updater core optional
 
 You will have to create a new class that extends Updater and implement 3 methods:
 - Initialization code
@@ -91,18 +91,18 @@ The code of an example class is:
 // Extends Updater
 public class MyUpdater extends Updater {
 
-  public void initialize0() {
+  protected void initialize0() {
     super.initialize0();
     // Initializing code goes here and not in the constructor
   }
   
   // This code will be executed in a loop whenever possible
   // Delta is the time passed since the last call to this method
-  public void loopEvents(double delta) {
+  protected void loopEvents(double delta) {
     super.loopEvents(delta);
   }
 
-  public void terminate0() {
+  protected void terminate0() {
     super.terminate0();
     // Termination code here
   }
@@ -115,55 +115,58 @@ public class MyUpdater extends Updater {
 
 ### How to create a Level and place a rotating Mesh into it
 
-This is necessary to display your first images on screen
+This lets you display your first images on screen
 
-In your initialize0() method:
 ```java
-// Create a new Level
-Level myLevel = new Level();
+private Level myLevel;
 
-// Attach the level to the game
-// getSource() returns a reference to the current Game instance
-getSource().attachLevel(myLevel);
-
-/*
-* You will need a Camera to render the scene
-* The first argument is the level the camera belongs to
-* The second argument is the parent component, but since we
-* are placing it directly into the level, it has no parent
-*/
-Camera camera = new Camera(myLevel, (GameComponent) null);
-
-// Attach the camera to the level to signal it is the active one
-myLevel.attachCamera(camera);
-
-/*
-* Create a mesh to place in the level
-* The arguments are the same except you will have to provide
-* a Model and a Material too
-*/
-Mesh mesh = new Mesh(myLevel, (GameComponent) null, Model.get("apple_model"), Material.get("apple_mat"));
+protected void initialize0() {
+	// Create a new Level
+	myLevel = new Level();
+	
+	// Attach the level to the game
+	// getGame() returns a reference to the current Game instance
+	this.getGame().attachLevel(myLevel);
+	
+	/*
+	* You will need a Camera to render the scene
+	* The only argument is the level the camera belongs to
+	*/
+	Camera camera = new Camera(myLevel);
+	/*
+	* Create a mesh to place in the level
+	* The arguments are the same except you will have to provide
+	* a Model and a Material too
+	*/
+	Mesh mesh = new Mesh(myLevel, Model.get("apple_model"), Material.get("apple_mat"));
+	
+	// Add our objects to the level
+	myLevel.addObject(camera);
+	myLevel.addObject(mesh);
+	
+	// Now the Renderer will use this camera to render the scene
+	myLevel.attachCamera(camera);
+}
 ```
 This will create a Camera to render your scene and a Mesh to be rendered
 
-To rotate the mesh, in your loopEvents(double delta) method:
+To rotate the mesh:
 ```java
 // Store the rotation
 private double i;
 
 public void loopEvents(double delta) {
-  super.loopEvents(delta);
-
-  // Increase it reagrdless of the framerate
-  // Remember getSource() returns a reference to the current game object
-  i += 0.05 * getSource().getTickMultiplier(delta);
-
-  // Assuming you saved a reference to the level you created
-  myLevel.getComponent(Mesh.class).setPitch(i);
+	super.loopEvents(delta);
+	
+	// You multiply by the multiplier to be framerate-independent
+	i += 0.05 * this.getGame().getTickMultiplier(delta);
+	
+	// You get an object of type Mesh from the level and change the rotation
+	myLevel.getObject(Mesh.class).setPitch(i);
 
 }
 ```
-All the following code can be found in the demo pacakge of this repository (```com.spaghettiengine.demo```)
+All the following code can be found in the demo pacakge of this repository (```com.spaghetti.demo```)
 
 To understand how to actually import your assets read the next example
 

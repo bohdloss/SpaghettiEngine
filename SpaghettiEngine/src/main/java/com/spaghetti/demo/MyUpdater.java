@@ -34,9 +34,7 @@ public class MyUpdater extends Updater {
 		floor.setRelativeScale(15, 2, 1);
 		floor.setRelativePosition(0, -3, 0);
 
-		player = new Player(level);
-		// square = new MovingMesh(level, Model.get("square"),
-		// Material.get("defaultMAT"));
+		player = new Player(level);;
 
 		level.addObject(camera);
 		level.addObject(floor);
