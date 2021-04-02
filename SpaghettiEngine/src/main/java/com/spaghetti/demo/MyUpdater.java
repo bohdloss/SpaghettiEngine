@@ -16,25 +16,31 @@ public class MyUpdater extends Updater {
 	protected Mesh square;
 	protected Mesh square2;
 	protected Mesh floor;
+	protected Camera camera;
+	protected Player player;
 
 	@Override
 	public void initialize0() throws Throwable {
 		if (!getGame().hasAuthority()) {
 			return;
 		}
-		
 		level = new Level();
 		getGame().attachLevel(level);
-		Camera camera = new Camera(level, null);
+
+		camera = new Camera(level);
 		camera.setFov(20);
 
-		floor = new Mesh(level, null, Model.get("square"), Material.get("defaultMAT"));
+		floor = new Mesh(level, Model.get("square"), Material.get("defaultMAT"));
 		floor.setRelativeScale(15, 2, 1);
 		floor.setRelativePosition(0, -3, 0);
 
-		square = new MovingMesh(level, null, Model.get("apple_model"), Material.get("apple_mat"));
-		
-		
+		player = new Player(level);
+		// square = new MovingMesh(level, Model.get("square"),
+		// Material.get("defaultMAT"));
+
+		level.addObject(camera);
+		level.addObject(floor);
+		level.addObject(player);
 		level.attachCamera(camera);
 	}
 
@@ -49,18 +55,19 @@ public class MyUpdater extends Updater {
 	}
 
 }
+
 class MovingMesh extends Mesh {
 
-	public MovingMesh(Level level, GameObject parent, Model model, Material material) {
-		super(level, parent, model, material);
+	public MovingMesh(Level level, Model model, Material material) {
+		super(level, model, material);
 	}
-	
-	public MovingMesh(Level level, GameObject parent) {
-		super(level, parent);
+
+	public MovingMesh(Level level) {
+		super(level);
 	}
-	
+
 	double random = new Random().nextDouble() * 7;
-	
+
 	double i = 0;
 
 	@Override
@@ -70,5 +77,5 @@ class MovingMesh extends Mesh {
 		double mod = Math.sin(i);
 		setRelativePosition(Math.cos(random) * mod, Math.sin(random) * mod, 0);
 	}
-	
+
 }

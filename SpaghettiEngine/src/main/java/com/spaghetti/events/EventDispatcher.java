@@ -28,7 +28,7 @@ public final class EventDispatcher {
 	// Immediately dispatch signals because they are not transmitted over network
 	private void dispatchSignal(GameObject issuer, long signal) {
 		if (sig_ghandles.size() == 0) {
-			Logger.info(game, "Signal (" + signal + ") received but no handler registered");
+			Logger.info(game, "Signal (" + signal + ") received but no joinHandler registered");
 		} else {
 			sig_ghandles.forEach(handler -> {
 				handler.handleSignal(game.isClient(), issuer, signal);
@@ -52,7 +52,7 @@ public final class EventDispatcher {
 
 		if (evnt_ghandles.size() == 0) {
 			Logger.info(game, "Event (" + (event.getFrom() == GameEvent.CLIENT ? "CLIENT" : "SERVER") + ", "
-					+ event.getId() + ") received but no handler registered");
+					+ event.getId() + ") received but no joinHandler registered");
 		} else {
 			evnt_ghandles.forEach(handler -> {
 				handler.handleEvent(game.isClient(), issuer, event);
@@ -78,7 +78,7 @@ public final class EventDispatcher {
 	// Dispatch intentions only when received
 	private void dispatchIntention(GameObject issuer, long intention) {
 		if (int_ghandles.size() == 0) {
-			Logger.warning(game, "Intention (" + intention + ") received but no handler is registered");
+			Logger.warning(game, "Intention (" + intention + ") received but no joinHandler is registered");
 		} else {
 			int_ghandles.forEach(handler -> {
 				handler.handleIntention(game.isClient(), issuer, intention);

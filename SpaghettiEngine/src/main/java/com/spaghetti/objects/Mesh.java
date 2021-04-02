@@ -16,14 +16,14 @@ public class Mesh extends GameObject {
 	@Replicate
 	private int a;
 
-	public Mesh(Level level, GameObject parent, Model model, Material material) {
-		super(level, parent);
+	public Mesh(Level level, Model model, Material material) {
+		super(level);
 		this.model = model;
 		this.material = material;
 	}
 
-	public Mesh(Level level, GameObject parent) {
-		this(level, parent, (Model) null, (Material) null);
+	public Mesh(Level level) {
+		this(level, (Model) null, (Material) null);
 	}
 
 	@Override

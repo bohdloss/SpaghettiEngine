@@ -18,9 +18,9 @@ public final class Game {
 
 	// Support for multiple instances of the engine
 	// in the same java process
-	protected static ArrayList<Game> games = new ArrayList<>();
-	protected static HashMap<Long, Integer> links = new HashMap<>();
-	protected static Handler handler;
+	protected volatile static ArrayList<Game> games = new ArrayList<>();
+	protected volatile static HashMap<Long, Integer> links = new HashMap<>();
+	protected volatile static Handler handler;
 
 	static {
 		init();
@@ -32,7 +32,7 @@ public final class Game {
 		}
 		handler = new Handler();
 		handler.start();
-		while(handler.dispatcher == null) {
+		while (handler.dispatcher == null) {
 			Utils.sleep(1);
 		}
 	}
@@ -86,34 +86,34 @@ public final class Game {
 	}
 
 	// Instance globals
-	private GameWindow window;
-	private AssetManager assetManager;
-	private EventDispatcher eventDispatcher;
+	private volatile GameWindow window;
+	private volatile AssetManager assetManager;
+	private volatile EventDispatcher eventDispatcher;
 
-	private Updater updater;
-	private Renderer renderer;
-	private Client client;
-	private Server server;
+	private volatile Updater updater;
+	private volatile Renderer renderer;
+	private volatile Client client;
+	private volatile Server server;
 
-	private int index;
-	private boolean stopped;
-	private boolean init;
+	private volatile int index;
+	private volatile boolean stopped;
+	private volatile boolean init;
 
 	protected boolean stopSignal;
 	protected ArrayList<Game> dependencies = new ArrayList<>();
 
 	// Security
-	private boolean starting;
-	private boolean stopping;
+	private volatile boolean starting;
+	private volatile boolean stopping;
 
 	// Cached booleans
-	private boolean isHeadless;
-	private boolean isClient;
-	private boolean isMultiplayer;
-	private boolean hasAutority;
+	private volatile boolean isHeadless;
+	private volatile boolean isClient;
+	private volatile boolean isMultiplayer;
+	private volatile boolean hasAutority;
 
-	private Level activeLevel;
-	private GameOptions options;
+	private volatile Level activeLevel;
+	private volatile GameOptions options;
 
 	// Constructors using custom classes
 	public Game(Updater updater, Renderer renderer, Client client, Server server) throws Throwable {
@@ -179,8 +179,6 @@ public final class Game {
 		dependencies.remove(game);
 	}
 
-	
-
 	// Linking/Unlinking of threads to this game instance
 
 	public void registerThread(Thread t) {
@@ -215,11 +213,11 @@ public final class Game {
 		Logger.loading(this, "Allocating assets...");
 		starting = true;
 		if (assetManager != null) {
-			assetManager.loadAssetSheet(options.getAssetSheetLocation());
+			assetManager.loadAssetSheet(options.getOption(GameOptions.PREFIX + "assetsheet"));
 		}
 
 		// First start all threads
-		
+
 		Logger.loading(this, "Telling threads to start...");
 		if (updater != null) {
 			updater.start(this);
@@ -251,7 +249,7 @@ public final class Game {
 		}
 
 		// Mark this instance as initialized
-		
+
 		Logger.loading(this, "Allowing threads to run...");
 		if (updater != null) {
 			updater.allowRun();
@@ -278,17 +276,11 @@ public final class Game {
 
 	// Stop all child threads and flag this game instance as stopped
 	public void stop() {
-	
 		if (stopped || stopping || starting) {
 			return;
 		}
 		stopping = true;
-	
-		// Raise shutdown signal
-		
-		Logger.info(this, "Executing shutdown hooks...");
-		eventDispatcher.raiseSignal((GameObject) null, Signals.SIGSTOP);
-		
+
 		// First send stop signal to all threads
 
 		Logger.info(this, "Telling threads to shut down...");
@@ -304,9 +296,9 @@ public final class Game {
 		if (server != null) {
 			server.terminate();
 		}
-		
+
 		// Wait for execution to stop
-		
+
 		Logger.info(this, "Waiting for execution to end...");
 		if (updater != null) {
 			updater.waitExecution();
@@ -320,9 +312,14 @@ public final class Game {
 		if (server != null) {
 			server.waitExecution();
 		}
-		
+
+		// Raise shutdown signal
+
+		Logger.info(this, "Executing shutdown hooks...");
+		eventDispatcher.raiseSignal((GameObject) null, Signals.SIGSTOP);
+
 		// Allow finalization to begin
-		
+
 		Logger.info(this, "Allowing threads to stop...");
 		if (updater != null) {
 			updater.allowStop();
@@ -336,9 +333,9 @@ public final class Game {
 		if (server != null) {
 			server.allowStop();
 		}
-		
+
 		// Then wait for finalization
-		
+
 		Logger.info(this, "Executing gloabl shutdown hooks...");
 		if (updater != null) {
 			updater.waitTerminate();
@@ -352,17 +349,22 @@ public final class Game {
 		if (server != null) {
 			server.waitTerminate();
 		}
-	
+
 		// Destroy the window if it's there
-	
+
 		if (window != null) {
 			window.destroy();
 		}
-	
+
+		internal_finishstop();
+	}
+
+	protected void internal_finishstop() {
 		stopped = true;
 		stopping = false;
-	
+
 		Logger.info(this, "Stopped");
+		System.gc();
 	}
 
 	public void stopAsync() {
@@ -487,23 +489,23 @@ public final class Game {
 	public long getServerId() {
 		return server.getId();
 	}
-	
+
 	public FunctionDispatcher getUpdaterDispatcher() {
 		return updater.getDispatcher();
 	}
-	
+
 	public FunctionDispatcher getRendererDispatcher() {
 		return renderer.getDispatcher();
 	}
-	
+
 	public FunctionDispatcher getClientDispatcher() {
 		return client.getDispatcher();
 	}
-	
+
 	public FunctionDispatcher getServerDispatcher() {
 		return server.getDispatcher();
 	}
-	
+
 	public AssetManager getAssetManager() {
 		return assetManager;
 	}
@@ -521,8 +523,11 @@ public final class Game {
 	}
 
 	public void attachLevel(Level level) {
-		if (activeLevel != null) {
+		if (level == null) {
 			return;
+		}
+		if (activeLevel != null) {
+			detachLevel();
 		}
 		activeLevel = level;
 		activeLevel.source = this;

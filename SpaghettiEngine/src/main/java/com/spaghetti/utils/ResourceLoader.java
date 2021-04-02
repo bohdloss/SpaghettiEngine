@@ -21,7 +21,7 @@ public final class ResourceLoader {
 			stream = ResourceLoader.class.getResourceAsStream(location);
 			byte[] bin = new byte[stream.available()];
 			int read = 0;
-			while(read < bin.length) {
+			while (read < bin.length) {
 				int status = stream.read(bin, read, bin.length - read);
 				read += status;
 			}

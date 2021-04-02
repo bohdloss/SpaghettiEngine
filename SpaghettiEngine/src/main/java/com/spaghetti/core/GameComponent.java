@@ -9,23 +9,23 @@ public abstract class GameComponent implements Tickable, Replicable {
 
 	private static HashMap<Integer, Long> staticId = new HashMap<>();
 
-	private GameObject owner;
-	private boolean destroyed;
-	private long id;
-
-	public GameComponent() {
-
-		// Id calculation based on game instance
-
+	private static final synchronized long newId() {
 		int index = Game.getGame().getIndex();
-
 		Long id = staticId.get(index);
-
 		if (id == null) {
 			id = 0l;
 		}
-		this.id = id;
 		staticId.put(index, id + 1l);
+		return id;
+	}
+
+	private GameObject owner;
+	private boolean destroyed;
+	private boolean attached;
+	private long id;
+
+	public GameComponent() {
+		this.id = newId();
 
 	}
 
@@ -41,11 +41,11 @@ public abstract class GameComponent implements Tickable, Replicable {
 	}
 
 	@Override
-	public void writeData(NetworkBuffer buffer) {
+	public void writeData(boolean isClient, NetworkBuffer buffer) {
 	}
 
 	@Override
-	public void readData(NetworkBuffer buffer) {
+	public void readData(boolean isClient, NetworkBuffer buffer) {
 	}
 
 	// All of the warnings from GameObject's
@@ -99,6 +99,10 @@ public abstract class GameComponent implements Tickable, Replicable {
 
 	public final long getId() {
 		return id;
+	}
+
+	public final boolean isAttached() {
+		return attached;
 	}
 
 }

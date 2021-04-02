@@ -1,7 +1,6 @@
 package com.spaghetti.core;
 
 import org.lwjgl.glfw.GLFW;
-
 import com.spaghetti.utils.FunctionDispatcher;
 import com.spaghetti.utils.Utils;
 
@@ -46,11 +45,10 @@ public final class Handler extends Thread {
 					// Detect if all games are stopped
 					// and if the stopOnNoActivity flag
 					// is on then end this thread;
-					if (!game.isStopped()) {
+					if (!game.isStopped() && game.isInit()) {
 						found = true;
 					}
 				}
-				;
 
 				if (!found && stopOnNoActivity) {
 					stop = true;

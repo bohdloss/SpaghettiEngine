@@ -1,10 +1,12 @@
 package com.spaghetti.core;
 
 import java.util.ArrayList;
+import java.util.ConcurrentModificationException;
 import java.util.HashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
+import com.spaghetti.input.Controller;
 import com.spaghetti.interfaces.Tickable;
 import com.spaghetti.objects.Camera;
 
@@ -15,6 +17,7 @@ public final class Level implements Tickable {
 	protected HashMap<Long, GameObject> o_ordered = new HashMap<>();
 	protected HashMap<Long, GameComponent> c_ordered = new HashMap<>();
 	protected Camera activeCamera;
+	protected Controller activeInput;
 
 	public Level() {
 	}
@@ -36,7 +39,7 @@ public final class Level implements Tickable {
 	}
 
 	public synchronized void addObject(GameObject object) {
-		if (objects.contains(object)) {
+		if (objects.contains(object) || object == null || object.isDestroyed()) {
 			return;
 		}
 
@@ -55,6 +58,7 @@ public final class Level implements Tickable {
 				get._end();
 				objects.remove(get);
 				o_ordered.remove(id);
+				GameObject.unattachObject(get);
 			}
 		}
 		return get;
@@ -108,9 +112,12 @@ public final class Level implements Tickable {
 
 	@Override
 	public void update(double delta) {
-		objects.forEach(object -> {
-			object.update(delta);
-		});
+		try {
+			objects.forEach(object -> {
+				object.update(delta);
+			});
+		} catch (ConcurrentModificationException e) {
+		}
 	}
 
 	public Camera getActiveCamera() {
@@ -118,15 +125,44 @@ public final class Level implements Tickable {
 	}
 
 	public void detachCamera() {
+		if (activeCamera == null) {
+			return;
+		}
 		activeCamera = null;
 	}
 
 	public void attachCamera(Camera camera) {
-		if (activeCamera != null || camera.getLevel() != this) {
-			camera.calcScale();
+		if (camera == null || source.isHeadless() || activeCamera == camera) {
 			return;
 		}
+		if (activeCamera != null) {
+			detachCamera();
+		}
+		camera.calcScale();
 		activeCamera = camera;
+	}
+
+	public Controller getController() {
+		return activeInput;
+	}
+
+	public void detachController() {
+		if (activeInput == null) {
+			return;
+		}
+		source.getWindow().getInputDispatcher().unregisterListener(activeInput);
+		activeInput = null;
+	}
+
+	public void attachController(Controller controller) {
+		if (controller == null || source.isHeadless() || activeInput == controller) {
+			return;
+		}
+		if (activeInput != null) {
+			detachController();
+		}
+		source.getWindow().getInputDispatcher().registerListener(activeInput);
+		this.activeInput = controller;
 	}
 
 	// Getter utility functions

@@ -33,19 +33,11 @@ public class Controller extends GameComponent implements Controllable {
 	}
 
 	@Override
-	public void onBeginPlay() {
-		GameWindow window = getGame().getWindow();
-		if (window != null) {
-			window.getInputDispatcher().registerListener(this);
-		}
+	protected void onBeginPlay() {
 	}
 
 	@Override
-	public void onEndPlay() {
-		GameWindow window = getGame().getWindow();
-		if (window != null) {
-			window.getInputDispatcher().unregisterListener(this);
-		}
+	protected void onEndPlay() {
 	}
 
 }

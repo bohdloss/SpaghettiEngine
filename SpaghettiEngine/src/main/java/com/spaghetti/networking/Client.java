@@ -4,14 +4,20 @@ import java.io.IOException;
 import java.net.*;
 
 import com.spaghetti.core.*;
+import com.spaghetti.interfaces.JoinHandler;
 import com.spaghetti.utils.*;
 
 public class Client extends CoreComponent {
 
 	protected NetworkWorker worker;
+	protected JoinHandler joinHandler;
 	protected long clientId;
 
 	protected boolean justConnected;
+
+	public Client() {
+		joinHandler = new DefaultJoinHandler();
+	}
 
 	@Override
 	protected void initialize0() throws Throwable {
@@ -25,8 +31,8 @@ public class Client extends CoreComponent {
 		worker.destroy();
 	}
 
-	
 	long last = 0;
+
 	@Override
 	protected void loopEvents(double delta) throws Throwable {
 		Utils.sleep(25);
@@ -39,6 +45,7 @@ public class Client extends CoreComponent {
 //				worker.readData();
 //				last = System.currentTimeMillis();
 //			}
+			System.out.println(getLevel() != null ? getLevel().getActiveCamera() : "level is null");
 			worker.readData();
 		}
 	}
@@ -58,7 +65,9 @@ public class Client extends CoreComponent {
 			internal_disconnect();
 		}
 		try {
-			worker.provideSocket(new Socket(ip, port));
+			Socket socket = new Socket(ip, port); // Perform connection
+			joinHandler.handle(getGame().isClient(), worker); // Handle joining server
+			worker.provideSocket(socket); // Give socket to worker
 			justConnected = true;
 		} catch (UnknownHostException e) {
 			Logger.error("Host could not be resolved: " + ip);
@@ -72,7 +81,7 @@ public class Client extends CoreComponent {
 	}
 
 	public boolean disconnect() {
-		return (boolean) getDispatcher().quickQueue(() -> internal_disconnect());
+		return (boolean) getDispatcher().quickQueue(this::internal_disconnect);
 	}
 
 	protected boolean internal_disconnect() {
@@ -83,7 +92,7 @@ public class Client extends CoreComponent {
 		String remoteIp = getRemoteIp();
 		int remotePort = getRemotePort();
 		try {
-			worker.resetSocket();
+			worker.resetSocket(); // Reset worker socket
 		} catch (IOException e) {
 			Logger.error("I/O error occurred while disconnecting, ignoring");
 			return true;
@@ -115,6 +124,14 @@ public class Client extends CoreComponent {
 
 	public int getLocalPort() {
 		return worker.getLocalPort();
+	}
+
+	public JoinHandler getJoinHandler() {
+		return joinHandler;
+	}
+
+	public void setJoinHandler(JoinHandler joinHandler) {
+		this.joinHandler = joinHandler;
 	}
 
 }

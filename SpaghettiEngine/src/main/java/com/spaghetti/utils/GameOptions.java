@@ -2,27 +2,29 @@ package com.spaghetti.utils;
 
 import java.awt.Dimension;
 import java.awt.Toolkit;
+import java.util.HashMap;
 
 import org.joml.Vector2i;
 
 public final class GameOptions {
 
-	protected Vector2i resolution;
-	protected double tick;
-	protected String assetSheetLocation;
-	protected int networkBufferSize;
+	private double tick;
+	public static final String PREFIX = "spaghetti.";
+	private HashMap<String, Object> options = new HashMap<>();
 
 	public GameOptions() {
 
 		findResolution();
 		findTick();
+		findStopTimeout();
 		findAssetSheetLocation();
 		findNetworkBufferSize();
+		findPlayerClass();
 
 	}
 
 	private void findResolution() {
-		resolution = new Vector2i();
+		Vector2i resolution = new Vector2i();
 
 		if ("true".equals(System.getProperty("java.awt.headless"))) {
 			return;
@@ -37,23 +39,35 @@ public final class GameOptions {
 		} catch (Throwable t) {
 		}
 
+		options.put(PREFIX + "resolution", resolution);
+
 	}
 
 	private void findTick() {
+		options.put(PREFIX + "tick", 1);
 		tick = 1;
 	}
 
+	private void findStopTimeout() {
+		options.put(PREFIX + "stoptimeout", 10000l); // 10 s
+	}
+
 	private void findAssetSheetLocation() {
-		assetSheetLocation = "/res/main.txt";
+		options.put(PREFIX + "assetsheet", "/res/main.txt");
 	}
 
 	private void findNetworkBufferSize() {
-		networkBufferSize = 1000 * 1000 * 10; // B * KB * MB = 10 MB
+		options.put(PREFIX + "networkbuffer", 1000 * 1000 * 10); // B * KB * MB = 10 MB
+	}
+
+	private void findPlayerClass() {
+		options.put(PREFIX + "playerclass", "com.spaghetti.objects.Player");
 	}
 
 	// Public getters and setters
 
 	public void setTick(double tick) {
+		options.put(PREFIX + "tick", tick);
 		this.tick = tick;
 	}
 
@@ -61,29 +75,24 @@ public final class GameOptions {
 		return tick;
 	}
 
-	public void setResolution(int x, int y) {
-		resolution.x = x;
-		resolution.y = y;
+	public void setOption(String name, Object value) {
+		if (name.startsWith(PREFIX) && !options.containsKey(name)) {
+			throw new IllegalArgumentException();
+		}
+		options.put(name, value);
 	}
 
-	public Vector2i getResolution() {
-		return resolution;
+	public Object ngetOption(String name) {
+		Object get = options.get(name);
+		if (get == null) {
+			Logger.warning("Non-existant game option \"" + name + "\" requested");
+		}
+		return get;
 	}
 
-	public void setAssetSheetLocation(String assetSheetLocation) {
-		this.assetSheetLocation = assetSheetLocation;
-	}
-
-	public String getAssetSheetLocation() {
-		return assetSheetLocation;
-	}
-
-	public void setNetworkBufferSize(int size) {
-		this.networkBufferSize = size;
-	}
-
-	public int getNetworkBufferSize() {
-		return networkBufferSize;
+	@SuppressWarnings("unchecked")
+	public <T> T getOption(String name) {
+		return (T) ngetOption(name);
 	}
 
 }

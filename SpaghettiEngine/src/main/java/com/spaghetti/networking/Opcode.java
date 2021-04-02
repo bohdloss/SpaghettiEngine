@@ -1,8 +1,8 @@
 package com.spaghetti.networking;
 
-public final class DataType {
+public final class Opcode {
 
-	private DataType() {
+	private Opcode() {
 	}
 
 	public static final byte ITEM = (byte) 0;
@@ -14,5 +14,10 @@ public final class DataType {
 
 	public static final byte INTENTION = (byte) 5;
 	public static final byte GAMEEVENT = (byte) 6;
+
+	public static final byte CAMERA = (byte) 7;
+	public static final byte CONTROLLER = (byte) 8;
+
+	public static final byte END = (byte) 9;
 
 }

@@ -7,13 +7,19 @@ import java.util.HashMap;
 import java.util.Map.Entry;
 
 import com.spaghetti.core.*;
+import com.spaghetti.interfaces.JoinHandler;
 import com.spaghetti.utils.*;
 
 public class Server extends CoreComponent {
 
 	protected ServerSocket server;
+	protected JoinHandler joinHandler;
 	protected HashMap<Long, NetworkWorker> clients = new HashMap<>();
 	protected ArrayList<Long> bans = new ArrayList<>();
+
+	public Server() {
+		joinHandler = new DefaultJoinHandler();
+	}
 
 	@Override
 	protected void initialize0() throws Throwable {
@@ -37,6 +43,8 @@ public class Server extends CoreComponent {
 					NetworkWorker client = entry.getValue();
 
 					client.writeLevel();
+					client.writeActiveCamera();
+					client.writeActiveController();
 
 					client.writeSocket();
 					client.readSocket();
@@ -109,7 +117,7 @@ public class Server extends CoreComponent {
 	}
 
 	public boolean kickAll() {
-		return (boolean) getDispatcher().quickQueue(() -> internal_kickall());
+		return (boolean) getDispatcher().quickQueue(this::internal_kickall);
 	}
 
 	protected boolean internal_kickall() {
@@ -121,7 +129,7 @@ public class Server extends CoreComponent {
 	}
 
 	public boolean banAll() {
-		return (boolean) getDispatcher().quickQueue(() -> internal_banall());
+		return (boolean) getDispatcher().quickQueue(this::internal_banall);
 	}
 
 	protected boolean internal_banall() {
@@ -133,7 +141,7 @@ public class Server extends CoreComponent {
 	}
 
 	public boolean pardonAll() {
-		return (boolean) getDispatcher().quickQueue(() -> internal_pardonall());
+		return (boolean) getDispatcher().quickQueue(this::internal_pardonall);
 	}
 
 	protected boolean internal_pardonall() {
@@ -161,6 +169,7 @@ public class Server extends CoreComponent {
 		Long clientId = new Long(hash);
 		if (!clients.containsKey(clientId)) {
 			NetworkWorker client = new NetworkWorker(this);
+			joinHandler.handle(getGame().isClient(), client);
 			client.provideSocket(socket);
 			clients.put(clientId, client);
 
@@ -176,9 +185,9 @@ public class Server extends CoreComponent {
 	public boolean bind(int port) {
 		return (boolean) getDispatcher().quickQueue(() -> internal_bind(port));
 	}
-	
+
 	protected boolean internal_bind(int port) {
-		if(isBound()) {
+		if (isBound()) {
 			Logger.warning("Server is already bound, stopping first...");
 			internal_unbind();
 		}
@@ -191,13 +200,13 @@ public class Server extends CoreComponent {
 		Logger.info("Server now listening on port " + port);
 		return true;
 	}
-	
+
 	public boolean unbind() {
-		return (boolean) getDispatcher().quickQueue(() -> internal_unbind());
+		return (boolean) getDispatcher().quickQueue(this::internal_unbind);
 	}
-	
+
 	protected boolean internal_unbind() {
-		if(!isBound()) {
+		if (!isBound()) {
 			Logger.warning("Server is not bound, no need to unbind");
 			return false;
 		}
@@ -211,8 +220,7 @@ public class Server extends CoreComponent {
 		Logger.info("Server unbound");
 		return true;
 	}
-	
-	
+
 	// Getters and setters
 
 	public boolean isConnected(long id) {
@@ -240,21 +248,29 @@ public class Server extends CoreComponent {
 	public String getRemoteIp(long id) {
 		return clients.get(id).getRemoteIp();
 	}
-	
+
 	public int getRemotePort(long id) {
 		return clients.get(id).getRemotePort();
 	}
-	
+
 	public String getLocalIp() {
 		return server == null ? null : server.getInetAddress().getHostAddress();
 	}
-	
+
 	public int getLocalPort() {
 		return server == null ? 0 : server.getLocalPort();
 	}
-	
+
 	public boolean isBound() {
 		return server != null && !server.isClosed() && server.isBound();
 	}
-	
+
+	public JoinHandler getJoinHandler() {
+		return joinHandler;
+	}
+
+	public void setJoinHandler(JoinHandler joinHandler) {
+		this.joinHandler = joinHandler;
+	}
+
 }

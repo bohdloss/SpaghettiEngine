@@ -9,5 +9,5 @@ public class AssetFlag {
 	public AssetFlag(String type) {
 		this.type = type;
 	}
-	
+
 }

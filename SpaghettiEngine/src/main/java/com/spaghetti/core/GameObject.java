@@ -16,23 +16,39 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 	// Hierarchy and utility
 
 	private static final Field c_owner;
+	private static final Field c_attached;
 	private static HashMap<Integer, Long> staticId = new HashMap<>();
+
+	private static final synchronized long newId() {
+		int index = Game.getGame().getIndex();
+		Long id = staticId.get(index);
+		if (id == null) {
+			id = 0l;
+		}
+		staticId.put(index, id + 1l);
+		return id;
+	}
 
 	static {
 		Field f = null;
+		Field f2 = null;
 		try {
 			f = GameComponent.class.getDeclaredField("owner");
 			f.setAccessible(true);
+			f2 = GameComponent.class.getDeclaredField("attached");
+			f2.setAccessible(true);
 		} catch (Throwable t) {
 			// Will not happen
 			t.printStackTrace();
 		}
 		c_owner = f;
+		c_attached = f2;
 	}
 
 	private static final void setComponentOwner(GameComponent gc, GameObject go) {
 		try {
 			c_owner.set(gc, go);
+			c_attached.set(gc, go != null);
 		} catch (Throwable t) {
 			// Will not happen
 			t.printStackTrace();
@@ -40,21 +56,28 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 	}
 
 	private static final void rebuildLevel(GameObject child) {
-
-		if (child.hierarchy == 0) {
-			// If this object has no parent remove it from the level directly
-			child.level.removeObject(child.id);
-			child.level.o_ordered.put(child.id, child);
-		} else if (child.parent != null) {
-			// Otherwise remove it from its parent
-			child.parent.removeChild(child.id);
-		}
-		// The object will then be re-added with the appropriate function later
-
-		// Repeat recursively
-		child.children.forEach((id, childObject) -> {
-			rebuildLevel(childObject);
+		child.level.o_ordered.put(child.id, child);
+		child.children.forEach((id, object) -> {
+			rebuildLevel(object);
 		});
+	}
+
+	private static final void rebuildParent(GameObject child) {
+
+		if (child.attached) {
+
+			if (child.hierarchy == 0) {
+				// If this object has no parent remove it from the level directly
+				child.level.removeObject(child.id);
+			} else if (child.parent != null) {
+				// Otherwise remove it from its parent
+				child.parent.removeChild(child.id);
+			}
+			// The object will then be re-added with the appropriate function later
+
+		} else {
+			child.attached = true;
+		}
 	}
 
 	private static final void rebuildHierarchy(GameObject caller, GameObject child) {
@@ -71,14 +94,20 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 
 	}
 
-	public static final void rebuildObject(GameObject caller, GameObject child) {
+	protected static final void rebuildObject(GameObject caller, GameObject child) {
 		rebuildLevel(child);
+		rebuildParent(child);
 		rebuildHierarchy(caller, child);
+	}
+
+	protected static final void unattachObject(GameObject object) {
+		object.attached = false;
 	}
 
 	// Instance methods and m_fields
 
 	private boolean destroyed;
+	private boolean attached;
 	private int hierarchy; // This identifies how deep this object is in the hierarchy
 	private long id; // This uniquely identifies any object
 	private Level level;
@@ -86,35 +115,12 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 	private HashMap<Long, GameObject> children = new HashMap<>();
 	private HashMap<Long, GameComponent> components = new HashMap<>();
 
-	public GameObject(Level level, GameObject parent) {
+	public GameObject(Level level) {
 		if (level == null) {
 			throw new IllegalArgumentException();
 		}
-
 		this.level = level;
-
-		// Id calculation based on game instance
-
-		int index = Game.getGame().getIndex();
-
-		Long id = staticId.get(index);
-
-		if (id == null) {
-			id = 0l;
-		}
-		this.id = id;
-		staticId.put(index, id + 1l);
-
-		// Hierarchy initialization
-
-		if (parent == null || parent.isDestroyed()) {
-			level.objects.add(this);
-			hierarchy = 0;
-			level.o_ordered.put(this.id, this);
-			_begin();
-		} else {
-			parent.addChild(this);
-		}
+		this.id = newId();
 	}
 
 	// Utility
@@ -137,17 +143,18 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 		GameObject current = this;
 		while (current != null) {
 			if (current == object) {
-				// In this case, the object that needs to be added
-				// is higher in the hierarchy than this one
-				// but part of the same branch
-				// this would create an infinite recursive operation
-				// which results in StackOverflowException being thrown
+				/*
+				 * In this case, the object that needs to be added is higher in the hierarchy
+				 * than this one but part of the same branch this would create an infinite
+				 * recursive operation which results in StackOverflowException being thrown this
+				 * operation climbs up the branch trying to find 'object'
+				 */
 				return;
 			}
 			current = current.parent;
 		}
 
-		// onEndPlay() happens unless object is a newly created instance
+		// onEndPlay() happens unless object is not attached
 		rebuildObject(this, object);
 		children.put(object.id, object);
 
@@ -384,6 +391,7 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 			children.remove(id);
 			level.objects.remove(removed);
 			level.o_ordered.remove(id);
+			removed.attached = false;
 
 			return removed;
 		}
@@ -478,17 +486,15 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 		if (isDestroyed()) {
 			return;
 		}
-		_end();
 		_destroy();
 	}
 
 	private final void destroySimple() {
-		if (parent != null) {
-			parent.children.remove(id);
-		}
-		if (level != null) {
-			level.o_ordered.remove(id);
-			level.objects.remove(this);
+		onDestroy();
+		if (parent == null) {
+			level.removeObject(id);
+		} else {
+			parent.removeChild(id);
 		}
 		hierarchy = -1;
 		level = null;
@@ -516,7 +522,7 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 			GameObject object = (GameObject) obj;
 			object._end();
 		}
-		for (Object obj : children.values().toArray()) {
+		for (Object obj : components.values().toArray()) {
 			GameComponent component = (GameComponent) obj;
 			component.onEndPlay();
 		}
@@ -532,7 +538,6 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 			GameComponent component = (GameComponent) obj;
 			component.destroy();
 		}
-		onDestroy();
 		destroySimple();
 	}
 
@@ -579,6 +584,24 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 
 	public final boolean isDestroyed() {
 		return destroyed;
+	}
+
+	public final boolean isLocallyAttached() {
+		return attached;
+	}
+
+	public final boolean isGloballyAttached() {
+		if (!attached) {
+			return false;
+		}
+		GameObject obj = parent;
+		while (obj != null) {
+			if (!obj.attached) {
+				return false;
+			}
+			obj = obj.parent;
+		}
+		return true;
 	}
 
 	// World interaction
@@ -997,11 +1020,11 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 	}
 
 	@Override
-	public void writeData(NetworkBuffer buffer) {
+	public void writeData(boolean isClient, NetworkBuffer buffer) {
 	}
 
 	@Override
-	public void readData(NetworkBuffer buffer) {
+	public void readData(boolean isClient, NetworkBuffer buffer) {
 	}
 
 	// Event dispatching

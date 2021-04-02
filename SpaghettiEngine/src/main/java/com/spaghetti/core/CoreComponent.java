@@ -4,7 +4,7 @@ import com.spaghetti.objects.Camera;
 import com.spaghetti.utils.*;
 
 public abstract class CoreComponent extends Thread {
-	
+
 	private volatile Game source;
 	private volatile FunctionDispatcher functionDispatcher;
 	private volatile boolean stop;
@@ -51,11 +51,11 @@ public abstract class CoreComponent extends Thread {
 	}
 
 	public final void waitExecution() {
-		while(!executionEnd) {
+		while (!executionEnd) {
 			Utils.sleep(1);
 		}
 	}
-	
+
 	public final void allowRun() {
 		if (!validStarting()) {
 			throw new IllegalStateException(
@@ -71,7 +71,7 @@ public abstract class CoreComponent extends Thread {
 		}
 		allowStop = true;
 	}
-	
+
 	@Override
 	public final void start() {
 		if (!validStarting()) {
@@ -90,18 +90,19 @@ public abstract class CoreComponent extends Thread {
 		if (Thread.currentThread().getId() != this.getId()) {
 			throw new IllegalStateException("Error: run() called but no new thread started");
 		}
-		
+
 		// Initializer try catch
 		try {
 			initialize();
-		} catch(Throwable t) {
+		} catch (Throwable t) {
 			_uncaught(t);
 			stop = true;
 		}
-		
+
 		// Loop try catch
 		try {
 			while (!allowRun) {
+				functionDispatcher.computeEvents();
 				Utils.sleep(1);
 			}
 			while (!stop) {
@@ -122,15 +123,17 @@ public abstract class CoreComponent extends Thread {
 			_uncaught(t);
 		} finally {
 			stop = true;
+			source.stopAsync();
 			// This means that not only this component has received the shutdown signal
 			// but has already exited out of the loop
 			executionEnd = true;
 		}
-		
+
 		// Termination try catch
 		try {
-			while(!allowStop) {
+			while (!allowStop) {
 				Utils.sleep(1);
+				functionDispatcher.computeEvents();
 			}
 			terminate0();
 		} catch (Throwable t) {
@@ -141,7 +144,7 @@ public abstract class CoreComponent extends Thread {
 	private void _uncaught(Throwable t) {
 		Logger.error("Fatal uncaught error in game " + source.getIndex() + ":", t);
 	}
-	
+
 	protected abstract void loopEvents(double delta) throws Throwable; // Your custom loop code here!
 
 	// Getters
@@ -157,7 +160,7 @@ public abstract class CoreComponent extends Thread {
 	public final boolean executionEnded() {
 		return executionEnd;
 	}
-	
+
 	protected abstract CoreComponent provideSelf();
 
 	private final boolean validStarting() {
@@ -189,5 +192,5 @@ public abstract class CoreComponent extends Thread {
 	public final FunctionDispatcher getDispatcher() {
 		return functionDispatcher;
 	}
-	
+
 }

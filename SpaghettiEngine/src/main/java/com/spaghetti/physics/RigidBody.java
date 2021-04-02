@@ -270,7 +270,8 @@ public class RigidBody extends GameComponent {
 
 		physics = getLevel().getObject(Physics.class);
 		if (physics == null) {
-			physics = new Physics(getLevel(), (GameObject) null);
+			physics = new Physics(getLevel());
+			getLevel().addObject(physics);
 		}
 		if (mass == 0) {
 			mass = 10;

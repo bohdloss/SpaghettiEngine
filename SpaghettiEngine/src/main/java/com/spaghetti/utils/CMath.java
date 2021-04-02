@@ -178,7 +178,7 @@ public final class CMath {
 
 	// Finds the angle from (0, 0) to a point
 	public static double lookAt(Vector2d point) {
-		return lookAt(point.y, point.x);
+		return lookAt(point.x, point.y);
 	}
 
 	// Finds the angle from (0, 0) to a point and adds PI to it

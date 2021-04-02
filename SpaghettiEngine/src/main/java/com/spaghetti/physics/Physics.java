@@ -16,8 +16,8 @@ public final class Physics extends GameObject {
 	protected Vector2d gravity = new Vector2d(0, -9.81);
 
 	// Ignores parent!!!
-	public Physics(Level level, GameObject parent) {
-		super(level, (GameObject) null);
+	public Physics(Level level) {
+		super(level);
 	}
 
 	// Box2d-style body listing

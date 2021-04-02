@@ -12,7 +12,7 @@ import com.spaghetti.utils.*;
 public class Camera extends GameObject {
 
 	// Instace m_fields
-	
+
 	protected double scale;
 	@Replicate
 	protected double fov = 10;
@@ -31,8 +31,8 @@ public class Camera extends GameObject {
 	// Cache
 	private Vector3d vecC = new Vector3d();
 
-	public Camera(Level level, GameObject parent) {
-		super(level, parent);
+	public Camera(Level level) {
+		super(level);
 	}
 
 	protected void setProjectionMatrix() {
@@ -80,7 +80,7 @@ public class Camera extends GameObject {
 
 	protected void checkTarget() {
 		if (renderTarget == null) {
-			Vector2i res = getGame().getOptions().getResolution();
+			Vector2i res = getGame().getOptions().getOption(GameOptions.PREFIX + "resolution");
 			renderTarget = new FrameBuffer(res.x, res.y);
 			updateValues();
 		}
@@ -92,7 +92,7 @@ public class Camera extends GameObject {
 		targetRatio = ((double) width) / ((double) height);
 		setProjectionMatrix();
 	}
-	
+
 	// Getters and setters
 
 	public boolean getClearColor() {

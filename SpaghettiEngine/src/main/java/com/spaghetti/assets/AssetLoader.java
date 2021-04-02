@@ -64,7 +64,7 @@ public final class AssetLoader {
 
 				break;
 			case "vn":
-				
+
 				float nx = Float.parseFloat(tokens[1]);
 				float ny = Float.parseFloat(tokens[2]);
 				float nz = Float.parseFloat(tokens[3]);

@@ -22,16 +22,15 @@ public final class FunctionDispatcher {
 	private ThreadLocalRandom random;
 
 	private Thread thread;
-	
+
 	// Queue using reflection
 
 	public FunctionDispatcher() {
 		this.thread = Thread.currentThread();
 		this.random = ThreadLocalRandom.current();
 	}
-	
-	public synchronized long queue(boolean ignoreReturnValue, Object target, String funcName,
-			Object... args) {
+
+	public synchronized long queue(boolean ignoreReturnValue, Object target, String funcName, Object... args) {
 
 		try {
 
@@ -71,12 +70,12 @@ public final class FunctionDispatcher {
 	}
 
 	public synchronized long queue(Function function, boolean ignoreReturnValue) {
-		if(function == null) {
+		if (function == null) {
 			throw new IllegalArgumentException();
 		}
-		
+
 		long rand = random.nextLong();
-		
+
 		if (ignoreReturnValue) {
 			ignoreReturn.add(rand);
 		}
@@ -90,7 +89,7 @@ public final class FunctionDispatcher {
 	}
 
 	// Quick queue
-	
+
 	public Object quickQueue(Function function) {
 		long func = queue(function);
 		Object ret;
@@ -101,7 +100,7 @@ public final class FunctionDispatcher {
 		}
 		return ret;
 	}
-	
+
 	public Object waitReturnValue(long funcId) throws Throwable {
 		if (ignoresReturnValue(funcId)) {
 			return null;
@@ -143,13 +142,13 @@ public final class FunctionDispatcher {
 	}
 
 	public synchronized void computeEvents(int amount) {
-		if(Thread.currentThread().getId() != thread.getId()) {
+		if (Thread.currentThread().getId() != thread.getId()) {
 			return;
 		}
-		
+
 		int i = 0;
-		for(Entry<Long, Function> entry : calls.entrySet()) {
-			if(i >= amount) {
+		for (Entry<Long, Function> entry : calls.entrySet()) {
+			if (i >= amount) {
 				return;
 			}
 			processFunction(entry.getKey(), entry.getValue());

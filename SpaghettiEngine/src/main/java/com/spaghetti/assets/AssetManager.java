@@ -25,6 +25,7 @@ public final class AssetManager {
 
 	// Lambdas' limitations workaround
 	private Throwable lambda_error;
+	private boolean ready;
 
 	public AssetManager(Game source) {
 		this.source = source;
@@ -49,6 +50,10 @@ public final class AssetManager {
 
 	// Destroy every resource currently loaded
 	public void deleteAll() {
+		if (!ready) {
+			return;
+		}
+
 		del1 = false;
 		cache.forEach((name, asset) -> {
 			asset.delete();
@@ -61,6 +66,10 @@ public final class AssetManager {
 
 	// Destroy every resource currently loaded and collect possible garbage
 	public void resetAll() {
+		if (!ready) {
+			return;
+		}
+
 		cache.forEach((str, asset) -> {
 			asset.reset();
 		});
@@ -70,12 +79,22 @@ public final class AssetManager {
 
 	// Remove all dummy resources
 	protected void removeDummy() {
+		if (!ready) {
+			return;
+		}
+
 		cache.clear();
 		flags.clear();
+
+		ready = false;
 	}
 
 	// Reset this instance to its state upon creation
 	public synchronized void destroy() {
+		if (!ready) {
+			return;
+		}
+
 		deleteAll();
 		resetAll();
 		removeDummy();
@@ -83,7 +102,8 @@ public final class AssetManager {
 	}
 
 	// Initialize dummies
-	public void initDummy() throws Throwable {
+	private void initDummy() throws Throwable {
+
 		lambda_error = null;
 
 		sheet.sheet.forEach((name, asset) -> {
@@ -110,7 +130,7 @@ public final class AssetManager {
 			Constructor<? extends Asset> custom = customClass.getConstructor(new Class<?>[0]);
 			Asset asset = custom.newInstance(new Object[0]);
 			asset.setName(cls.name);
-			
+
 			// Save metadata
 			cache.put(cls.name, asset);
 			String pkg = customClass.getPackage().getName();
@@ -134,6 +154,7 @@ public final class AssetManager {
 		removeDummy();
 		initDummy();
 
+		ready = true;
 	}
 
 	public void loadAssetSheet(String sheetLocation) throws Throwable {
@@ -159,6 +180,10 @@ public final class AssetManager {
 	}
 
 	private synchronized void flagAsset(String name, boolean flag) {
+		if (!ready) {
+			return;
+		}
+
 		AssetFlag aflag = flags.get(name);
 		if (flag) {
 			if (!cache.get(name).valid()) {
@@ -170,10 +195,18 @@ public final class AssetManager {
 	}
 
 	public synchronized String getAssetType(String name) {
+		if (!ready) {
+			return null;
+		}
+
 		return flags.get(name).type;
 	}
-	
+
 	public synchronized void lazyLoad() throws Throwable {
+		if (!ready) {
+			return;
+		}
+
 		cache.forEach((name, asset) -> {
 			AssetFlag flag = flags.get(name);
 			if (flag.needLoad && !flag.queued) {
@@ -182,7 +215,7 @@ public final class AssetManager {
 			}
 		});
 	}
-	
+
 	// Loader methods
 
 	private void fillAsset(String type, String name) throws Throwable {
@@ -216,6 +249,10 @@ public final class AssetManager {
 	}
 
 	public synchronized void loadAsset(String name, boolean lazy) {
+		if (!ready) {
+			return;
+		}
+
 		// Flag asset as being loaded
 		AssetFlag flag = flags.get(name);
 		flag.queued = true;
@@ -246,6 +283,9 @@ public final class AssetManager {
 	// Lazy-loading getters
 
 	private void check(String name) {
+		if (!ready) {
+			return;
+		}
 		if (cache.get(name) == null) {
 			throw new NullPointerException("Non existant asset requested: " + name);
 		}

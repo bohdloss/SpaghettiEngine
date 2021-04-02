@@ -16,8 +16,10 @@ import com.spaghetti.assets.AssetManager;
 import com.spaghetti.core.*;
 import com.spaghetti.events.EventDispatcher;
 import com.spaghetti.events.GameEvent;
+import com.spaghetti.input.Controller;
 import com.spaghetti.interfaces.*;
 import com.spaghetti.objects.Camera;
+import com.spaghetti.utils.GameOptions;
 import com.spaghetti.utils.Logger;
 
 public class NetworkWorker {
@@ -30,11 +32,16 @@ public class NetworkWorker {
 	protected static final Identity IDENTITY = new Identity();
 
 	// Data
-	protected final CoreComponent owner;
+	protected CoreComponent parent;
 	protected NetworkBuffer w_buffer;
 	protected NetworkBuffer r_buffer;
 	protected Socket socket;
 	protected Authenticator authenticator;
+
+	// Player info
+	public GameObject player;
+	public GameComponent player_controller;
+	public Camera player_camera;
 
 	protected byte[] length_b = new byte[4];
 
@@ -73,10 +80,10 @@ public class NetworkWorker {
 		f_modifiers = mod;
 	}
 
-	public NetworkWorker(CoreComponent owner) {
-		this.owner = owner;
-		this.w_buffer = new NetworkBuffer(owner.getGame().getOptions().getNetworkBufferSize());
-		this.r_buffer = new NetworkBuffer(owner.getGame().getOptions().getNetworkBufferSize());
+	public NetworkWorker(CoreComponent parent) {
+		this.parent = parent;
+		this.w_buffer = new NetworkBuffer(Game.getGame().getOptions().getOption(GameOptions.PREFIX + "networkbuffer"));
+		this.r_buffer = new NetworkBuffer(Game.getGame().getOptions().getOption(GameOptions.PREFIX + "networkbuffer"));
 	}
 
 	// Utility methods
@@ -165,7 +172,7 @@ public class NetworkWorker {
 		Constructor<?> constructor = m_oconstrs.get(cls);
 		if (constructor == null) {
 			synchronized (m_oconstrs) {
-				constructor = cls.getConstructor(Level.class, GameObject.class);
+				constructor = cls.getConstructor(Level.class, GameObject.class, long.class);
 				constructor.setAccessible(true);
 				m_oconstrs.put(cls, (Constructor<? extends GameObject>) constructor);
 			}
@@ -178,7 +185,7 @@ public class NetworkWorker {
 		Constructor<?> constructor = m_cconstrs.get(cls);
 		if (constructor == null) {
 			synchronized (m_cconstrs) {
-				constructor = cls.getConstructor();
+				constructor = cls.getConstructor(long.class);
 				constructor.setAccessible(true);
 				m_cconstrs.put(cls, (Constructor<? extends GameComponent>) constructor);
 			}
@@ -191,7 +198,7 @@ public class NetworkWorker {
 		Constructor<?> constructor = m_econstrs.get(cls);
 		if (constructor == null) {
 			synchronized (m_econstrs) {
-				constructor = cls.getConstructor();
+				constructor = cls.getConstructor(long.class);
 				constructor.setAccessible(true);
 				m_econstrs.put(cls, (Constructor<? extends GameEvent>) constructor);
 			}
@@ -295,7 +302,7 @@ public class NetworkWorker {
 				Asset asset = (Asset) field.get(obj);
 				w_buffer.putString(asset.getName());
 			}
-			
+
 			// JOML Vectors
 			if (type.equals(Vector2d.class)) {
 				Vector2d vec = (Vector2d) field.get(obj);
@@ -375,13 +382,13 @@ public class NetworkWorker {
 			}
 
 			// Assets
-			if(Asset.class.isAssignableFrom(type)) {
-				AssetManager asset_manager = owner.getGame().getAssetManager();
+			if (Asset.class.isAssignableFrom(type)) {
+				AssetManager asset_manager = Game.getGame().getAssetManager();
 				String asset_name = r_buffer.getString();
 				Asset asset = asset_manager.custom(asset_name);
 				field.set(obj, asset);
 			}
-			
+
 			// JOML Vectors
 			if (type.equals(Vector2d.class)) {
 				Vector2d vec = (Vector2d) field.get(obj);
@@ -442,18 +449,26 @@ public class NetworkWorker {
 		Level level = getLevel();
 
 		// Write metadata
-		w_buffer.putByte(DataType.LEVEL);
+		w_buffer.putByte(Opcode.LEVEL);
 		level.forEachObject(this::writeChildren);
-		w_buffer.putByte(DataType.STOP);
-		
-		w_buffer.putLong(level.getActiveCamera() == null ? -1 : level.getActiveCamera().getId());
+		w_buffer.putByte(Opcode.STOP);
+	}
+
+	public void writeActiveCamera() {
+		w_buffer.putByte(Opcode.CAMERA);
+		w_buffer.putLong(player_camera == null ? -1 : player_camera.getId());
+	}
+
+	public void writeActiveController() {
+		w_buffer.putByte(Opcode.CONTROLLER);
+		w_buffer.putLong(player_controller == null ? -1 : player_controller.getId());
 	}
 
 	public void writeChildren(GameObject obj) {
 		if (noReplicate(obj.getClass())) {
 			return;
 		}
-		w_buffer.putByte(DataType.ITEM);
+		w_buffer.putByte(Opcode.ITEM); // This is an item
 
 		// Write info about this object
 		w_buffer.putLong(obj.getId());
@@ -464,29 +479,29 @@ public class NetworkWorker {
 		// Write info about its components
 		obj.forEachComponent((id, component) -> {
 			if (!noReplicate(component.getClass())) {
-				w_buffer.putByte(DataType.ITEM);
+				w_buffer.putByte(Opcode.ITEM);
 				w_buffer.putLong(component.getId());
 				w_buffer.putString(component.getClass().getName());
 				// Let the component write custom data
 				writeComponentCustom(component);
 			}
 		});
-		w_buffer.putByte(DataType.STOP);
+		w_buffer.putByte(Opcode.STOP); // Stop components
 
 		// Recursively write info about its children
 		obj.forEachChild((id, child) -> writeChildren(child));
-		w_buffer.putByte(DataType.STOP);
+		w_buffer.putByte(Opcode.STOP); // Stop children
 	}
 
 	public void writeObject(GameObject obj) {
-		w_buffer.putByte(DataType.GAMEOBJECT);
+		w_buffer.putByte(Opcode.GAMEOBJECT);
 		w_buffer.putLong(obj.getId());
 		// Let the object write custom data
 		writeObjectCustom(obj);
 	}
 
 	public void writeComponent(GameComponent comp) {
-		w_buffer.putByte(DataType.GAMECOMPONENT);
+		w_buffer.putByte(Opcode.GAMECOMPONENT);
 		w_buffer.putLong(comp.getId());
 		// Let the component write custom data
 		writeComponentCustom(comp);
@@ -497,7 +512,7 @@ public class NetworkWorker {
 		for (Field field : fields(obj.getClass())) {
 			writeField(field, obj);
 		}
-		obj.writeData(w_buffer);
+		obj.writeData(parent.getGame().isClient(), w_buffer);
 	}
 
 	protected void writeComponentCustom(GameComponent comp) {
@@ -505,7 +520,7 @@ public class NetworkWorker {
 		for (Field field : fields(comp.getClass())) {
 			writeField(field, comp);
 		}
-		comp.writeData(w_buffer);
+		comp.writeData(parent.getGame().isClient(), w_buffer);
 	}
 
 	protected void writeEventCustom(GameEvent event) {
@@ -516,13 +531,13 @@ public class NetworkWorker {
 	}
 
 	public void writeIntention(GameObject issuer, long intention) {
-		w_buffer.putByte(DataType.INTENTION);
+		w_buffer.putByte(Opcode.INTENTION);
 		w_buffer.putLong(issuer.getId());
 		w_buffer.putLong(intention);
 	}
 
 	public void writeGameEvent(GameObject issuer, GameEvent event) {
-		w_buffer.putByte(DataType.GAMEEVENT);
+		w_buffer.putByte(Opcode.GAMEEVENT);
 		w_buffer.putLong(issuer.getId());
 
 		w_buffer.putString(event.getClass().getName());
@@ -534,7 +549,7 @@ public class NetworkWorker {
 		if (authenticator == null) {
 			authenticator = new DefaultAuthenticator();
 		}
-		if (owner.getGame().isClient()) {
+		if (parent.getGame().isClient()) {
 			authenticator.w_client_auth(this, w_buffer);
 		} else {
 			authenticator.w_server_auth(this, w_buffer);
@@ -549,32 +564,40 @@ public class NetworkWorker {
 		try {
 			resetSocket();
 		} catch (IOException e) {
-			Logger.error("I/O error occurred while resetting connection, ignoring");
+			Logger.warning("I/O error occurred while resetting connection, ignoring");
 		}
 	}
 
 	public void readData() throws Throwable {
 		byte opcode = r_buffer.getByte();
 		Level level = getLevel();
-		switch (opcode) {
-		default:
-			invalid(opcode);
-			return;
-		case DataType.LEVEL:
-			readLevel();
-			break;
-		case DataType.GAMEOBJECT:
-			readObject(level);
-			break;
-		case DataType.GAMECOMPONENT:
-			readComponent(level);
-			break;
-		case DataType.GAMEEVENT:
-			readGameEvent();
-			break;
-		case DataType.INTENTION:
-			readIntention();
-			break;
+		while (opcode != Opcode.END) {
+			switch (opcode) {
+			default:
+				invalid(opcode);
+				return;
+			case Opcode.LEVEL:
+				readLevel();
+				break;
+			case Opcode.GAMEOBJECT:
+				readObject(level);
+				break;
+			case Opcode.GAMECOMPONENT:
+				readComponent(level);
+				break;
+			case Opcode.GAMEEVENT:
+				readGameEvent();
+				break;
+			case Opcode.INTENTION:
+				readIntention();
+				break;
+			case Opcode.CAMERA:
+				readActiveCamera(level);
+				break;
+			case Opcode.CONTROLLER:
+				readActiveController(level);
+				break;
+			}
 		}
 	}
 
@@ -582,19 +605,47 @@ public class NetworkWorker {
 		Level level = getLevel();
 
 		// Read all children
-		while (r_buffer.getByte() == DataType.ITEM) {
+		while (r_buffer.getByte() == Opcode.ITEM) {
 			readChildren(level, (GameObject) null);
 		}
-		
-		long activeCamera = r_buffer.getLong();
-		if(activeCamera != -1) {
-			Camera camera = (Camera) level.getObject(activeCamera);
-			if(level.getActiveCamera() != camera) {
-				if(level.getActiveCamera() != null) {
-					level.detachCamera();
-				}
-				level.attachCamera(camera);
+	}
+
+	public void readActiveCamera(Level level) {
+		long camera_id = r_buffer.getLong();
+		Logger.error(String.valueOf(camera_id));
+		// -1 means null
+		if (camera_id != -1) {
+			// Obtain level camera
+			Camera level_camera = (Camera) level.getObject(camera_id);
+
+			// Check differences with local camera
+			if (level_camera != player_camera) {
+				// Apply changes
+				player_camera = level_camera;
+				level.attachCamera(level_camera);
 			}
+		} else {
+			player_camera = null;
+			level.detachCamera();
+		}
+	}
+
+	public void readActiveController(Level level) {
+		long controller_id = r_buffer.getLong();
+		// -1 means null
+		if (controller_id != -1) {
+			// Obtain level controller
+			Controller level_controller = (Controller) level.getComponent(controller_id);
+
+			// Check differences with local controller
+			if (level_controller != player_controller) {
+				// Apply changes
+				player_controller = level_controller;
+				level.attachController(level_controller);
+			}
+		} else {
+			player_controller = null;
+			level.detachController();
 		}
 	}
 
@@ -609,28 +660,30 @@ public class NetworkWorker {
 			GameObject object = null;
 			if ((object = level.getObject(id)) == null) {
 				// Build the object if not present
+				System.out.println("Creating object " + clazz + "..." + clazz.length());
 				object = (GameObject) o_constr(cls(clazz)).newInstance(level, parent);
-				f_oid.set(object, id);
+				System.out.println("Created object " + clazz);
 			}
 			readObjectCustom(object);
 
 			// Parse its components
-			while (r_buffer.getByte() == DataType.ITEM) {
+			while (r_buffer.getByte() == Opcode.ITEM) {
 				long comp_id = r_buffer.getLong();
 				String comp_clazz = r_buffer.getString();
 
 				GameComponent component = null;
-				if ((component = object.getComponent(id)) == null) {
+				if ((component = object.getComponent(comp_id)) == null) {
 					// Build and add the component if not present
+					System.out.println("Creating component " + comp_clazz + "...");
 					component = (GameComponent) c_constr(cls(comp_clazz)).newInstance();
-					f_cid.set(component, comp_id);
 					object.addComponent(component);
+					System.out.println("Created component " + comp_clazz);
 				}
 				readComponentCustom(component);
 			}
 
 			// Recursively read data from its children
-			while (r_buffer.getByte() == DataType.ITEM) {
+			while (r_buffer.getByte() == Opcode.ITEM) {
 				readChildren(level, object);
 			}
 		} catch (IllegalAccessException e) {
@@ -659,7 +712,7 @@ public class NetworkWorker {
 		for (Field field : fields(obj.getClass())) {
 			readField(field, obj);
 		}
-		obj.readData(r_buffer);
+		obj.readData(parent.getGame().isClient(), r_buffer);
 	}
 
 	protected void readComponentCustom(GameComponent comp) {
@@ -667,7 +720,7 @@ public class NetworkWorker {
 		for (Field field : fields(comp.getClass())) {
 			readField(field, comp);
 		}
-		comp.readData(r_buffer);
+		comp.readData(parent.getGame().isClient(), r_buffer);
 	}
 
 	protected void readEventCustom(GameEvent event) {
@@ -683,7 +736,7 @@ public class NetworkWorker {
 
 		Level level = getLevel();
 		GameObject issuer = level.getObject(issuer_id);
-		EventDispatcher event_dispatcher = owner.getGame().getEventDispatcher();
+		EventDispatcher event_dispatcher = Game.getGame().getEventDispatcher();
 
 		event_dispatcher.dispatchIntention(IDENTITY, issuer, intention);
 	}
@@ -700,8 +753,7 @@ public class NetworkWorker {
 			Level level = getLevel();
 			GameObject issuer = level.getObject(issuer_id);
 			GameEvent event = (GameEvent) e_constr(cls(event_class)).newInstance();
-			f_eid.set(event, event_id);
-			EventDispatcher event_dispatcher = owner.getGame().getEventDispatcher();
+			EventDispatcher event_dispatcher = Game.getGame().getEventDispatcher();
 			readEventCustom(event);
 
 			event_dispatcher.dispatchEvent(IDENTITY, issuer, event);
@@ -717,7 +769,7 @@ public class NetworkWorker {
 		if (authenticator == null) {
 			authenticator = new DefaultAuthenticator();
 		}
-		if (owner.getGame().isClient()) {
+		if (Game.getGame().isClient()) {
 			authenticator.r_client_auth(this, r_buffer);
 		} else {
 			authenticator.r_server_auth(this, r_buffer);
@@ -727,7 +779,7 @@ public class NetworkWorker {
 	// Getters and setters
 
 	public Game getGame() {
-		return owner.getGame();
+		return Game.getGame();
 	}
 
 	public Level getLevel() {

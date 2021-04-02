@@ -3,8 +3,6 @@ package com.spaghetti.networking;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 
-import com.spaghetti.utils.Logger;
-
 public final class NetworkBuffer {
 
 	private static final byte b0 = (byte) 0, b1 = (byte) 1;
