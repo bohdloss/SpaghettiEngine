@@ -1,11 +1,12 @@
 package com.spaghetti.core;
 
 import java.util.HashMap;
+import java.util.Random;
 
 import com.spaghetti.interfaces.*;
 import com.spaghetti.networking.NetworkBuffer;
 
-public abstract class GameComponent implements Tickable, Replicable {
+public abstract class GameComponent implements Updatable, Replicable {
 
 	private static HashMap<Integer, Long> staticId = new HashMap<>();
 
@@ -16,7 +17,7 @@ public abstract class GameComponent implements Tickable, Replicable {
 			id = 0l;
 		}
 		staticId.put(index, id + 1l);
-		return id;
+		return new Random().nextLong();
 	}
 
 	private GameObject owner;

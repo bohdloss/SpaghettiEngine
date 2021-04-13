@@ -4,6 +4,6 @@ import com.spaghetti.networking.NetworkWorker;
 
 public interface JoinHandler {
 
-	public void handle(boolean isClient, NetworkWorker worker);
+	public void handleJoin(boolean isClient, NetworkWorker worker);
 
 }

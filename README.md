@@ -21,10 +21,17 @@ And you can do the following with it
 - Render 3d models with materials
 - Use the input system to control a player
 - Use the event system to easily dispatch custom events across the level
-- (FIXING) Easily manage networking for multiplayer
-- (FIXING) Run servers
+- Easily manage networking for multiplayer
+- Run servers
 - (WIP) Physics
 - (WIP) Play sounds and music
+
+### Known problems
+
+The following bugs are being actively fixed:
+
+- Replicated camera not rendering properly
+- Occasional deadlock on startup
 
 ### How to set it up
 

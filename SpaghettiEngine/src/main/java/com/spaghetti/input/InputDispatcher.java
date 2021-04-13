@@ -119,6 +119,10 @@ public final class InputDispatcher {
 	// Register listeners
 
 	public synchronized void registerListener(Controllable listener) {
+		if(listener == null) {
+			Logger.warning("Attempted to register null input listener");
+			return;
+		}
 		if (!listeners.contains(listener)) {
 			listeners.add(listener);
 		}

@@ -1,6 +1,8 @@
 package com.spaghetti.utils;
 
 import java.awt.image.BufferedImage;
+import java.io.IOException;
+import java.io.InputStream;
 import java.nio.ByteBuffer;
 
 import org.lwjgl.BufferUtils;
@@ -48,4 +50,12 @@ public final class Utils {
 		return pixels;
 	}
 
+	public static final void effectiveRead(InputStream stream, byte[] buffer, int offset, int amount) throws IOException {
+		int read = offset, status = 0;
+		while (read < amount || read == -1) {
+			status = stream.read(buffer, read, amount - read);
+			read += status;
+		}
+	}
+	
 }

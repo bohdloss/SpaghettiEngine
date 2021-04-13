@@ -2,6 +2,7 @@ package com.spaghetti.core;
 
 import java.lang.reflect.Field;
 import java.util.HashMap;
+import java.util.Random;
 import java.util.function.BiConsumer;
 
 import org.joml.Matrix4d;
@@ -11,7 +12,7 @@ import com.spaghetti.events.GameEvent;
 import com.spaghetti.interfaces.*;
 import com.spaghetti.networking.NetworkBuffer;
 
-public abstract class GameObject implements Tickable, Renderable, Replicable {
+public abstract class GameObject implements Updatable, Renderable, Replicable {
 
 	// Hierarchy and utility
 
@@ -26,7 +27,7 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 			id = 0l;
 		}
 		staticId.put(index, id + 1l);
-		return id;
+		return new Random().nextLong();
 	}
 
 	static {
@@ -607,16 +608,16 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 	// World interaction
 
 	@Replicate
-	protected Vector3d relativePos = new Vector3d();
+	protected final Vector3d relativePosition = new Vector3d();
 	@Replicate
-	protected Vector3d relativeScale = new Vector3d(1, 1, 1);
+	protected final Vector3d relativeScale = new Vector3d(1, 1, 1);
 	@Replicate
-	protected Vector3d relativeRotation = new Vector3d();
+	protected final Vector3d relativeRotation = new Vector3d();
 
 	// Position getters
 
 	public final void getRelativePosition(Vector3d pointer) {
-		pointer.set(relativePos);
+		pointer.set(relativePosition);
 	}
 
 	public final void getWorldPosition(Vector3d pointer) {
@@ -624,22 +625,22 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 
 		GameObject last = this;
 		while (last.hierarchy != 0) {
-			pointer.add(last.relativePos);
+			pointer.add(last.relativePosition);
 			last = last.parent;
 		}
-		pointer.add(last.relativePos);
+		pointer.add(last.relativePosition);
 	}
 
 	public final double getRelativeX() {
-		return relativePos.x;
+		return relativePosition.x;
 	}
 
 	public final double getRelativeY() {
-		return relativePos.y;
+		return relativePosition.y;
 	}
 
 	public final double getRelativeZ() {
-		return relativePos.z;
+		return relativePosition.z;
 	}
 
 	public final double getWorldX() {
@@ -647,10 +648,10 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 
 		GameObject last = this;
 		while (last.hierarchy != 0) {
-			x += last.relativePos.x;
+			x += last.relativePosition.x;
 			last = last.parent;
 		}
-		return x + last.relativePos.x;
+		return x + last.relativePosition.x;
 	}
 
 	public final double getWorldY() {
@@ -658,10 +659,10 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 
 		GameObject last = this;
 		while (last.hierarchy != 0) {
-			y += last.relativePos.y;
+			y += last.relativePosition.y;
 			last = last.parent;
 		}
-		return y + last.relativePos.y;
+		return y + last.relativePosition.y;
 	}
 
 	public final double getWorldZ() {
@@ -669,10 +670,10 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 
 		GameObject last = this;
 		while (last.hierarchy != 0) {
-			z += last.relativePos.z;
+			z += last.relativePosition.z;
 			last = last.parent;
 		}
-		return z + last.relativePos.z;
+		return z + last.relativePosition.z;
 	}
 
 	// Position setters
@@ -682,7 +683,7 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 	}
 
 	public final void setRelativePosition(double x, double y, double z) {
-		relativePos.set(x, y, z);
+		relativePosition.set(x, y, z);
 	}
 
 	public final void setWorldPosition(Vector3d vec) {
@@ -697,19 +698,19 @@ public abstract class GameObject implements Tickable, Renderable, Replicable {
 		double ydiff = vec3.y - y;
 		double zdiff = vec3.z - z;
 
-		setRelativePosition(relativePos.x - xdiff, relativePos.y - ydiff, relativePos.z - zdiff);
+		setRelativePosition(relativePosition.x - xdiff, relativePosition.y - ydiff, relativePosition.z - zdiff);
 	}
 
 	public final void setRelativeX(double x) {
-		setRelativePosition(x, relativePos.y, relativePos.z);
+		setRelativePosition(x, relativePosition.y, relativePosition.z);
 	}
 
 	public final void setRelativeY(double y) {
-		setRelativePosition(relativePos.x, y, relativePos.z);
+		setRelativePosition(relativePosition.x, y, relativePosition.z);
 	}
 
 	public final void setRelativeZ(double z) {
-		setRelativePosition(relativePos.x, relativePos.y, z);
+		setRelativePosition(relativePosition.x, relativePosition.y, z);
 	}
 
 	public final void setWorldX(double worldx) {

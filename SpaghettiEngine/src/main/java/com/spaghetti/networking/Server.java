@@ -43,6 +43,7 @@ public class Server extends CoreComponent {
 					NetworkWorker client = entry.getValue();
 
 					client.writeLevel();
+					client.writeObjectsData();
 					client.writeActiveCamera();
 					client.writeActiveController();
 
@@ -169,7 +170,7 @@ public class Server extends CoreComponent {
 		Long clientId = new Long(hash);
 		if (!clients.containsKey(clientId)) {
 			NetworkWorker client = new NetworkWorker(this);
-			joinHandler.handle(getGame().isClient(), client);
+			joinHandler.handleJoin(getGame().isClient(), client);
 			client.provideSocket(socket);
 			clients.put(clientId, client);
 

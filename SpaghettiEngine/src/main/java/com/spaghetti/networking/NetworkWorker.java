@@ -21,6 +21,7 @@ import com.spaghetti.interfaces.*;
 import com.spaghetti.objects.Camera;
 import com.spaghetti.utils.GameOptions;
 import com.spaghetti.utils.Logger;
+import com.spaghetti.utils.Utils;
 
 public class NetworkWorker {
 
@@ -117,6 +118,8 @@ public class NetworkWorker {
 	}
 
 	public void writeSocket() throws IOException {
+		w_buffer.putByte(Opcode.END);
+		
 		OutputStream os = socket.getOutputStream();
 		int length = w_buffer.buffer.position();
 
@@ -134,18 +137,11 @@ public class NetworkWorker {
 
 	public void readSocket() throws IOException {
 		InputStream is = socket.getInputStream();
-		is.read(length_b, 0, length_b.length);
-
+		Utils.effectiveRead(is, length_b, 0, 4);
 		int length = length_b[3] & 0xFF | (length_b[2] & 0xFF) << 8 | (length_b[1] & 0xFF) << 16
 				| (length_b[0] & 0xFF) << 24;
-
-		int status = 0;
-		int read = 0;
-		while (read < length || read == -1) {
-			status = is.read(r_buffer.buffer.array(), read, length - read);
-			read += status;
-		}
-
+		
+		Utils.effectiveRead(is, r_buffer.buffer.array(), 0, length);
 		r_buffer.buffer.clear();
 	}
 
@@ -172,9 +168,14 @@ public class NetworkWorker {
 		Constructor<?> constructor = m_oconstrs.get(cls);
 		if (constructor == null) {
 			synchronized (m_oconstrs) {
-				constructor = cls.getConstructor(Level.class, GameObject.class, long.class);
-				constructor.setAccessible(true);
-				m_oconstrs.put(cls, (Constructor<? extends GameObject>) constructor);
+				try {
+					constructor = cls.getConstructor(Level.class);
+					constructor.setAccessible(true);
+					m_oconstrs.put(cls, (Constructor<? extends GameObject>) constructor);
+				} catch(NoSuchMethodException e) {
+					Logger.error("Class " + cls.getName() + " must provide a default GameObject constructor");
+					throw e;
+				}
 			}
 		}
 		return constructor;
@@ -185,9 +186,14 @@ public class NetworkWorker {
 		Constructor<?> constructor = m_cconstrs.get(cls);
 		if (constructor == null) {
 			synchronized (m_cconstrs) {
-				constructor = cls.getConstructor(long.class);
-				constructor.setAccessible(true);
-				m_cconstrs.put(cls, (Constructor<? extends GameComponent>) constructor);
+				try {
+					constructor = cls.getConstructor();
+					constructor.setAccessible(true);
+					m_cconstrs.put(cls, (Constructor<? extends GameComponent>) constructor);
+				} catch(NoSuchMethodException e) {
+					Logger.error("Class " + cls.getName() + " must provide a default GameComponent constructor");
+					throw e;
+				}
 			}
 		}
 		return constructor;
@@ -198,9 +204,14 @@ public class NetworkWorker {
 		Constructor<?> constructor = m_econstrs.get(cls);
 		if (constructor == null) {
 			synchronized (m_econstrs) {
-				constructor = cls.getConstructor(long.class);
-				constructor.setAccessible(true);
-				m_econstrs.put(cls, (Constructor<? extends GameEvent>) constructor);
+				try {
+					constructor = cls.getConstructor();
+					constructor.setAccessible(true);
+					m_econstrs.put(cls, (Constructor<? extends GameEvent>) constructor);
+				} catch(NoSuchMethodException e) {
+					Logger.error("Class " + cls.getName() + " must provide a default GameEvent constructor");
+					throw e;
+				}
 			}
 		}
 		return constructor;
@@ -445,6 +456,31 @@ public class NetworkWorker {
 
 	// Write functions
 
+	public void writeObjectsData() {
+		Level level = getLevel();
+		w_buffer.putByte(Opcode.DATA);
+		
+		// Write objects
+		level.forEachActualObject((id, object) -> {
+			if(!noReplicate(object.getClass())) {
+				w_buffer.putByte(Opcode.ITEM);
+				w_buffer.putLong(object.getId());
+				writeObjectCustom(object);
+			}
+		});
+		w_buffer.putByte(Opcode.STOP);
+		
+		// Write components
+		level.forEachComponent((id, component) -> {
+			if(!noReplicate(component.getClass())) {
+				w_buffer.putByte(Opcode.ITEM);
+				w_buffer.putLong(component.getId());
+				writeComponentCustom(component);
+			}
+		});
+		w_buffer.putByte(Opcode.STOP);
+	}
+	
 	public void writeLevel() {
 		Level level = getLevel();
 
@@ -468,29 +504,23 @@ public class NetworkWorker {
 		if (noReplicate(obj.getClass())) {
 			return;
 		}
-		w_buffer.putByte(Opcode.ITEM); // This is an item
+		w_buffer.putByte(Opcode.ITEM); // Put item flag
+		
+		w_buffer.putLong(obj.getId()); // Put id of the object
+		w_buffer.putString(obj.getClass().getName()); // Put class of the object
 
-		// Write info about this object
-		w_buffer.putLong(obj.getId());
-		w_buffer.putString(obj.getClass().getName());
-		// Let the object write custom data
-		writeObjectCustom(obj);
-
-		// Write info about its components
 		obj.forEachComponent((id, component) -> {
 			if (!noReplicate(component.getClass())) {
-				w_buffer.putByte(Opcode.ITEM);
-				w_buffer.putLong(component.getId());
-				w_buffer.putString(component.getClass().getName());
-				// Let the component write custom data
-				writeComponentCustom(component);
+				w_buffer.putByte(Opcode.ITEM); // Put item flag
+				
+				w_buffer.putLong(component.getId()); // Put id of component
+				w_buffer.putString(component.getClass().getName()); // Put class of component
 			}
 		});
-		w_buffer.putByte(Opcode.STOP); // Stop components
+		w_buffer.putByte(Opcode.STOP); // Put stop flag
 
-		// Recursively write info about its children
 		obj.forEachChild((id, child) -> writeChildren(child));
-		w_buffer.putByte(Opcode.STOP); // Stop children
+		w_buffer.putByte(Opcode.STOP); // Put stop flag on children
 	}
 
 	public void writeObject(GameObject obj) {
@@ -559,8 +589,8 @@ public class NetworkWorker {
 	// Read functions
 
 	protected void invalid(byte opcode) {
-		Logger.warning("Remote socket tried to perform an invalid operation (" + (opcode & 0xff)
-				+ ") and the connection must be terminated");
+		Logger.warning("Remote socket sent an invalid operation (" + (opcode & 0xff)
+				+ ") : the connection will be terminated");
 		try {
 			resetSocket();
 		} catch (IOException e) {
@@ -569,9 +599,9 @@ public class NetworkWorker {
 	}
 
 	public void readData() throws Throwable {
-		byte opcode = r_buffer.getByte();
+		byte opcode;
 		Level level = getLevel();
-		while (opcode != Opcode.END) {
+		while ((opcode = r_buffer.getByte()) != Opcode.END) {
 			switch (opcode) {
 			default:
 				invalid(opcode);
@@ -597,22 +627,15 @@ public class NetworkWorker {
 			case Opcode.CONTROLLER:
 				readActiveController(level);
 				break;
+			case Opcode.DATA:
+				readObjectsData();
+				break;
 			}
-		}
-	}
-
-	public void readLevel() throws Throwable {
-		Level level = getLevel();
-
-		// Read all children
-		while (r_buffer.getByte() == Opcode.ITEM) {
-			readChildren(level, (GameObject) null);
 		}
 	}
 
 	public void readActiveCamera(Level level) {
 		long camera_id = r_buffer.getLong();
-		Logger.error(String.valueOf(camera_id));
 		// -1 means null
 		if (camera_id != -1) {
 			// Obtain level camera
@@ -648,41 +671,70 @@ public class NetworkWorker {
 			level.detachController();
 		}
 	}
+	
+	public void readObjectsData() {
+		Level level = getLevel();
+		
+		// Read objects
+		while(r_buffer.getByte() == Opcode.ITEM) {
+			long id = r_buffer.getLong();
+			GameObject object = level.getObject(id);
+			readObjectCustom(object);
+		}
+		
+		// Read components
+		while(r_buffer.getByte() == Opcode.ITEM) {
+			long id = r_buffer.getLong();
+			GameComponent component = level.getComponent(id);
+			readComponentCustom(component);
+		}
+	}
+	
+	public void readLevel() throws Throwable {
+		Level level = getLevel();
+
+		// Check for item flag
+		while (r_buffer.getByte() == Opcode.ITEM) {
+			readChildren(level, (GameObject) null);
+		}
+//		System.out.flush();
+//		System.exit(0);
+	}
 
 	public void readChildren(Level level, GameObject parent) throws ClassCastException, InstantiationException,
 			InvocationTargetException, NoSuchMethodException, ClassNotFoundException {
 
 		try {
-			// Parse data from this object
-			long id = r_buffer.getLong();
-			String clazz = r_buffer.getString();
+			long id = r_buffer.getLong(); // Get id of object
+			String clazz = r_buffer.getString(); // Get class of object
 
-			GameObject object = null;
-			if ((object = level.getObject(id)) == null) {
-				// Build the object if not present
-				System.out.println("Creating object " + clazz + "..." + clazz.length());
-				object = (GameObject) o_constr(cls(clazz)).newInstance(level, parent);
-				System.out.println("Created object " + clazz);
-			}
-			readObjectCustom(object);
-
-			// Parse its components
-			while (r_buffer.getByte() == Opcode.ITEM) {
-				long comp_id = r_buffer.getLong();
-				String comp_clazz = r_buffer.getString();
-
-				GameComponent component = null;
-				if ((component = object.getComponent(comp_id)) == null) {
-					// Build and add the component if not present
-					System.out.println("Creating component " + comp_clazz + "...");
-					component = (GameComponent) c_constr(cls(comp_clazz)).newInstance();
-					object.addComponent(component);
-					System.out.println("Created component " + comp_clazz);
+			GameObject object = level.getObject(id);
+			if (object == null) {
+				// Build and add the object if not present
+				object = (GameObject) o_constr(cls(clazz)).newInstance(level);
+				f_oid.set(object, id);
+				if(parent == null) {
+					level.addObject(object);
+				} else {
+					parent.addChild(object);
 				}
-				readComponentCustom(component);
+			}
+			
+			// Check for item flag
+			while (r_buffer.getByte() == Opcode.ITEM) {
+				long comp_id = r_buffer.getLong(); // Get id of component
+				String comp_clazz = r_buffer.getString(); // Get class of component
+				
+				GameComponent component = object.getComponent(comp_id);
+				if (component == null) {
+					// Build and add the component if not present
+					component = (GameComponent) c_constr(cls(comp_clazz)).newInstance();
+					f_cid.set(component, comp_id);
+					object.addComponent(component);
+				}
 			}
 
-			// Recursively read data from its children
+			// Check for item flag on children
 			while (r_buffer.getByte() == Opcode.ITEM) {
 				readChildren(level, object);
 			}
@@ -753,13 +805,14 @@ public class NetworkWorker {
 			Level level = getLevel();
 			GameObject issuer = level.getObject(issuer_id);
 			GameEvent event = (GameEvent) e_constr(cls(event_class)).newInstance();
+			f_eid.set(event, event_id);
 			EventDispatcher event_dispatcher = Game.getGame().getEventDispatcher();
 			readEventCustom(event);
 
 			event_dispatcher.dispatchEvent(IDENTITY, issuer, event);
 
 		} catch (IllegalAccessException e) {
-			// This should not happen even with errors in the parsing
+			// This should not happen even with errors while parsing
 			e.printStackTrace();
 		}
 

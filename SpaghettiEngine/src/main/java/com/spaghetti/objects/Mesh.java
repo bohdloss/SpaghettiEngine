@@ -13,9 +13,6 @@ public class Mesh extends GameObject {
 	@Replicate
 	protected Material material;
 
-	@Replicate
-	private int a;
-
 	public Mesh(Level level, Model model, Material material) {
 		super(level);
 		this.model = model;

@@ -19,11 +19,11 @@ public class Demo {
 			game.getWindow().setSizeLimit(2, 2, 2000, 2000);
 //			game.getClient().setJoinHandler(new MyJoinHandler());
 
-			server = new GameBuilder().setUpdater(new MyUpdater()).setServer(new Server()).build();
-			server.getServer().setJoinHandler(new MyJoinHandler());
+//			server = new GameBuilder().setUpdater(new MyUpdater()).setServer(new Server()).build();
+//			server.getServer().setJoinHandler(new MyJoinHandler());
 
 //			game.depends(server);
-			server.depends(game);
+//			server.depends(game);
 
 //			server.begin();
 			game.begin();

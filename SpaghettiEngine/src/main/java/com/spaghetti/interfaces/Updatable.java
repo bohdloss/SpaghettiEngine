@@ -1,6 +1,6 @@
 package com.spaghetti.interfaces;
 
-public interface Tickable {
+public interface Updatable {
 
 	public abstract void update(double delta);
 

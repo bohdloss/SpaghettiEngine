@@ -5,8 +5,8 @@ public final class Opcode {
 	private Opcode() {
 	}
 
-	public static final byte ITEM = (byte) 0;
-	public static final byte STOP = (byte) 1;
+	public static final byte ITEM = (byte) 99;
+	public static final byte STOP = (byte) 88;
 
 	public static final byte LEVEL = (byte) 2;
 	public static final byte GAMEOBJECT = (byte) 3;
@@ -19,5 +19,7 @@ public final class Opcode {
 	public static final byte CONTROLLER = (byte) 8;
 
 	public static final byte END = (byte) 9;
+	
+	public static final byte DATA = (byte) 10;
 
 }

@@ -34,11 +34,12 @@ public class MyUpdater extends Updater {
 		floor.setRelativeScale(15, 2, 1);
 		floor.setRelativePosition(0, -3, 0);
 
-		player = new Player(level);;
+		if(!getGame().isMultiplayer()) {
+			level.addObject(new Player(level));
+		}
 
 		level.addObject(camera);
 		level.addObject(floor);
-		level.addObject(player);
 		level.attachCamera(camera);
 	}
 

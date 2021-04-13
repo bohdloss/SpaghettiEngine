@@ -11,7 +11,7 @@ import com.spaghetti.utils.*;
 
 public class Camera extends GameObject {
 
-	// Instace m_fields
+	// Instance fields
 
 	protected double scale;
 	@Replicate

@@ -3,9 +3,6 @@ package com.spaghetti.input;
 import com.spaghetti.core.*;
 import com.spaghetti.interfaces.*;
 
-// Why replicate a controller in multiplayer???
-// You should control only your character!
-@NoReplicate
 public class Controller extends GameComponent implements Controllable {
 
 	@Override

@@ -7,10 +7,10 @@ import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
 import com.spaghetti.input.Controller;
-import com.spaghetti.interfaces.Tickable;
+import com.spaghetti.interfaces.Updatable;
 import com.spaghetti.objects.Camera;
 
-public final class Level implements Tickable {
+public final class Level implements Updatable {
 
 	protected Game source;
 	protected ArrayList<GameObject> objects = new ArrayList<>();
@@ -161,7 +161,7 @@ public final class Level implements Tickable {
 		if (activeInput != null) {
 			detachController();
 		}
-		source.getWindow().getInputDispatcher().registerListener(activeInput);
+		source.getWindow().getInputDispatcher().registerListener(controller);
 		this.activeInput = controller;
 	}
 

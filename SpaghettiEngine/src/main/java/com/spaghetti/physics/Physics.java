@@ -5,6 +5,7 @@ import org.joml.Vector2d;
 import com.spaghetti.core.GameObject;
 import com.spaghetti.core.Level;
 import com.spaghetti.interfaces.Replicate;
+import com.spaghetti.networking.NetworkBuffer;
 
 public final class Physics extends GameObject {
 
@@ -42,7 +43,7 @@ public final class Physics extends GameObject {
 			return;
 		} else {
 			RigidBody b = body_list;
-			do {
+			while(b != null) {
 				if (b == body) {
 					if (b.previous != null) {
 						b.previous.next = b.next;
@@ -52,27 +53,71 @@ public final class Physics extends GameObject {
 					}
 					b.previous = null;
 					b.next = null;
+					break;
 				}
-			} while ((b = b.next) != null);
+				b = b.next;
+			}
 
 		}
 	}
 
+	protected boolean containsBody(RigidBody body) {
+		if(body_list == null) {
+			return false;
+		} else {
+			RigidBody b = body_list;
+			while(b != null) {
+				if(b.getId() == body.getId()) {
+					return true;
+				}
+				b = b.next;
+			}
+		}
+		return false;
+	}
+	
 	// Solve all physics calculations
 
 	public void solve(double delta) {
 		RigidBody body = body_list;
 		double multiplier = getGame().getTickMultiplier(delta);
-		do {
+		while(body != null) {
 			body.gatherCache();
-		} while ((body = body.next) != null);
+			body = body.next;
+		}
 		body = body_list;
-		do {
+		while(body != null) {
 			body.solve(multiplier);
 			body.applyPosition();
-		} while ((body = body.next) != null);
+			body = body.next;
+		}
 	}
 
+	// Networking
+	
+	public void writeData(boolean isClient, NetworkBuffer buffer) {
+//		buffer.putInt(body_count);
+//		RigidBody body = body_list;
+//		while(body != null) {
+//			buffer.putLong(body.getId());
+//			body = body.next;
+//		}
+	}
+	
+	public void readData(boolean isClient, NetworkBuffer buffer) {
+//		body_count = buffer.getInt();
+//		for(int i = 0; i < body_count; i++) {
+//			long id = buffer.getLong();
+//			RigidBody body = (RigidBody) getLevel().getComponent(id);
+//			if(body == null) {
+//				throw new NullPointerException();
+//			}
+//			if(!containsBody(body)) {
+//				addBody(body);
+//			}
+//		}
+	}
+	
 	// Getters
 
 	public RigidBody getBodies() {

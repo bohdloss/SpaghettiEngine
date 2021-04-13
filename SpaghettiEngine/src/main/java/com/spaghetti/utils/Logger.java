@@ -35,7 +35,7 @@ public final class Logger {
 				.println(date() + "[GAME " + game.getIndex() + "][" + thread() + "][" + prefix + "]: " + string);
 	}
 
-	public static String exception(Throwable throwable) {
+	private static String exception(Throwable throwable) {
 		String res = throwable.getClass().getName() + ": " + throwable.getMessage() + "\n";
 		StackTraceElement[] s = throwable.getStackTrace();
 		for (int i = 0; i < s.length; i++) {

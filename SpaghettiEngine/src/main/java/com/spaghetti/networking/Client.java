@@ -31,8 +31,6 @@ public class Client extends CoreComponent {
 		worker.destroy();
 	}
 
-	long last = 0;
-
 	@Override
 	protected void loopEvents(double delta) throws Throwable {
 		Utils.sleep(25);
@@ -40,12 +38,6 @@ public class Client extends CoreComponent {
 
 			worker.writeSocket();
 			worker.readSocket();
-
-//			if(System.currentTimeMillis() > last + 1000) {
-//				worker.readData();
-//				last = System.currentTimeMillis();
-//			}
-			System.out.println(getLevel() != null ? getLevel().getActiveCamera() : "level is null");
 			worker.readData();
 		}
 	}
@@ -66,7 +58,7 @@ public class Client extends CoreComponent {
 		}
 		try {
 			Socket socket = new Socket(ip, port); // Perform connection
-			joinHandler.handle(getGame().isClient(), worker); // Handle joining server
+			joinHandler.handleJoin(getGame().isClient(), worker); // Handle joining server
 			worker.provideSocket(socket); // Give socket to worker
 			justConnected = true;
 		} catch (UnknownHostException e) {

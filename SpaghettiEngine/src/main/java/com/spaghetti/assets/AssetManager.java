@@ -261,6 +261,9 @@ public final class AssetManager {
 		long load = source.getRendererDispatcher().queue(() -> {
 			try {
 				// Loading code
+				if(!ready) {
+					return null;
+				}
 				fillAsset(flag.type, name);
 				custom(name).load();
 				flagAsset(name, false);

@@ -182,11 +182,7 @@ public abstract class CoreComponent extends Thread {
 	}
 
 	public final Camera getCamera() {
-		Level level;
-		if ((level = getLevel()) == null) {
-			return null;
-		}
-		return level.getActiveCamera();
+		return getLevel() == null ? null : getLevel().getActiveCamera();
 	}
 
 	public final FunctionDispatcher getDispatcher() {

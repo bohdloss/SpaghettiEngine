@@ -7,7 +7,7 @@ import com.spaghetti.objects.Camera;
 public class MyJoinHandler implements JoinHandler {
 
 	@Override
-	public void handle(boolean isClient, NetworkWorker worker) {
+	public void handleJoin(boolean isClient, NetworkWorker worker) {
 		if (!isClient) {
 			worker.player = new Player(worker.getLevel());
 			worker.getLevel().addObject(worker.player);
