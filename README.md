@@ -31,7 +31,6 @@ And you can do the following with it
 The following bugs are being actively fixed:
 
 - Replicated camera not rendering properly
-- Occasional deadlock on startup
 
 ### How to set it up
 

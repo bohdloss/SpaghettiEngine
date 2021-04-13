@@ -202,18 +202,22 @@ public final class AssetManager {
 		return flags.get(name).type;
 	}
 
-	public synchronized void lazyLoad() throws Throwable {
-		if (!ready) {
-			return;
-		}
-
-		cache.forEach((name, asset) -> {
-			AssetFlag flag = flags.get(name);
-			if (flag.needLoad && !flag.queued) {
-				flag.queued = true;
-				loadAsset(name, true);
+	public void lazyLoad() throws Throwable {
+		synchronized(Game.getGame().getRendererDispatcher()) {
+			synchronized(this) {
+				if (!ready) {
+					return;
+				}
+			
+				cache.forEach((name, asset) -> {
+					AssetFlag flag = flags.get(name);
+					if (flag.needLoad && !flag.queued) {
+						flag.queued = true;
+						loadAsset(name, true);
+					}
+				});
 			}
-		});
+		}
 	}
 
 	// Loader methods

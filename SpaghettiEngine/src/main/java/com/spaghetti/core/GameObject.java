@@ -185,7 +185,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 	// Get single child by class
 
 	@SuppressWarnings("unchecked")
-	public final synchronized <T extends GameObject> T getChild(Class<T> cls) {
+	public final <T extends GameObject> T getChild(Class<T> cls) {
 		for (GameObject obj : children.values()) {
 			if (cls.isAssignableFrom(obj.getClass())) {
 				return (T) obj;
@@ -194,7 +194,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		return null;
 	}
 
-	public final synchronized GameObject getChildN(Class<? extends GameObject> cls) {
+	public final GameObject getChildN(Class<? extends GameObject> cls) {
 		for (GameObject obj : children.values()) {
 			if (cls.isAssignableFrom(obj.getClass())) {
 				return obj;
@@ -205,7 +205,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 
 	// Get single child by index
 
-	public final synchronized GameObject getChild(int index) {
+	public final GameObject getChild(int index) {
 		int i = 0;
 		for (GameObject obj : children.values()) {
 			if (i == index) {
@@ -217,7 +217,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 	}
 
 	@SuppressWarnings("unchecked")
-	public final synchronized <T extends GameObject> T getChild(int index, Class<T> cls) {
+	public final <T extends GameObject> T getChild(int index, Class<T> cls) {
 		int i = 0;
 		for (GameObject obj : children.values()) {
 			if (cls.isAssignableFrom(obj.getClass())) {
@@ -230,13 +230,13 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		throw new IndexOutOfBoundsException("" + index);
 	}
 
-	public final synchronized GameObject getChild(long id) {
+	public final GameObject getChild(long id) {
 		return children.get(id);
 	}
 
 	// Get amount of objects by class
 
-	public final synchronized int getChildrenAmount(Class<? extends GameObject> cls) {
+	public final int getChildrenAmount(Class<? extends GameObject> cls) {
 		int i = 0;
 		for (GameObject obj : children.values()) {
 			if (cls.isAssignableFrom(obj.getClass())) {
@@ -249,7 +249,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 	// Get array of objects
 
 	@SuppressWarnings("unchecked")
-	public final synchronized <T extends GameObject> T[] getChildren(Class<T> cls, T[] buffer, int offset) {
+	public final <T extends GameObject> T[] getChildren(Class<T> cls, T[] buffer, int offset) {
 		int i = 0;
 		for (GameObject obj : children.values()) {
 			if (cls.isAssignableFrom(obj.getClass())) {
@@ -260,7 +260,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		return buffer;
 	}
 
-	public final synchronized GameObject[] getChildrenN(Class<? extends GameObject> cls, GameObject[] buffer,
+	public final GameObject[] getChildrenN(Class<? extends GameObject> cls, GameObject[] buffer,
 			int offset) {
 		int i = 0;
 		for (GameObject obj : children.values()) {
@@ -272,7 +272,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		return buffer;
 	}
 
-	public final synchronized GameObject[] getChildren(GameObject[] buffer, int offset) {
+	public final GameObject[] getChildren(GameObject[] buffer, int offset) {
 		int i = 0;
 		for (GameObject obj : children.values()) {
 			buffer[i + offset] = obj;
@@ -284,7 +284,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 	// Get single component by class
 
 	@SuppressWarnings("unchecked")
-	public final synchronized <T extends GameComponent> T getComponent(Class<T> cls) {
+	public final <T extends GameComponent> T getComponent(Class<T> cls) {
 		for (GameComponent component : components.values()) {
 			if (cls.isAssignableFrom(component.getClass())) {
 				return (T) component;
@@ -293,7 +293,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		return null;
 	}
 
-	public final synchronized GameComponent getComponentN(Class<? extends GameComponent> cls) {
+	public final GameComponent getComponentN(Class<? extends GameComponent> cls) {
 		for (GameComponent component : components.values()) {
 			if (cls.isAssignableFrom(component.getClass())) {
 				return component;
@@ -304,7 +304,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 
 	// Get single component by index
 
-	public final synchronized GameComponent getComponent(int index) {
+	public final GameComponent getComponent(int index) {
 		int i = 0;
 		for (GameComponent component : components.values()) {
 			if (i == index) {
@@ -316,7 +316,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 	}
 
 	@SuppressWarnings("unchecked")
-	public final synchronized <T extends GameComponent> T getComponent(int index, Class<T> cls) {
+	public final <T extends GameComponent> T getComponent(int index, Class<T> cls) {
 		int i = 0;
 		for (GameComponent component : components.values()) {
 			if (cls.isAssignableFrom(component.getClass())) {
@@ -329,13 +329,13 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		throw new IndexOutOfBoundsException("" + index);
 	}
 
-	public final synchronized GameComponent getComponent(long id) {
+	public final GameComponent getComponent(long id) {
 		return components.get(id);
 	}
 
 	// Get amounts of components by class
 
-	public final synchronized int getComponentAmount(Class<? extends GameComponent> cls) {
+	public final int getComponentAmount(Class<? extends GameComponent> cls) {
 		int i = 0;
 		for (GameComponent component : components.values()) {
 			if (cls.isAssignableFrom(component.getClass())) {
@@ -348,7 +348,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 	// Get array of components
 
 	@SuppressWarnings("unchecked")
-	public final synchronized <T extends GameComponent> T[] getComponents(Class<T> cls, T[] buffer, int offset) {
+	public final <T extends GameComponent> T[] getComponents(Class<T> cls, T[] buffer, int offset) {
 		int i = 0;
 		for (GameComponent component : components.values()) {
 			if (cls.isAssignableFrom(component.getClass())) {
@@ -359,7 +359,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		return buffer;
 	}
 
-	public final synchronized GameComponent[] getComponentsN(Class<? extends GameComponent> cls, GameComponent[] buffer,
+	public final GameComponent[] getComponentsN(Class<? extends GameComponent> cls, GameComponent[] buffer,
 			int offset) {
 		int i = 0;
 		for (GameComponent component : components.values()) {
@@ -371,7 +371,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		return buffer;
 	}
 
-	public final synchronized GameComponent[] getComponents(GameComponent[] buffer, int offset) {
+	public final GameComponent[] getComponents(GameComponent[] buffer, int offset) {
 		int i = 0;
 		for (GameComponent component : components.values()) {
 			buffer[i + offset] = component;
@@ -544,11 +544,11 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 
 	// Getters
 
-	public final synchronized int getChildrenAmount() {
+	public final int getChildrenAmount() {
 		return children.size();
 	}
 
-	public final synchronized int getComponentAmount() {
+	public final int getComponentAmount() {
 		return components.size();
 	}
 
@@ -568,7 +568,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		return id;
 	}
 
-	public final synchronized GameObject getBase() {
+	public final GameObject getBase() {
 		if (hierarchy == 0) {
 			return this;
 		}
