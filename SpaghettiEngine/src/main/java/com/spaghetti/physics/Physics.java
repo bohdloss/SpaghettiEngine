@@ -3,7 +3,6 @@ package com.spaghetti.physics;
 import org.joml.Vector2d;
 
 import com.spaghetti.core.GameObject;
-import com.spaghetti.core.Level;
 import com.spaghetti.interfaces.Replicate;
 import com.spaghetti.networking.NetworkBuffer;
 
@@ -16,85 +15,67 @@ public final class Physics extends GameObject {
 	@Replicate
 	protected Vector2d gravity = new Vector2d(0, -9.81);
 
-	// Ignores parent!!!
-	public Physics(Level level) {
-		super(level);
+	public Physics() {
+		body_list = new RigidBody[256];
 	}
 
-	// Box2d-style body listing
 	protected int body_count;
-	protected RigidBody body_list;
+	protected RigidBody[] body_list;
 
 	// Manage bodies present in the simulated world
 
 	protected void addBody(RigidBody body) {
-		if (body_list == null) {
-			body_list = body;
-		} else {
-			body_list.previous = body;
-			body.next = body_list;
-			body_list = body;
+		if (containsBody(body)) {
+			return;
 		}
-		body_count++;
+		if (body_count == body_list.length) {
+			RigidBody[] old = body_list;
+			body_list = new RigidBody[old.length * 2]; // Double size when space is over
+			System.arraycopy(old, 0, body_list, 0, old.length);
+		}
+		body_list[body_count++] = body;
 	}
 
 	protected void removeBody(RigidBody body) {
-		if (body_list == null) {
-			return;
-		} else {
-			RigidBody b = body_list;
-			while(b != null) {
-				if (b == body) {
-					if (b.previous != null) {
-						b.previous.next = b.next;
-					}
-					if (b.next != null) {
-						b.next.previous = b.previous;
-					}
-					b.previous = null;
-					b.next = null;
-					break;
-				}
-				b = b.next;
+		boolean found = false;
+		for (int i = 0; i < body_count; i++) {
+			if (body_list[i] == body) {
+				found = true;
 			}
-
+			if (found && i + 1 < body_count) {
+				body_list[i] = body_list[i + 1];
+			}
+		}
+		if (found) {
+			body_count--;
 		}
 	}
 
 	protected boolean containsBody(RigidBody body) {
-		if(body_list == null) {
-			return false;
-		} else {
-			RigidBody b = body_list;
-			while(b != null) {
-				if(b.getId() == body.getId()) {
-					return true;
-				}
-				b = b.next;
+		for (int i = 0; i < body_count; i++) {
+			if (body_list[i] == body) {
+				return true;
 			}
 		}
 		return false;
 	}
-	
+
 	// Solve all physics calculations
 
 	public void solve(double delta) {
-		RigidBody body = body_list;
 		double multiplier = getGame().getTickMultiplier(delta);
-		while(body != null) {
-			body.gatherCache();
-			body = body.next;
+		for (int i = 0; i < body_count; i++) {
+			body_list[i].gatherCache();
 		}
-		body = body_list;
-		while(body != null) {
-			body.solve(multiplier);
-			body.applyPosition();
-			body = body.next;
+		for (int i = 0; i < body_count; i++) {
+			body_list[i].solve(multiplier);
+			body_list[i].applyPosition();
 		}
 	}
 
 	// Networking
-	
+
+	@Override
 	public void writeData(boolean isClient, NetworkBuffer buffer) {
 //		buffer.putInt(body_count);
 //		RigidBody body = body_list;
@@ -103,7 +84,8 @@ public final class Physics extends GameObject {
 //			body = body.next;
 //		}
 	}
-	
+
+	@Override
 	public void readData(boolean isClient, NetworkBuffer buffer) {
 //		body_count = buffer.getInt();
 //		for(int i = 0; i < body_count; i++) {
@@ -117,12 +99,8 @@ public final class Physics extends GameObject {
 //			}
 //		}
 	}
-	
-	// Getters
 
-	public RigidBody getBodies() {
-		return body_list;
-	}
+	// Getters
 
 	public int getBodyCount() {
 		return body_count;

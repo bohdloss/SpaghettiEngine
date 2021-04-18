@@ -1,6 +1,7 @@
 package com.spaghetti.demo;
 
 import org.joml.Vector2d;
+import org.joml.Vector3d;
 
 import com.spaghetti.input.Controller;
 import com.spaghetti.input.Keys;
@@ -36,10 +37,12 @@ public class PlayerController extends Controller {
 
 		if (dir.x != 0 || dir.y != 0) {
 			double angle = CMath.lookAt(dir);
-			double mod = 300;
+			double mod = 10 * getGame().getTickMultiplier(delta);
 			double x = Math.cos(angle) * mod;
 			double y = Math.sin(angle) * mod;
-			rb.applyForce(x, y);
+			Vector3d pos = new Vector3d();
+			player.getWorldPosition(pos);
+			player.setWorldPosition(pos.x + x, pos.y + y, pos.z);
 		}
 	}
 

@@ -19,7 +19,7 @@ public final class Opcode {
 	public static final byte CONTROLLER = (byte) 8;
 
 	public static final byte END = (byte) 9;
-	
+
 	public static final byte DATA = (byte) 10;
 
 }

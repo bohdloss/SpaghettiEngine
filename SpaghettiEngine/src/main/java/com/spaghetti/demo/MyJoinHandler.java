@@ -9,7 +9,7 @@ public class MyJoinHandler implements JoinHandler {
 	@Override
 	public void handleJoin(boolean isClient, NetworkWorker worker) {
 		if (!isClient) {
-			worker.player = new Player(worker.getLevel());
+			worker.player = new Player();
 			worker.getLevel().addObject(worker.player);
 			worker.player_camera = worker.player.getChild(Camera.class);
 			worker.player_controller = worker.player.getComponent(PlayerController.class);

@@ -3,6 +3,7 @@ package com.spaghetti.utils;
 import java.awt.image.BufferedImage;
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.Socket;
 import java.nio.ByteBuffer;
 
 import org.lwjgl.BufferUtils;
@@ -20,6 +21,12 @@ public final class Utils {
 		}
 	}
 
+	public static void sleepUntil(long time) {
+		while (System.currentTimeMillis() < time) {
+			sleep(0);
+		}
+	}
+
 	public static void sleep(long ms, int nanos) {
 		try {
 			Thread.sleep(ms, nanos);
@@ -28,7 +35,7 @@ public final class Utils {
 		}
 	}
 
-	public static final ByteBuffer parseImage(BufferedImage img) {
+	public static ByteBuffer parseImage(BufferedImage img) {
 		int w = img.getWidth();
 		int h = img.getHeight();
 
@@ -50,12 +57,39 @@ public final class Utils {
 		return pixels;
 	}
 
-	public static final void effectiveRead(InputStream stream, byte[] buffer, int offset, int amount) throws IOException {
+	public static void effectiveRead(InputStream stream, byte[] buffer, int offset, int amount) throws IOException {
 		int read = offset, status = 0;
 		while (read < amount || read == -1) {
 			status = stream.read(buffer, read, amount - read);
 			read += status;
 		}
 	}
-	
+
+	public static boolean socketClose(Socket socket) {
+		try {
+			socket.close();
+			return true;
+		} catch (Throwable t) {
+			return false;
+		}
+	}
+
+	public static boolean socketCloseInput(Socket socket) {
+		try {
+			socket.shutdownInput();
+			return true;
+		} catch (Throwable t) {
+			return false;
+		}
+	}
+
+	public static boolean socketCloseOutput(Socket socket) {
+		try {
+			socket.shutdownOutput();
+			return true;
+		} catch (Throwable t) {
+			return false;
+		}
+	}
+
 }

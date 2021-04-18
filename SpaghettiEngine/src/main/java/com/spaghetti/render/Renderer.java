@@ -2,7 +2,6 @@ package com.spaghetti.render;
 
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
-import static org.lwjgl.opengl.GL11.*;
 
 import org.joml.Matrix4d;
 import org.joml.Vector3d;
@@ -37,13 +36,13 @@ public class Renderer extends CoreComponent {
 
 		window.makeContextCurrent();
 		glCapabilities = GL.createCapabilities();
-		glEnable(GL_TEXTURE_2D);
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		glEnable(GL_CULL_FACE);
-		glEnable(GL_DEPTH_TEST);
-		glDepthFunc(GL_LEQUAL);
-		glDisable(GL_LIGHTING);
+		GL11.glEnable(GL11.GL_TEXTURE_2D);
+		GL11.glEnable(GL11.GL_BLEND);
+		GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+		GL11.glEnable(GL11.GL_CULL_FACE);
+		GL11.glEnable(GL11.GL_DEPTH_TEST);
+		GL11.glDepthFunc(GL11.GL_LEQUAL);
+		GL11.glDisable(GL11.GL_LIGHTING);
 		GLFW.glfwSwapInterval(0);
 
 		sceneRenderer = new Model(new float[] { -1f, 1f, 0f, 1f, 1f, 0f, 1f, -1f, 0f, -1f, -1f, 0 },
@@ -64,65 +63,26 @@ public class Renderer extends CoreComponent {
 		if (window.shouldClose()) {
 			getGame().stopAsync();
 		}
-		glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_STENCIL_BUFFER_BIT);
 
 		Camera camera = getCamera();
 		if (camera != null) {
+			// Draw level to camera frame buffer
+			camera.render(null, delta);
 
-			// Draw camera to frame w_buffer
-
-			FrameBuffer buffer = camera.getFrameBuffer();
-			buffer.use();
-			if (camera.getClearColor()) {
-				glClear(GL11.GL_COLOR_BUFFER_BIT);
-			}
-			if (camera.getClearDepth()) {
-				glClear(GL11.GL_DEPTH_BUFFER_BIT);
-			}
-			if (camera.getClearStencil()) {
-				glClear(GL11.GL_STENCIL_BUFFER_BIT);
-			}
-
-			getLevel().forEachActualObject((id, component) -> {
-
-				// Reset matrix
-				sceneMatrix.set(camera.getProjection());
-
-				// Get world position
-				component.getWorldPosition(vec3cache);
-				sceneMatrix.translate(vec3cache);
-
-				// Get world rotation
-				component.getWorldRotation(vec3cache);
-				sceneMatrix.rotateXYZ(vec3cache);
-
-				// Get world scale
-				component.getWorldScale(vec3cache);
-				sceneMatrix.scale(vec3cache.x, vec3cache.y, 1);
-
-				component.render(sceneMatrix, delta);
-
-			});
-
-			buffer.stop();
-
-			// Draw texture from frame w_buffer to screen
+			// Draw texture from frame buffer to screen
 
 			// Reset render matrix
 			renderMatrix.identity();
-
 			// Calculate the scale
 			double scale = CMath.min(window.getWidth() / camera.getTargetRatio(), window.getHeight());
-
 			// Scale the matrix accordingly dividing by window size
 			renderMatrix.scale((scale * camera.getTargetRatio()) / window.getWidth(), -scale / window.getHeight(), 1);
-
 			// Render textured quad
 			defaultShader.use();
 			defaultShader.setProjection(renderMatrix);
 			camera.getFrameBuffer().getColorTexture().use(0);
+			GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_STENCIL_BUFFER_BIT);
 			sceneRenderer.render();
-
 		}
 
 		window.swap();

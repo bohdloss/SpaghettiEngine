@@ -1,19 +1,23 @@
 package com.spaghetti.input;
 
 import com.spaghetti.core.CoreComponent;
+import com.spaghetti.utils.Logger;
 
 public class Updater extends CoreComponent {
 
 	@Override
 	protected void loopEvents(double delta) throws Throwable {
+		try {
+			if (!getGame().isHeadless()) {
+				getGame().getAssetManager().lazyLoad();
+				getGame().getWindow().getInputDispatcher().update();
+			}
 
-		if (!getGame().isHeadless()) {
-			getGame().getAssetManager().lazyLoad();
-			getGame().getWindow().getInputDispatcher().update();
-		}
-
-		if (getLevel() != null) {
-			getLevel().update(delta);
+			if (getLevel() != null) {
+				getLevel().update(delta);
+			}
+		} catch (Throwable t) {
+			Logger.error("Level generated an exception: ", t);
 		}
 	}
 

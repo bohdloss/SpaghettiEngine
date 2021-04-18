@@ -27,20 +27,15 @@ public class MyUpdater extends Updater {
 		level = new Level();
 		getGame().attachLevel(level);
 
-		camera = new Camera(level);
-		camera.setFov(20);
-
-		floor = new Mesh(level, Model.get("square"), Material.get("defaultMAT"));
+		floor = new Mesh(Model.get("square"), Material.get("defaultMAT"));
 		floor.setRelativeScale(15, 2, 1);
 		floor.setRelativePosition(0, -3, 0);
 
-		if(!getGame().isMultiplayer()) {
-			level.addObject(new Player(level));
+		if (!getGame().isMultiplayer()) {
+			level.addObject(new Player());
 		}
 
-		level.addObject(camera);
 		level.addObject(floor);
-		level.attachCamera(camera);
 	}
 
 	@Override
@@ -57,12 +52,12 @@ public class MyUpdater extends Updater {
 
 class MovingMesh extends Mesh {
 
-	public MovingMesh(Level level, Model model, Material material) {
-		super(level, model, material);
+	public MovingMesh(Model model, Material material) {
+		super(model, material);
 	}
 
-	public MovingMesh(Level level) {
-		super(level);
+	public MovingMesh() {
+		super();
 	}
 
 	double random = new Random().nextDouble() * 7;

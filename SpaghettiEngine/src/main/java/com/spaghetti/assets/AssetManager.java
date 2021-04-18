@@ -203,21 +203,21 @@ public final class AssetManager {
 	}
 
 	public void lazyLoad() throws Throwable {
-		synchronized(Game.getGame().getRendererDispatcher()) {
-			synchronized(this) {
-				if (!ready) {
-					return;
-				}
-			
-				cache.forEach((name, asset) -> {
-					AssetFlag flag = flags.get(name);
-					if (flag.needLoad && !flag.queued) {
-						flag.queued = true;
-						loadAsset(name, true);
-					}
-				});
-			}
+		if (!ready) {
+			return;
 		}
+
+		cache.forEach((name, asset) -> {
+			AssetFlag flag = flags.get(name);
+			if (flag.needLoad && !flag.queued) {
+				synchronized (source.getRendererDispatcher()) {
+					synchronized (this) {
+						flag.queued = true;
+						internal_loadasset(name, true);
+					}
+				}
+			}
+		});
 	}
 
 	// Loader methods
@@ -253,6 +253,10 @@ public final class AssetManager {
 	}
 
 	public synchronized void loadAsset(String name, boolean lazy) {
+		internal_loadasset(name, lazy);
+	}
+
+	private void internal_loadasset(String name, boolean lazy) {
 		if (!ready) {
 			return;
 		}
@@ -265,7 +269,7 @@ public final class AssetManager {
 		long load = source.getRendererDispatcher().queue(() -> {
 			try {
 				// Loading code
-				if(!ready) {
+				if (!ready) {
 					return null;
 				}
 				fillAsset(flag.type, name);

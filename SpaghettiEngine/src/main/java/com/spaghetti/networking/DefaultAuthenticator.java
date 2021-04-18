@@ -10,13 +10,19 @@ public class DefaultAuthenticator implements Authenticator {
 	}
 
 	@Override
-	public void r_client_auth(NetworkWorker worker, NetworkBuffer buffer) {
-
+	public boolean r_client_auth(NetworkWorker worker, NetworkBuffer buffer) {
+		Client client = (Client) worker.getParent();
+		long id = buffer.getLong();
+		client.clientId = id;
+		return true;
 	}
 
 	@Override
-	public void w_server_auth(NetworkWorker worker, NetworkBuffer buffer) {
-
+	public boolean w_server_auth(NetworkWorker worker, NetworkBuffer buffer) {
+		Server server = (Server) worker.getParent();
+		long id = server.getClientId(worker);
+		buffer.putLong(id);
+		return true;
 	}
 
 	@Override

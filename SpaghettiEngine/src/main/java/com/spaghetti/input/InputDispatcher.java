@@ -34,7 +34,7 @@ public final class InputDispatcher {
 		listeners = new ArrayList<>();
 	}
 
-	public synchronized void update() {
+	public void update() {
 
 		// Fire mouse movement events
 		Vector2i pointer = new Vector2i();
@@ -119,7 +119,7 @@ public final class InputDispatcher {
 	// Register listeners
 
 	public synchronized void registerListener(Controllable listener) {
-		if(listener == null) {
+		if (listener == null) {
 			Logger.warning("Attempted to register null input listener");
 			return;
 		}

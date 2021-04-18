@@ -33,6 +33,7 @@ public class NetworkWorker {
 	protected static final Identity IDENTITY = new Identity();
 
 	// Data
+	protected long lostConnection;
 	protected CoreComponent parent;
 	protected NetworkBuffer w_buffer;
 	protected NetworkBuffer r_buffer;
@@ -89,7 +90,7 @@ public class NetworkWorker {
 
 	// Utility methods
 
-	public void destroy() throws IOException {
+	public void destroy() {
 		this.w_buffer = null;
 		this.r_buffer = null;
 		this.length_b = null;
@@ -107,19 +108,17 @@ public class NetworkWorker {
 		this.authenticator = authenticator;
 	}
 
-	public void resetSocket() throws IOException {
+	public void resetSocket() {
 		if (socket != null) {
 			Socket s = this.socket;
 			this.socket = null;
-			if (!s.isClosed()) {
-				s.close();
-			}
+			Utils.socketClose(s);
 		}
 	}
 
 	public void writeSocket() throws IOException {
 		w_buffer.putByte(Opcode.END);
-		
+
 		OutputStream os = socket.getOutputStream();
 		int length = w_buffer.buffer.position();
 
@@ -140,7 +139,7 @@ public class NetworkWorker {
 		Utils.effectiveRead(is, length_b, 0, 4);
 		int length = length_b[3] & 0xFF | (length_b[2] & 0xFF) << 8 | (length_b[1] & 0xFF) << 16
 				| (length_b[0] & 0xFF) << 24;
-		
+
 		Utils.effectiveRead(is, r_buffer.buffer.array(), 0, length);
 		r_buffer.buffer.clear();
 	}
@@ -169,10 +168,10 @@ public class NetworkWorker {
 		if (constructor == null) {
 			synchronized (m_oconstrs) {
 				try {
-					constructor = cls.getConstructor(Level.class);
+					constructor = cls.getConstructor();
 					constructor.setAccessible(true);
 					m_oconstrs.put(cls, (Constructor<? extends GameObject>) constructor);
-				} catch(NoSuchMethodException e) {
+				} catch (NoSuchMethodException e) {
 					Logger.error("Class " + cls.getName() + " must provide a default GameObject constructor");
 					throw e;
 				}
@@ -190,7 +189,7 @@ public class NetworkWorker {
 					constructor = cls.getConstructor();
 					constructor.setAccessible(true);
 					m_cconstrs.put(cls, (Constructor<? extends GameComponent>) constructor);
-				} catch(NoSuchMethodException e) {
+				} catch (NoSuchMethodException e) {
 					Logger.error("Class " + cls.getName() + " must provide a default GameComponent constructor");
 					throw e;
 				}
@@ -208,7 +207,7 @@ public class NetworkWorker {
 					constructor = cls.getConstructor();
 					constructor.setAccessible(true);
 					m_econstrs.put(cls, (Constructor<? extends GameEvent>) constructor);
-				} catch(NoSuchMethodException e) {
+				} catch (NoSuchMethodException e) {
 					Logger.error("Class " + cls.getName() + " must provide a default GameEvent constructor");
 					throw e;
 				}
@@ -459,20 +458,20 @@ public class NetworkWorker {
 	public void writeObjectsData() {
 		Level level = getLevel();
 		w_buffer.putByte(Opcode.DATA);
-		
+
 		// Write objects
 		level.forEachActualObject((id, object) -> {
-			if(!noReplicate(object.getClass())) {
+			if (!noReplicate(object.getClass())) {
 				w_buffer.putByte(Opcode.ITEM);
 				w_buffer.putLong(object.getId());
 				writeObjectCustom(object);
 			}
 		});
 		w_buffer.putByte(Opcode.STOP);
-		
+
 		// Write components
 		level.forEachComponent((id, component) -> {
-			if(!noReplicate(component.getClass())) {
+			if (!noReplicate(component.getClass())) {
 				w_buffer.putByte(Opcode.ITEM);
 				w_buffer.putLong(component.getId());
 				writeComponentCustom(component);
@@ -480,7 +479,7 @@ public class NetworkWorker {
 		});
 		w_buffer.putByte(Opcode.STOP);
 	}
-	
+
 	public void writeLevel() {
 		Level level = getLevel();
 
@@ -505,14 +504,14 @@ public class NetworkWorker {
 			return;
 		}
 		w_buffer.putByte(Opcode.ITEM); // Put item flag
-		
+
 		w_buffer.putLong(obj.getId()); // Put id of the object
 		w_buffer.putString(obj.getClass().getName()); // Put class of the object
 
 		obj.forEachComponent((id, component) -> {
 			if (!noReplicate(component.getClass())) {
 				w_buffer.putByte(Opcode.ITEM); // Put item flag
-				
+
 				w_buffer.putLong(component.getId()); // Put id of component
 				w_buffer.putString(component.getClass().getName()); // Put class of component
 			}
@@ -575,15 +574,16 @@ public class NetworkWorker {
 		writeEventCustom(event);
 	}
 
-	public void writeAuthentication() {
+	public boolean writeAuthentication() {
 		if (authenticator == null) {
 			authenticator = new DefaultAuthenticator();
 		}
 		if (parent.getGame().isClient()) {
 			authenticator.w_client_auth(this, w_buffer);
 		} else {
-			authenticator.w_server_auth(this, w_buffer);
+			return authenticator.w_server_auth(this, w_buffer);
 		}
+		return true;
 	}
 
 	// Read functions
@@ -591,11 +591,7 @@ public class NetworkWorker {
 	protected void invalid(byte opcode) {
 		Logger.warning("Remote socket sent an invalid operation (" + (opcode & 0xff)
 				+ ") : the connection will be terminated");
-		try {
-			resetSocket();
-		} catch (IOException e) {
-			Logger.warning("I/O error occurred while resetting connection, ignoring");
-		}
+		resetSocket();
 	}
 
 	public void readData() throws Throwable {
@@ -671,25 +667,31 @@ public class NetworkWorker {
 			level.detachController();
 		}
 	}
-	
+
 	public void readObjectsData() {
 		Level level = getLevel();
-		
+
 		// Read objects
-		while(r_buffer.getByte() == Opcode.ITEM) {
+		while (r_buffer.getByte() == Opcode.ITEM) {
 			long id = r_buffer.getLong();
 			GameObject object = level.getObject(id);
+			if (object == null) {
+				continue;
+			}
 			readObjectCustom(object);
 		}
-		
+
 		// Read components
-		while(r_buffer.getByte() == Opcode.ITEM) {
+		while (r_buffer.getByte() == Opcode.ITEM) {
 			long id = r_buffer.getLong();
 			GameComponent component = level.getComponent(id);
+			if (component == null) {
+				continue;
+			}
 			readComponentCustom(component);
 		}
 	}
-	
+
 	public void readLevel() throws Throwable {
 		Level level = getLevel();
 
@@ -697,8 +699,6 @@ public class NetworkWorker {
 		while (r_buffer.getByte() == Opcode.ITEM) {
 			readChildren(level, (GameObject) null);
 		}
-//		System.out.flush();
-//		System.exit(0);
 	}
 
 	public void readChildren(Level level, GameObject parent) throws ClassCastException, InstantiationException,
@@ -711,20 +711,20 @@ public class NetworkWorker {
 			GameObject object = level.getObject(id);
 			if (object == null) {
 				// Build and add the object if not present
-				object = (GameObject) o_constr(cls(clazz)).newInstance(level);
+				object = (GameObject) o_constr(cls(clazz)).newInstance();
 				f_oid.set(object, id);
-				if(parent == null) {
+				if (parent == null) {
 					level.addObject(object);
 				} else {
 					parent.addChild(object);
 				}
 			}
-			
+
 			// Check for item flag
 			while (r_buffer.getByte() == Opcode.ITEM) {
 				long comp_id = r_buffer.getLong(); // Get id of component
 				String comp_clazz = r_buffer.getString(); // Get class of component
-				
+
 				GameComponent component = object.getComponent(comp_id);
 				if (component == null) {
 					// Build and add the component if not present
@@ -818,15 +818,16 @@ public class NetworkWorker {
 
 	}
 
-	public void readAuthentication() {
+	public boolean readAuthentication() {
 		if (authenticator == null) {
 			authenticator = new DefaultAuthenticator();
 		}
 		if (Game.getGame().isClient()) {
-			authenticator.r_client_auth(this, r_buffer);
+			return authenticator.r_client_auth(this, r_buffer);
 		} else {
 			authenticator.r_server_auth(this, r_buffer);
 		}
+		return true;
 	}
 
 	// Getters and setters
@@ -880,6 +881,18 @@ public class NetworkWorker {
 	public int getLocalPort() {
 		InetSocketAddress address = (InetSocketAddress) socket.getLocalSocketAddress();
 		return address.getPort();
+	}
+
+	public long getLostConnectionTime() {
+		return lostConnection;
+	}
+
+	public void setLostConnectionTime(long time) {
+		this.lostConnection = time;
+	}
+
+	public CoreComponent getParent() {
+		return parent;
 	}
 
 }

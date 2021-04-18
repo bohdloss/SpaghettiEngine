@@ -46,7 +46,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		c_attached = f2;
 	}
 
-	private static final void setComponentOwner(GameComponent gc, GameObject go) {
+	private static final void internal_setcompdata(GameComponent gc, GameObject go) {
 		try {
 			c_owner.set(gc, go);
 			c_attached.set(gc, go != null);
@@ -56,52 +56,69 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		}
 	}
 
-	private static final void rebuildLevel(GameObject child) {
-		child.level.o_ordered.put(child.id, child);
+	private static final void internal_updatelevel(Level level, GameObject child) {
+		child.level = level;
+		if (level != null) {
+			level.o_ordered.put(child.id, child);
+			child.forEachComponent((id, component) -> {
+				level.c_ordered.put(id, component);
+			});
+		}
 		child.children.forEach((id, object) -> {
-			rebuildLevel(object);
+			internal_updatelevel(level, object);
 		});
 	}
 
-	private static final void rebuildParent(GameObject child) {
-
+	private static final void internal_cutowners(GameObject child) {
 		if (child.attached) {
-
-			if (child.hierarchy == 0) {
+			if (child.parent == null) {
 				// If this object has no parent remove it from the level directly
-				child.level.removeObject(child.id);
-			} else if (child.parent != null) {
+				if (child.level != null) {
+					child.level.removeObject(child.id);
+				}
+			} else {
 				// Otherwise remove it from its parent
 				child.parent.removeChild(child.id);
 			}
 			// The object will then be re-added with the appropriate function later
-
-		} else {
-			child.attached = true;
 		}
 	}
 
-	private static final void rebuildHierarchy(GameObject caller, GameObject child) {
+	private static final void internal_newowners(GameObject caller, GameObject child) {
+		if (child.level != null) {
+			child.level.o_ordered.put(child.id, child);
+		}
+		if (caller == null) {
+			child.level.objects.add(child);
+		} else {
+			caller.children.put(child.id, child);
+		}
+		child.attached = true;
+		if (child.isGloballyAttached()) {
+			child.internal_begin();
+		}
+	}
 
-		// Change parent of child
+	private static final void internal_updatehnum(GameObject caller, GameObject child) {
+		// Update parent
 		child.parent = caller;
 		// Change hierarchy level of child
 		child.hierarchy = (caller == null ? -1 : caller.hierarchy) + 1;
 
 		// Repeat recursively
 		child.children.forEach((id, childObject) -> {
-			rebuildHierarchy(child, childObject);
+			internal_updatehnum(child, childObject);
 		});
-
 	}
 
-	protected static final void rebuildObject(GameObject caller, GameObject child) {
-		rebuildLevel(child);
-		rebuildParent(child);
-		rebuildHierarchy(caller, child);
+	protected static final void internal_attachobj(Level level, GameObject caller, GameObject child) {
+		internal_cutowners(child);
+		internal_updatelevel(level, child);
+		internal_updatehnum(caller, child);
+		internal_newowners(caller, child);
 	}
 
-	protected static final void unattachObject(GameObject object) {
+	protected static final void internal_detach(GameObject object) {
 		object.attached = false;
 	}
 
@@ -116,11 +133,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 	private HashMap<Long, GameObject> children = new HashMap<>();
 	private HashMap<Long, GameComponent> components = new HashMap<>();
 
-	public GameObject(Level level) {
-		if (level == null) {
-			throw new IllegalArgumentException();
-		}
-		this.level = level;
+	public GameObject() {
 		this.id = newId();
 	}
 
@@ -155,12 +168,9 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 			current = current.parent;
 		}
 
-		// onEndPlay() happens unless object is not attached
-		rebuildObject(this, object);
-		children.put(object.id, object);
-
-		// onBeginPlay() happens regardless
-		object._begin();
+		// onEndPlay() happens unless 'object' is not globally attached
+		// onBeginPlay() happens with the same conditions
+		internal_attachobj(level, this, object);
 	}
 
 	public final synchronized void addComponent(GameComponent component) {
@@ -172,12 +182,13 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 			// onEndPlay() might happen if this component already has a parent
 			component.getOwner().removeComponent(component.getId());
 		}
-		setComponentOwner(component, this);
+		internal_setcompdata(component, this);
 		components.put(component.getId(), component);
-		level.c_ordered.put(component.getId(), component);
 
-		// onBeginPlay() happens regardless
-		component.onBeginPlay();
+		// onBeginPlay() happens if this is globally attached
+		if (isGloballyAttached()) {
+			component.onBeginPlay();
+		}
 	}
 
 	// Getter utility functions
@@ -260,8 +271,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		return buffer;
 	}
 
-	public final GameObject[] getChildrenN(Class<? extends GameObject> cls, GameObject[] buffer,
-			int offset) {
+	public final GameObject[] getChildrenN(Class<? extends GameObject> cls, GameObject[] buffer, int offset) {
 		int i = 0;
 		for (GameObject obj : children.values()) {
 			if (cls.isAssignableFrom(obj.getClass())) {
@@ -386,12 +396,16 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		GameObject removed = children.get(id);
 
 		if (removed != null) {
-
-			removed._end();
+			boolean ga = isGloballyAttached();
+			if (ga) {
+				removed.internal_end();
+			}
 			removed.parent = null;
 			children.remove(id);
-			level.objects.remove(removed);
-			level.o_ordered.remove(id);
+			if (ga) {
+				level.objects.remove(removed);
+				level.o_ordered.remove(id);
+			}
 			removed.attached = false;
 
 			return removed;
@@ -416,10 +430,15 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		GameComponent removed = components.get(id);
 
 		if (removed != null) {
-			removed.onEndPlay();
+			boolean ga = isGloballyAttached();
+			if (ga) {
+				removed.onEndPlay();
+			}
 			components.remove(id);
-			level.c_ordered.remove(id);
-			setComponentOwner(removed, null);
+			if (ga) {
+				level.c_ordered.remove(id);
+			}
+			internal_setcompdata(removed, null);
 
 			return removed;
 		}
@@ -487,13 +506,15 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		if (isDestroyed()) {
 			return;
 		}
-		_destroy();
+		internal_destroy();
 	}
 
 	private final void destroySimple() {
 		onDestroy();
 		if (parent == null) {
-			level.removeObject(id);
+			if (level != null) {
+				level.removeObject(id);
+			}
 		} else {
 			parent.removeChild(id);
 		}
@@ -506,7 +527,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 
 	// Propagate onBeginPlay, onEndPlay and onDestroy to children
 
-	protected final void _begin() {
+	protected final void internal_begin() {
 		onBeginPlay();
 		for (Object obj : components.values().toArray()) {
 			GameComponent component = (GameComponent) obj;
@@ -514,14 +535,14 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		}
 		for (Object obj : children.values().toArray()) {
 			GameObject object = (GameObject) obj;
-			object._begin();
+			object.internal_begin();
 		}
 	}
 
-	protected final void _end() {
+	protected final void internal_end() {
 		for (Object obj : children.values().toArray()) {
 			GameObject object = (GameObject) obj;
-			object._end();
+			object.internal_end();
 		}
 		for (Object obj : components.values().toArray()) {
 			GameComponent component = (GameComponent) obj;
@@ -530,10 +551,10 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		onEndPlay();
 	}
 
-	protected final void _destroy() {
+	protected final void internal_destroy() {
 		for (Object obj : children.values().toArray()) {
 			GameObject child = (GameObject) obj;
-			child._destroy();
+			child.internal_destroy();
 		}
 		for (Object obj : components.values().toArray()) {
 			GameComponent component = (GameComponent) obj;
@@ -981,13 +1002,13 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		components.forEach((id, component) -> {
 			component.update(delta);
 		});
+
 		commonUpdate(delta);
 		if (getGame().isClient()) {
 			clientUpdate(delta);
 		} else {
 			serverUpdate(delta);
 		}
-
 		children.forEach((id, object) -> {
 			object.update(delta);
 		});

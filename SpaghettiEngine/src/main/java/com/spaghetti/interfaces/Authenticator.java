@@ -6,9 +6,9 @@ public interface Authenticator {
 
 	public abstract void w_client_auth(NetworkWorker worker, NetworkBuffer buffer);
 
-	public abstract void r_client_auth(NetworkWorker worker, NetworkBuffer buffer);
+	public abstract boolean r_client_auth(NetworkWorker worker, NetworkBuffer buffer);
 
-	public abstract void w_server_auth(NetworkWorker worker, NetworkBuffer buffer);
+	public abstract boolean w_server_auth(NetworkWorker worker, NetworkBuffer buffer);
 
 	public abstract void r_server_auth(NetworkWorker worker, NetworkBuffer buffer);
 

@@ -43,25 +43,22 @@ public final class Level implements Updatable {
 			return;
 		}
 
-		GameObject.rebuildObject(null, object);
-
-		objects.add(object);
-		o_ordered.put(object.getId(), object);
+		GameObject.internal_attachobj(this, null, object);
 	}
 
 	public synchronized GameObject removeObject(long id) {
-		GameObject get = o_ordered.get(id);
-		if (get != null) {
-			if (get.getParent() != null) {
-				get.getParent().removeChild(get);
+		GameObject obj = o_ordered.get(id);
+		if (obj != null) {
+			if (obj.getParent() != null) {
+				obj.getParent().removeChild(obj);
 			} else {
-				get._end();
-				objects.remove(get);
+				obj.internal_end();
+				objects.remove(obj);
 				o_ordered.remove(id);
-				GameObject.unattachObject(get);
+				GameObject.internal_detach(obj);
 			}
 		}
-		return get;
+		return obj;
 	}
 
 	public synchronized boolean deleteObject(long id) {
@@ -114,7 +111,9 @@ public final class Level implements Updatable {
 	public void update(double delta) {
 		try {
 			objects.forEach(object -> {
-				object.update(delta);
+				if (object != null) {
+					object.update(delta);
+				}
 			});
 		} catch (ConcurrentModificationException e) {
 		}
@@ -335,8 +334,7 @@ public final class Level implements Updatable {
 		return buffer;
 	}
 
-	public GameComponent[] getComponentsN(Class<? extends GameComponent> cls, GameComponent[] buffer,
-			int offset) {
+	public GameComponent[] getComponentsN(Class<? extends GameComponent> cls, GameComponent[] buffer, int offset) {
 		int i = 0;
 		for (GameComponent comp : c_ordered.values()) {
 			if (cls.isAssignableFrom(comp.getClass())) {

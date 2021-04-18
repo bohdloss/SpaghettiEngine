@@ -3,6 +3,7 @@ package com.spaghetti.objects;
 import org.joml.Matrix4d;
 import org.joml.Vector2i;
 import org.joml.Vector3d;
+import org.lwjgl.opengl.GL11;
 
 import com.spaghetti.core.*;
 import com.spaghetti.interfaces.Replicate;
@@ -16,7 +17,7 @@ public class Camera extends GameObject {
 	protected double scale;
 	@Replicate
 	protected double fov = 10;
-	protected double targetRatio = 1.7777777777777777; // 16:9
+	protected double targetRatio = 16 / 9; // 16:9 resolution
 
 	protected Matrix4d projection = new Matrix4d();
 	protected Matrix4d cache = new Matrix4d();
@@ -30,10 +31,6 @@ public class Camera extends GameObject {
 
 	// Cache
 	private Vector3d vecC = new Vector3d();
-
-	public Camera(Level level) {
-		super(level);
-	}
 
 	protected void setProjectionMatrix() {
 		projection.identity().setOrtho(-width / 2, width / 2, -height / 2, height / 2, -1000, 1000);
@@ -152,7 +149,42 @@ public class Camera extends GameObject {
 
 	@Override
 	public void render(Matrix4d projection, double delta) {
+		checkTarget();
+		renderTarget.use();
+		if (getClearColor()) {
+			GL11.glClear(GL11.GL_COLOR_BUFFER_BIT);
+		}
+		if (getClearDepth()) {
+			GL11.glClear(GL11.GL_DEPTH_BUFFER_BIT);
+		}
+		if (getClearStencil()) {
+			GL11.glClear(GL11.GL_STENCIL_BUFFER_BIT);
+		}
 
+		Matrix4d sceneMatrix = new Matrix4d();
+		Vector3d vec3cache = new Vector3d();
+		getLevel().forEachActualObject((id, component) -> {
+			if (!Camera.class.isAssignableFrom(component.getClass())) {
+
+				// Reset matrix
+				sceneMatrix.set(getProjection());
+
+				// Get world position
+				component.getWorldPosition(vec3cache);
+				sceneMatrix.translate(vec3cache);
+
+				// Get world rotation
+				component.getWorldRotation(vec3cache);
+				sceneMatrix.rotateXYZ(vec3cache);
+
+				// Get world scale
+				component.getWorldScale(vec3cache);
+				sceneMatrix.scale(vec3cache.x, vec3cache.y, 1);
+
+				component.render(sceneMatrix, delta);
+			}
+		});
+		renderTarget.stop();
 	}
 
 }

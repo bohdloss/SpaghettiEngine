@@ -3,8 +3,9 @@ package com.spaghetti.networking;
 import java.io.IOException;
 import java.net.*;
 import java.util.ArrayList;
-import java.util.HashMap;
+import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.concurrent.ConcurrentHashMap;
 
 import com.spaghetti.core.*;
 import com.spaghetti.interfaces.JoinHandler;
@@ -14,8 +15,11 @@ public class Server extends CoreComponent {
 
 	protected ServerSocket server;
 	protected JoinHandler joinHandler;
-	protected HashMap<Long, NetworkWorker> clients = new HashMap<>();
+	protected ConcurrentHashMap<Long, NetworkWorker> clients = new ConcurrentHashMap<>();
 	protected ArrayList<Long> bans = new ArrayList<>();
+	protected int maxClients = 1;
+	protected long awaitReconnect = 10000; // 10 secs
+	protected int connections;
 
 	public Server() {
 		joinHandler = new DefaultJoinHandler();
@@ -36,27 +40,50 @@ public class Server extends CoreComponent {
 
 	@Override
 	protected void loopEvents(double delta) throws Throwable {
+		Utils.sleep(25);
 		if (getClientsAmount() != 0) {
 
 			for (Entry<Long, NetworkWorker> entry : clients.entrySet()) {
 				try {
 					NetworkWorker client = entry.getValue();
+					if (!client.isConnected()) {
+						continue;
+					}
 
 					client.writeLevel();
 					client.writeObjectsData();
 					client.writeActiveCamera();
 					client.writeActiveController();
 
+					// Write / read routine, in this order for client synchronization
 					client.writeSocket();
 					client.readSocket();
+
 				} catch (Throwable e) {
-					Logger.error("Error occurred in client " + entry.getKey(), e);
-					internal_kick(entry.getKey());
+					Logger.error("I/O exception occurred in client " + entry.getKey(), e);
+					Logger.info("Awaiting reconnection for " + awaitReconnect + " ms");
+					entry.getValue().resetSocket();
+					entry.getValue().setLostConnectionTime(System.currentTimeMillis());
 				}
 			}
 
-		} else {
+			for (Iterator<Entry<Long, NetworkWorker>> iterator = clients.entrySet().iterator(); iterator.hasNext();) {
+				Entry<Long, NetworkWorker> entry = iterator.next();
+				NetworkWorker client = entry.getValue();
+				boolean remove = !client.isConnected();
+				remove &= System.currentTimeMillis() > client.getLostConnectionTime() + awaitReconnect;
+				if (remove) {
+					Logger.info("Client " + entry.getKey() + " did not reconnect in time");
+					internal_kick(entry.getKey());
+					iterator.remove();
+				}
+			}
+
+		} else if (isBound() && !canCloseServer()) {
 			internal_accept();
+		}
+		if (canCloseServer() && isBound()) {
+			internal_unbind();
 		}
 	}
 
@@ -74,11 +101,7 @@ public class Server extends CoreComponent {
 		if (worker == null) {
 			return false;
 		}
-		try {
-			worker.destroy();
-		} catch (IOException e) {
-			Logger.error("I/O error occurred while kicking client " + id + ", ignoring", e);
-		}
+		worker.destroy();
 		Logger.info("Kicked client " + id);
 		return true;
 	}
@@ -98,7 +121,7 @@ public class Server extends CoreComponent {
 			bans.add(id);
 			Logger.info("Banned client " + id);
 		} else {
-			Logger.info("Client " + id + " already banned");
+			Logger.warning("Client " + id + " already banned");
 		}
 		return banned;
 	}
@@ -112,7 +135,7 @@ public class Server extends CoreComponent {
 		if (unbanned) {
 			Logger.info("Unbanned client " + id);
 		} else {
-			Logger.info("Client " + id + " was not banned");
+			Logger.warning("Client " + id + " was not banned");
 		}
 		return unbanned;
 	}
@@ -166,20 +189,57 @@ public class Server extends CoreComponent {
 			hash = 31 * hash + ip.charAt(i);
 		}
 
-		// Check if it is already connected here and add it
+		// Check if it is already instantiated here and add it
 		Long clientId = new Long(hash);
 		if (!clients.containsKey(clientId)) {
+
+			// New connection, initialize it
 			NetworkWorker client = new NetworkWorker(this);
-			joinHandler.handleJoin(getGame().isClient(), client);
 			client.provideSocket(socket);
 			clients.put(clientId, client);
 
-			Logger.info("ACCEPTED connection from " + ip);
-			return true;
+			// Perform handshake
+			if (!internal_handshake(client)) {
+				Logger.warning("Client handshake failed (" + clientId + ")");
+				internal_kick(clientId);
+			} else {
+				// Perform additional initialization on new connection
+				joinHandler.handleJoin(getGame().isClient(), client);
+
+				// Success, return true
+				connections++;
+				Logger.info("ACCEPTED connection from " + ip + " (" + clientId + ")");
+				return true;
+			}
+
+		} else {
+
+			// Existing connection, attempt reconnection
+			NetworkWorker client = clients.get(clientId);
+			if (!client.isConnected()) {
+				// Provide new socket to worker
+				client.provideSocket(socket);
+
+				// Re-perform handshake for security reasons
+				if (!internal_handshake(client)) {
+					Logger.warning("Client handshake failed (" + clientId + ")");
+					internal_kick(clientId);
+				} else {
+					// Old connection successfully re-established, return true
+					Logger.info("RECONNECTED with client " + ip + " (" + clientId + ")");
+					return true;
+				}
+			}
 		}
 
+		// Failure, close socket and return false
 		Logger.warning("REFUSED connection from " + ip);
-		socket.close();
+		try {
+			if (socket != null) {
+				socket.close();
+			}
+		} catch (IOException e) {
+		}
 		return false;
 	}
 
@@ -214,12 +274,20 @@ public class Server extends CoreComponent {
 		try {
 			server.close();
 		} catch (IOException e) {
-			Logger.error("I/O error occurred while closing server, ignoring", e);
+			Logger.error("I/O error occurred while closing server, ignoring");
 		} finally {
 			server = null;
 		}
 		Logger.info("Server unbound");
 		return true;
+	}
+
+	protected boolean internal_handshake(NetworkWorker client) throws IOException {
+		client.readSocket();
+		client.readAuthentication();
+		boolean ret = client.writeAuthentication();
+		client.writeSocket();
+		return ret;
 	}
 
 	// Getters and setters
@@ -272,6 +340,26 @@ public class Server extends CoreComponent {
 
 	public void setJoinHandler(JoinHandler joinHandler) {
 		this.joinHandler = joinHandler;
+	}
+
+	public int getMaxClients() {
+		return maxClients;
+	}
+
+	public void setMaxClients(int maxClients) {
+		this.maxClients = maxClients;
+	}
+
+	public long getAwaitReconnectTime() {
+		return awaitReconnect;
+	}
+
+	public void setAwaitReconnectTime(long awaitReconnect) {
+		this.awaitReconnect = awaitReconnect;
+	}
+
+	protected boolean canCloseServer() {
+		return connections >= maxClients;
 	}
 
 }

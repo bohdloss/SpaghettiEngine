@@ -26,12 +26,6 @@ And you can do the following with it
 - (WIP) Physics
 - (WIP) Play sounds and music
 
-### Known problems
-
-The following bugs are being actively fixed:
-
-- Replicated camera not rendering properly
-
 ### How to set it up
 
 Requires the following commands installed on your system:

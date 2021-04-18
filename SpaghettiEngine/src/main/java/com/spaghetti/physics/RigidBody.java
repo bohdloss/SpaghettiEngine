@@ -11,8 +11,6 @@ public class RigidBody extends GameComponent {
 	// Dependencies
 
 	protected Physics physics;
-	protected RigidBody previous;
-	protected RigidBody next;
 
 	// Properties
 
@@ -83,8 +81,8 @@ public class RigidBody extends GameComponent {
 		// Just for fun
 		// everything has gravity
 
-		RigidBody b = physics.body_list;
-		do {
+		for (int i = 0; i < physics.body_count; i++) {
+			RigidBody b = physics.body_list[i];
 			if (b == this) {
 				continue;
 			}
@@ -105,7 +103,7 @@ public class RigidBody extends GameComponent {
 
 			applyForce(force_x, force_y);
 
-		} while ((b = b.next) != null);
+		}
 
 		// Air friction
 		double friction_x = -velocity.x * physics.AIR_FRICTION;
@@ -144,20 +142,15 @@ public class RigidBody extends GameComponent {
 		position.x += velocity.x * multiplier;
 		position.y += velocity.y * multiplier;
 
-		RigidBody body = physics.body_list;
-		do {
+		for (int i = 0; i < physics.body_count; i++) {
+			RigidBody body = physics.body_list[i];
 			if (body == this) {
 				continue;
 			}
 
 			if (intersects(body)) {
-
-				// Use the law of the conservation of velocity
-
-				System.out.println("a");
-
 			}
-		} while ((body = body.next) != null);
+		}
 
 		// Reset acceleration each frame because
 		// that's how it works IRL (kind of)
@@ -166,14 +159,6 @@ public class RigidBody extends GameComponent {
 	}
 
 	// Getters
-
-	public RigidBody previous() {
-		return previous;
-	}
-
-	public RigidBody next() {
-		return next;
-	}
 
 	public Physics getPhysics() {
 		return physics;
@@ -265,12 +250,10 @@ public class RigidBody extends GameComponent {
 
 	@Override
 	public void onBeginPlay() {
-
 		// We need a physics world!
-
 		physics = getLevel().getObject(Physics.class);
 		if (physics == null) {
-			physics = new Physics(getLevel());
+			physics = new Physics();
 			getLevel().addObject(physics);
 		}
 		if (mass == 0) {
@@ -279,7 +262,6 @@ public class RigidBody extends GameComponent {
 		physics.addBody(this);
 
 		// Set position based on owner
-
 		GameObject obj = getOwner();
 		position.x = obj.getRelativeX();
 		position.y = obj.getRelativeY();

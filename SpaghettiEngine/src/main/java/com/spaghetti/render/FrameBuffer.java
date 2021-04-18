@@ -55,7 +55,7 @@ public class FrameBuffer extends Asset {
 	@Override
 	protected void load0() {
 
-		// Create frame w_buffer
+		// Create frame buffer
 		id = GL30.glGenFramebuffers();
 
 		// Attach color
