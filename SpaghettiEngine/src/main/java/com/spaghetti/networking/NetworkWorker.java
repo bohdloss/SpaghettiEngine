@@ -8,11 +8,8 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Map.Entry;
 
-import org.joml.*;
-
-import com.spaghetti.assets.Asset;
-import com.spaghetti.assets.AssetManager;
 import com.spaghetti.core.*;
 import com.spaghetti.events.EventDispatcher;
 import com.spaghetti.events.GameEvent;
@@ -82,10 +79,17 @@ public class NetworkWorker {
 		f_modifiers = mod;
 	}
 
+	protected final HashMap<String, ClassInterpreter> interpreters = new HashMap<>();
+
 	public NetworkWorker(CoreComponent parent) {
 		this.parent = parent;
 		this.w_buffer = new NetworkBuffer(Game.getGame().getOptions().getOption(GameOptions.PREFIX + "networkbuffer"));
 		this.r_buffer = new NetworkBuffer(Game.getGame().getOptions().getOption(GameOptions.PREFIX + "networkbuffer"));
+		registerInterpreters();
+	}
+
+	protected void registerInterpreters() {
+		interpreters.putAll(DefaultInterpreters.interpreters);
 	}
 
 	// Utility methods
@@ -285,171 +289,45 @@ public class NetworkWorker {
 
 	protected void writeField(Field field, Object obj) {
 		try {
-
 			Class<?> type = field.getType();
-
-			// Primitives
-			if (type.equals(byte.class) || type.equals(Byte.class)) {
-				w_buffer.putByte((byte) field.get(obj));
-			} else if (type.equals(short.class) || type.equals(Short.class)) {
-				w_buffer.putShort((short) field.get(obj));
-			} else if (type.equals(int.class) || type.equals(Integer.class)) {
-				w_buffer.putInt((int) field.get(obj));
-			} else if (type.equals(float.class) || type.equals(Float.class)) {
-				w_buffer.putFloat((float) field.get(obj));
-			} else if (type.equals(long.class) || type.equals(Long.class)) {
-				w_buffer.putLong((long) field.get(obj));
-			} else if (type.equals(double.class) || type.equals(Double.class)) {
-				w_buffer.putDouble((double) field.get(obj));
-			} else if (type.equals(char.class) || type.equals(Character.class)) {
-				w_buffer.putChar((char) field.get(obj));
-			} else if (type.equals(boolean.class) || type.equals(Boolean.class)) {
-				w_buffer.putBoolean((boolean) field.get(obj));
+			ClassInterpreter interpreter = interpreters.get(type.getName());
+			if (interpreter != null) {
+				interpreter.writeClass(field, obj, w_buffer);
+			} else {
+				for (Entry<String, ClassInterpreter> entry : interpreters.entrySet()) {
+					try {
+						Class<?> cls = Class.forName(entry.getKey());
+						if (cls.isAssignableFrom(type)) {
+							entry.getValue().writeClass(field, obj, w_buffer);
+							break;
+						}
+					} catch (ClassNotFoundException e) {
+					}
+				}
 			}
-
-			// Assets
-			if (Asset.class.isAssignableFrom(type)) {
-				Asset asset = (Asset) field.get(obj);
-				w_buffer.putString(asset.getName());
-			}
-
-			// JOML Vectors
-			if (type.equals(Vector2d.class)) {
-				Vector2d vec = (Vector2d) field.get(obj);
-				w_buffer.putDouble(vec.x);
-				w_buffer.putDouble(vec.y);
-			} else if (type.equals(Vector2f.class)) {
-				Vector2f vec = (Vector2f) field.get(obj);
-				w_buffer.putFloat(vec.x);
-				w_buffer.putFloat(vec.y);
-			} else if (type.equals(Vector2i.class)) {
-				Vector2i vec = (Vector2i) field.get(obj);
-				w_buffer.putInt(vec.x);
-				w_buffer.putInt(vec.y);
-			} else if (type.equals(Vector3d.class)) {
-				Vector3d vec = (Vector3d) field.get(obj);
-				w_buffer.putDouble(vec.x);
-				w_buffer.putDouble(vec.y);
-				w_buffer.putDouble(vec.z);
-			} else if (type.equals(Vector3f.class)) {
-				Vector3f vec = (Vector3f) field.get(obj);
-				w_buffer.putFloat(vec.x);
-				w_buffer.putFloat(vec.y);
-				w_buffer.putFloat(vec.z);
-			} else if (type.equals(Vector3i.class)) {
-				Vector3i vec = (Vector3i) field.get(obj);
-				w_buffer.putInt(vec.x);
-				w_buffer.putInt(vec.y);
-				w_buffer.putInt(vec.z);
-			} else if (type.equals(Vector4d.class)) {
-				Vector4d vec = (Vector4d) field.get(obj);
-				w_buffer.putDouble(vec.x);
-				w_buffer.putDouble(vec.y);
-				w_buffer.putDouble(vec.z);
-				w_buffer.putDouble(vec.w);
-			} else if (type.equals(Vector4f.class)) {
-				Vector4f vec = (Vector4f) field.get(obj);
-				w_buffer.putFloat(vec.x);
-				w_buffer.putFloat(vec.y);
-				w_buffer.putFloat(vec.z);
-				w_buffer.putFloat(vec.w);
-			} else if (type.equals(Vector4i.class)) {
-				Vector4i vec = (Vector4i) field.get(obj);
-				w_buffer.putInt(vec.x);
-				w_buffer.putInt(vec.y);
-				w_buffer.putInt(vec.z);
-				w_buffer.putInt(vec.w);
-			}
-
 		} catch (IllegalAccessException e) {
-			// Already took care of that, won't happen
-			e.printStackTrace();
 		}
 	}
 
 	protected void readField(Field field, Object obj) {
 		try {
-
 			Class<?> type = field.getType();
-
-			// Primitives
-			if (type.equals(byte.class) || type.equals(Byte.class)) {
-				field.set(obj, r_buffer.getByte());
-			} else if (type.equals(short.class) || type.equals(Short.class)) {
-				field.set(obj, r_buffer.getShort());
-			} else if (type.equals(int.class) || type.equals(Integer.class)) {
-				field.set(obj, r_buffer.getInt());
-			} else if (type.equals(float.class) || type.equals(Float.class)) {
-				field.set(obj, r_buffer.getFloat());
-			} else if (type.equals(long.class) || type.equals(Long.class)) {
-				field.set(obj, r_buffer.getLong());
-			} else if (type.equals(double.class) || type.equals(Double.class)) {
-				field.set(obj, r_buffer.getDouble());
-			} else if (type.equals(char.class) || type.equals(Character.class)) {
-				field.set(obj, r_buffer.getChar());
-			} else if (type.equals(boolean.class) || type.equals(Boolean.class)) {
-				field.set(obj, r_buffer.getBoolean());
+			ClassInterpreter interpreter = interpreters.get(type.getName());
+			if (interpreter != null) {
+				interpreter.readClass(field, obj, r_buffer);
+			} else {
+				for (Entry<String, ClassInterpreter> entry : interpreters.entrySet()) {
+					try {
+						Class<?> cls = Class.forName(entry.getKey());
+						if (cls.isAssignableFrom(type)) {
+							entry.getValue().readClass(field, obj, r_buffer);
+							break;
+						}
+					} catch (ClassNotFoundException e) {
+					}
+				}
 			}
-
-			// Assets
-			if (Asset.class.isAssignableFrom(type)) {
-				AssetManager asset_manager = Game.getGame().getAssetManager();
-				String asset_name = r_buffer.getString();
-				Asset asset = asset_manager.custom(asset_name);
-				field.set(obj, asset);
-			}
-
-			// JOML Vectors
-			if (type.equals(Vector2d.class)) {
-				Vector2d vec = (Vector2d) field.get(obj);
-				vec.x = r_buffer.getDouble();
-				vec.y = r_buffer.getDouble();
-			} else if (type.equals(Vector2f.class)) {
-				Vector2f vec = (Vector2f) field.get(obj);
-				vec.x = r_buffer.getFloat();
-				vec.y = r_buffer.getFloat();
-			} else if (type.equals(Vector2i.class)) {
-				Vector2i vec = (Vector2i) field.get(obj);
-				vec.x = r_buffer.getInt();
-				vec.y = r_buffer.getInt();
-			} else if (type.equals(Vector3d.class)) {
-				Vector3d vec = (Vector3d) field.get(obj);
-				vec.x = r_buffer.getDouble();
-				vec.y = r_buffer.getDouble();
-				vec.z = r_buffer.getDouble();
-			} else if (type.equals(Vector3f.class)) {
-				Vector3f vec = (Vector3f) field.get(obj);
-				vec.x = r_buffer.getFloat();
-				vec.y = r_buffer.getFloat();
-				vec.z = r_buffer.getFloat();
-			} else if (type.equals(Vector3i.class)) {
-				Vector3i vec = (Vector3i) field.get(obj);
-				vec.x = r_buffer.getInt();
-				vec.y = r_buffer.getInt();
-				vec.z = r_buffer.getInt();
-			} else if (type.equals(Vector4d.class)) {
-				Vector4d vec = (Vector4d) field.get(obj);
-				vec.x = r_buffer.getDouble();
-				vec.y = r_buffer.getDouble();
-				vec.z = r_buffer.getDouble();
-				vec.w = r_buffer.getDouble();
-			} else if (type.equals(Vector4f.class)) {
-				Vector4f vec = (Vector4f) field.get(obj);
-				vec.x = r_buffer.getFloat();
-				vec.y = r_buffer.getFloat();
-				vec.z = r_buffer.getFloat();
-				vec.w = r_buffer.getFloat();
-			} else if (type.equals(Vector4i.class)) {
-				Vector4i vec = (Vector4i) field.get(obj);
-				vec.x = r_buffer.getInt();
-				vec.y = r_buffer.getInt();
-				vec.z = r_buffer.getInt();
-				vec.w = r_buffer.getInt();
-			}
-
 		} catch (IllegalAccessException e) {
-			// Already took care of that, won't happen
-			e.printStackTrace();
 		}
 	}
 

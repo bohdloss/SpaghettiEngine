@@ -7,7 +7,7 @@ public abstract class CoreComponent extends Thread {
 
 	private volatile Game source;
 	private volatile FunctionDispatcher functionDispatcher;
-	public volatile boolean stop;
+	private volatile boolean stop;
 	private volatile boolean init;
 	private volatile boolean allowRun;
 	private volatile boolean allowStop;

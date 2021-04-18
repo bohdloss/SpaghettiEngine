@@ -29,9 +29,6 @@ public class Camera extends GameObject {
 
 	protected FrameBuffer renderTarget;
 
-	// Cache
-	private Vector3d vecC = new Vector3d();
-
 	protected void setProjectionMatrix() {
 		projection.identity().setOrtho(-width / 2, width / 2, -height / 2, height / 2, -1000, 1000);
 		calcScale();
@@ -68,6 +65,7 @@ public class Camera extends GameObject {
 	}
 
 	public Matrix4d getProjection() {
+		Vector3d vecC = new Vector3d();
 		getWorldPosition(vecC);
 		cache.set(projection);
 		cache.scale(scale, scale, 1);
