@@ -1,6 +1,7 @@
 package com.spaghetti.core;
 
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Random;
 import java.util.function.BiConsumer;
@@ -11,13 +12,15 @@ import org.joml.Vector3d;
 import com.spaghetti.events.GameEvent;
 import com.spaghetti.interfaces.*;
 import com.spaghetti.networking.NetworkBuffer;
+import com.spaghetti.utils.Logger;
+import com.spaghetti.utils.Utils;
 
 public abstract class GameObject implements Updatable, Renderable, Replicable {
 
 	// Hierarchy and utility
 
 	private static final Field c_owner;
-	private static final Field c_attached;
+	private static final Method c_setflag;
 	private static HashMap<Integer, Long> staticId = new HashMap<>();
 
 	private static final synchronized long newId() {
@@ -31,102 +34,34 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 	}
 
 	static {
-		Field f = null;
-		Field f2 = null;
+		Field owner = null;
+		Method setflag = null;
+
 		try {
-			f = GameComponent.class.getDeclaredField("owner");
-			f.setAccessible(true);
-			f2 = GameComponent.class.getDeclaredField("attached");
-			f2.setAccessible(true);
+			owner = GameComponent.class.getDeclaredField("owner");
+			owner.setAccessible(true);
+			setflag = GameComponent.class.getDeclaredMethod("internal_setflag", int.class, boolean.class);
+			setflag.setAccessible(true);
 		} catch (Throwable t) {
-			// Will not happen
-			t.printStackTrace();
 		}
-		c_owner = f;
-		c_attached = f2;
-	}
 
-	private static final void internal_setcompdata(GameComponent gc, GameObject go) {
-		try {
-			c_owner.set(gc, go);
-			c_attached.set(gc, go != null);
-		} catch (Throwable t) {
-			// Will not happen
-			t.printStackTrace();
-		}
-	}
-
-	private static final void internal_updatelevel(Level level, GameObject child) {
-		child.level = level;
-		if (level != null) {
-			level.o_ordered.put(child.id, child);
-			child.forEachComponent((id, component) -> {
-				level.c_ordered.put(id, component);
-			});
-		}
-		child.children.forEach((id, object) -> {
-			internal_updatelevel(level, object);
-		});
-	}
-
-	private static final void internal_cutowners(GameObject child) {
-		if (child.attached) {
-			if (child.parent == null) {
-				// If this object has no parent remove it from the level directly
-				if (child.level != null) {
-					child.level.removeObject(child.id);
-				}
-			} else {
-				// Otherwise remove it from its parent
-				child.parent.removeChild(child.id);
-			}
-			// The object will then be re-added with the appropriate function later
-		}
-	}
-
-	private static final void internal_newowners(GameObject caller, GameObject child) {
-		if (child.level != null) {
-			child.level.o_ordered.put(child.id, child);
-		}
-		if (caller == null) {
-			child.level.objects.add(child);
-		} else {
-			caller.children.put(child.id, child);
-		}
-		child.attached = true;
-		if (child.isGloballyAttached()) {
-			child.internal_begin();
-		}
-	}
-
-	private static final void internal_updatehnum(GameObject caller, GameObject child) {
-		// Update parent
-		child.parent = caller;
-		// Change hierarchy level of child
-		child.hierarchy = (caller == null ? -1 : caller.hierarchy) + 1;
-
-		// Repeat recursively
-		child.children.forEach((id, childObject) -> {
-			internal_updatehnum(child, childObject);
-		});
-	}
-
-	protected static final void internal_attachobj(Level level, GameObject caller, GameObject child) {
-		internal_cutowners(child);
-		internal_updatelevel(level, child);
-		internal_updatehnum(caller, child);
-		internal_newowners(caller, child);
-	}
-
-	protected static final void internal_detach(GameObject object) {
-		object.attached = false;
+		c_owner = owner;
+		c_setflag = setflag;
 	}
 
 	// Instance methods and m_fields
 
-	private boolean destroyed;
-	private boolean attached;
-	private int hierarchy; // This identifies how deep this object is in the hierarchy
+	// O is attached flag
+	public static final int ATTACHED = 0;
+	// 1 is destroyed flag
+	public static final int DESTROYED = 1;
+	// 2 is delete flag
+	public static final int DELETE = 2;
+	// 3 is replicate flag
+	public static final int REPLICATE = 3;
+
+	private final Object flags_lock = new Object();
+	private int flags;
 	private long id; // This uniquely identifies any object
 	private Level level;
 	private GameObject parent;
@@ -138,6 +73,18 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 	}
 
 	// Utility
+
+	private final void internal_setflag(int flag, boolean value) {
+		synchronized (flags_lock) {
+			flags = Utils.bitAt(flags, flag, value);
+		}
+	}
+
+	private final boolean internal_getflag(int flag) {
+		synchronized (flags_lock) {
+			return Utils.bitAt(flags, flag);
+		}
+	}
 
 	public final void forEachChild(BiConsumer<Long, GameObject> consumer) {
 		children.forEach(consumer);
@@ -168,9 +115,42 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 			current = current.parent;
 		}
 
-		// onEndPlay() happens unless 'object' is not globally attached
-		// onBeginPlay() happens with the same conditions
-		internal_attachobj(level, this, object);
+		// If 'object' is attached, cut away its owners (onEndPlay opportunity here)
+		if (object.internal_getflag(ATTACHED)) {
+			if (object.parent == null) {
+				// If this object has no parent remove it from the level directly
+				if (object.level != null) {
+					object.level.removeObject(object.id);
+				}
+			} else {
+				// Otherwise remove it from its parent
+				object.parent.removeChild(object.id);
+			}
+		}
+
+		// Update the level pointers and add elements to level
+		i_r_upd_lvl(object);
+
+		// Finally add the object, set flags and activate trigger
+		object.parent = this;
+		children.put(object.id, object);
+		object.internal_setflag(ATTACHED, true);
+		if (isGloballyAttached()) {
+			object.internal_begin();
+		}
+	}
+
+	private final void i_r_upd_lvl(GameObject object) {
+		object.level = level;
+		if (isGloballyAttached()) {
+			level.o_ordered.put(object.id, object);
+			object.components.forEach((id, component) -> {
+				level.c_ordered.put(component.getId(), component);
+			});
+		}
+		object.children.forEach((id, child) -> {
+			i_r_upd_lvl(child);
+		});
 	}
 
 	public final synchronized void addComponent(GameComponent component) {
@@ -182,12 +162,22 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 			// onEndPlay() might happen if this component already has a parent
 			component.getOwner().removeComponent(component.getId());
 		}
-		internal_setcompdata(component, this);
+		try {
+			// Set 'this' as new owner of the component
+			c_owner.set(component, this);
+			// Set attached to true
+			c_setflag.invoke(component, ATTACHED, true);
+		} catch (Throwable t) {
+		}
 		components.put(component.getId(), component);
 
 		// onBeginPlay() happens if this is globally attached
 		if (isGloballyAttached()) {
-			component.onBeginPlay();
+			try {
+				component.onBeginPlay();
+			} catch (Throwable t) {
+				Logger.error("Error occurred in component", t);
+			}
 		}
 	}
 
@@ -393,22 +383,21 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 	// Remove objects
 
 	public final synchronized GameObject removeChild(long id) {
-		GameObject removed = children.get(id);
-
-		if (removed != null) {
-			boolean ga = isGloballyAttached();
-			if (ga) {
-				removed.internal_end();
-			}
-			removed.parent = null;
-			children.remove(id);
-			if (ga) {
-				level.objects.remove(removed);
+		GameObject object = children.get(id);
+		if (object != null) {
+			if (isGloballyAttached()) {
+				// Trigger end
+				object.internal_end();
+				// Remove from level
 				level.o_ordered.remove(id);
 			}
-			removed.attached = false;
 
-			return removed;
+			// Remove from list, set flags
+			object.parent = null;
+			children.remove(id);
+			object.internal_setflag(ATTACHED, false);
+
+			return object;
 		}
 		return null;
 	}
@@ -427,20 +416,30 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 	// Remove components
 
 	public final synchronized GameComponent removeComponent(long id) {
-		GameComponent removed = components.get(id);
-
-		if (removed != null) {
-			boolean ga = isGloballyAttached();
-			if (ga) {
-				removed.onEndPlay();
-			}
-			components.remove(id);
-			if (ga) {
+		GameComponent component = components.get(id);
+		if (component != null) {
+			if (isGloballyAttached()) {
+				// Trigger end
+				try {
+					component.onEndPlay();
+				} catch (Throwable t) {
+					Logger.error("Error occurred in component", t);
+				}
+				// Remove from level
 				level.c_ordered.remove(id);
 			}
-			internal_setcompdata(removed, null);
 
-			return removed;
+			// Remove from list, set flags
+			components.remove(id);
+			try {
+				// Set 'null' as new owner of the component
+				c_owner.set(component, null);
+				// Set attached to false
+				c_setflag.invoke(component, ATTACHED, false);
+			} catch (Throwable t) {
+			}
+
+			return component;
 		}
 		return null;
 	}
@@ -510,7 +509,11 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 	}
 
 	private final void destroySimple() {
-		onDestroy();
+		try {
+			onDestroy();
+		} catch (Throwable t) {
+			Logger.error("Error occurred in object", t);
+		}
 		if (parent == null) {
 			if (level != null) {
 				level.removeObject(id);
@@ -518,20 +521,25 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		} else {
 			parent.removeChild(id);
 		}
-		hierarchy = -1;
 		level = null;
 		parent = null;
 		children = null;
-		destroyed = true;
+		internal_setflag(DESTROYED, true);
 	}
 
-	// Propagate onBeginPlay, onEndPlay and onDestroy to children
-
 	protected final void internal_begin() {
-		onBeginPlay();
+		try {
+			onBeginPlay();
+		} catch (Throwable t) {
+			Logger.error("Error occurred in object", t);
+		}
 		for (Object obj : components.values().toArray()) {
 			GameComponent component = (GameComponent) obj;
-			component.onBeginPlay();
+			try {
+				component.onBeginPlay();
+			} catch (Throwable t) {
+				Logger.error("Error occurred in component", t);
+			}
 		}
 		for (Object obj : children.values().toArray()) {
 			GameObject object = (GameObject) obj;
@@ -546,9 +554,17 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		}
 		for (Object obj : components.values().toArray()) {
 			GameComponent component = (GameComponent) obj;
-			component.onEndPlay();
+			try {
+				component.onEndPlay();
+			} catch (Throwable t) {
+				Logger.error("Error occurred in component", t);
+			}
 		}
-		onEndPlay();
+		try {
+			onEndPlay();
+		} catch (Throwable t) {
+			Logger.error("Error occurred in component", t);
+		}
 	}
 
 	protected final void internal_destroy() {
@@ -590,35 +606,31 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 	}
 
 	public final GameObject getBase() {
-		if (hierarchy == 0) {
-			return this;
+		GameObject last = this;
+		while (true) {
+			if (last.parent == null) {
+				return last;
+			} else {
+				last = last.parent;
+			}
 		}
-		if (hierarchy == 1) {
-			return parent;
-		}
-
-		GameObject last = parent;
-		while (last.hierarchy != 0) {
-			last = last.parent;
-		}
-		return last;
 	}
 
 	public final boolean isDestroyed() {
-		return destroyed;
+		return internal_getflag(DESTROYED);
 	}
 
 	public final boolean isLocallyAttached() {
-		return attached;
+		return internal_getflag(ATTACHED);
 	}
 
 	public final boolean isGloballyAttached() {
-		if (!attached) {
+		if (!internal_getflag(ATTACHED)) {
 			return false;
 		}
 		GameObject obj = parent;
 		while (obj != null) {
-			if (!obj.attached) {
+			if (!obj.internal_getflag(ATTACHED)) {
 				return false;
 			}
 			obj = obj.parent;
@@ -645,11 +657,10 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		pointer.zero();
 
 		GameObject last = this;
-		while (last.hierarchy != 0) {
+		while (last != null) {
 			pointer.add(last.relativePosition);
 			last = last.parent;
 		}
-		pointer.add(last.relativePosition);
 	}
 
 	public final double getRelativeX() {
@@ -668,33 +679,33 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		double x = 0;
 
 		GameObject last = this;
-		while (last.hierarchy != 0) {
+		while (last != null) {
 			x += last.relativePosition.x;
 			last = last.parent;
 		}
-		return x + last.relativePosition.x;
+		return x;
 	}
 
 	public final double getWorldY() {
 		double y = 0;
 
 		GameObject last = this;
-		while (last.hierarchy != 0) {
+		while (last != null) {
 			y += last.relativePosition.y;
 			last = last.parent;
 		}
-		return y + last.relativePosition.y;
+		return y;
 	}
 
 	public final double getWorldZ() {
 		double z = 0;
 
 		GameObject last = this;
-		while (last.hierarchy != 0) {
+		while (last != null) {
 			z += last.relativePosition.z;
 			last = last.parent;
 		}
-		return z + last.relativePosition.z;
+		return z;
 	}
 
 	// Position setters
@@ -762,11 +773,10 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		pointer.set(1);
 
 		GameObject last = this;
-		while (last.hierarchy != 0) {
+		while (last != null) {
 			pointer.mul(last.relativeScale);
 			last = last.parent;
 		}
-		pointer.mul(last.relativeScale);
 	}
 
 	public final double getXScale() {
@@ -785,33 +795,33 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		double x = 0;
 
 		GameObject last = this;
-		while (last.hierarchy != 0) {
+		while (last != null) {
 			x *= last.relativeScale.x;
 			last = last.parent;
 		}
-		return x * last.relativeScale.x;
+		return x;
 	}
 
 	public final double getWorldYScale() {
 		double y = 0;
 
 		GameObject last = this;
-		while (last.hierarchy != 0) {
+		while (last != null) {
 			y *= last.relativeScale.y;
 			last = last.parent;
 		}
-		return y * last.relativeScale.y;
+		return y;
 	}
 
 	public final double getWorldZScale() {
 		double z = 0;
 
 		GameObject last = this;
-		while (last.hierarchy != 0) {
+		while (last != null) {
 			z *= last.relativeScale.z;
 			last = last.parent;
 		}
-		return z * last.relativeScale.z;
+		return z;
 	}
 
 	// Scale setters
@@ -879,11 +889,10 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		pointer.zero();
 
 		GameObject last = this;
-		while (last.hierarchy != 0) {
+		while (last != null) {
 			pointer.add(last.relativeRotation);
 			last = last.parent;
 		}
-		pointer.add(last.relativeRotation);
 	}
 
 	public final double getYaw() {
@@ -902,33 +911,33 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		double yaw = 0;
 
 		GameObject last = this;
-		while (last.hierarchy != 0) {
+		while (last != null) {
 			yaw += last.relativeRotation.x;
 			last = last.parent;
 		}
-		return yaw + last.relativeRotation.x;
+		return yaw;
 	}
 
 	public final double getWorldPitch() {
 		double pitch = 0;
 
 		GameObject last = this;
-		while (last.hierarchy != 0) {
+		while (last != null) {
 			pitch += last.relativeRotation.y;
 			last = last.parent;
 		}
-		return pitch + last.relativeRotation.y;
+		return pitch;
 	}
 
 	public final double getWorldRoll() {
 		double roll = 0;
 
 		GameObject last = this;
-		while (last.hierarchy != 0) {
+		while (last != null) {
 			roll += last.relativeRotation.z;
 			last = last.parent;
 		}
-		return roll + last.relativeRotation.z;
+		return roll;
 	}
 
 	// Rotation setters

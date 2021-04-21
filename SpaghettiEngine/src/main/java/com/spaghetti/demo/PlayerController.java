@@ -7,6 +7,7 @@ import com.spaghetti.input.Controller;
 import com.spaghetti.input.Keys;
 import com.spaghetti.physics.RigidBody;
 import com.spaghetti.utils.CMath;
+import com.spaghetti.utils.Logger;
 
 public class PlayerController extends Controller {
 
@@ -17,6 +18,29 @@ public class PlayerController extends Controller {
 	protected void onBeginPlay() {
 		player = (Player) getOwner();
 		rb = player.getComponent(RigidBody.class);
+//		StackTraceElement[] stack = Thread.currentThread().getStackTrace();
+//		String res = "";
+//		for(int i = 0; i < stack.length; i++) {
+//			res += stack[i].toString() + ((i == stack.length - 1) ? "" : "\n");
+//		}
+//		System.out.println(res);
+		Logger.info("begin play");
+	}
+
+	@Override
+	protected void onEndPlay() {
+		Logger.info("end play");
+	}
+
+	@Override
+	protected void onDestroy() {
+//		StackTraceElement[] stack = Thread.currentThread().getStackTrace();
+//		String res = "";
+//		for(int i = 0; i < stack.length; i++) {
+//			res += stack[i].toString() + ((i == stack.length - 1) ? "" : "\n");
+//		}
+//		if(Thread.currentThread().getName().equals("SERVER")) System.out.println(res);
+		Logger.info("destroy");
 	}
 
 	@Override

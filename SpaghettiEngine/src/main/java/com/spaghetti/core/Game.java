@@ -109,6 +109,7 @@ public final class Game {
 	// Cached booleans
 	private volatile boolean isHeadless;
 	private volatile boolean isClient;
+	private volatile boolean isServer;
 	private volatile boolean isMultiplayer;
 	private volatile boolean hasAutority;
 
@@ -164,6 +165,7 @@ public final class Game {
 		this.isHeadless = window == null || renderer == null;
 		this.isMultiplayer = client != null || server != null;
 		this.isClient = (client != null || server == null) || !isMultiplayer;
+		this.isServer = (client == null || server != null) && isMultiplayer;
 		this.hasAutority = server != null || !isMultiplayer;
 	}
 
@@ -415,7 +417,7 @@ public final class Game {
 
 	// Returns the negative value of isClient()
 	public boolean isServer() {
-		return !isClient;
+		return isServer;
 	}
 
 	// Returns true if this game is multiplayer

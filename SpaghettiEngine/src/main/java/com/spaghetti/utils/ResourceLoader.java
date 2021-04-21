@@ -20,11 +20,7 @@ public final class ResourceLoader {
 		try {
 			stream = ResourceLoader.class.getResourceAsStream(location);
 			byte[] bin = new byte[stream.available()];
-			int read = 0;
-			while (read < bin.length) {
-				int status = stream.read(bin, read, bin.length - read);
-				read += status;
-			}
+			Utils.effectiveRead(stream, bin, 0, bin.length);
 			stream.close();
 			return bin;
 		} finally {

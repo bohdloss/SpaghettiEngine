@@ -1,5 +1,6 @@
 package com.spaghetti.core;
 
+import java.lang.reflect.*;
 import java.util.ArrayList;
 import java.util.ConcurrentModificationException;
 import java.util.HashMap;
@@ -12,6 +13,31 @@ import com.spaghetti.objects.Camera;
 
 public final class Level implements Updatable {
 
+	private static final Field o_level;
+	private static final Field o_parent;
+	private static final Method o_setflag;
+
+	static {
+		Field level = null;
+		Field parent = null;
+		Method setflag = null;
+
+		try {
+			level = GameObject.class.getDeclaredField("level");
+			level.setAccessible(true);
+			setflag = GameObject.class.getDeclaredMethod("internal_setflag", int.class, boolean.class);
+			setflag.setAccessible(true);
+			parent = GameObject.class.getDeclaredField("parent");
+			parent.setAccessible(true);
+		} catch (Throwable t) {
+		}
+
+		o_level = level;
+		o_parent = parent;
+		o_setflag = setflag;
+	}
+
+	protected boolean destroyed;
 	protected Game source;
 	protected ArrayList<GameObject> objects = new ArrayList<>();
 	protected HashMap<Long, GameObject> o_ordered = new HashMap<>();
@@ -27,49 +53,86 @@ public final class Level implements Updatable {
 	}
 
 	public void destroy() {
+		if (isDestroyed()) {
+			return;
+		}
 		for (Object obj : objects.toArray()) {
 			GameObject go = (GameObject) obj;
 			go.destroy();
 		}
-	}
-
-	protected synchronized void add_object(GameObject object) {
-		objects.add(object);
-		o_ordered.put(object.getId(), object);
+		destroyed = true;
 	}
 
 	public synchronized void addObject(GameObject object) {
-		if (objects.contains(object) || object == null || object.isDestroyed()) {
+		if (objects.contains(object) || object == null || object.isDestroyed() || isDestroyed()) {
 			return;
 		}
 
-		GameObject.internal_attachobj(this, null, object);
+		// If 'object' is attached, cut away its owners (onEndPlay opportunity here)
+		if (object.isLocallyAttached()) {
+			if (object.getParent() == null) {
+				// If this object has no parent remove it from the level directly
+				if (object.getLevel() != null) {
+					object.getLevel().removeObject(object.getId());
+				}
+			} else {
+				// Otherwise remove it from its parent
+				object.getParent().removeChild(object.getId());
+			}
+		}
+
+		// Update level pointers and level lists
+		i_r_upd_lvl(object);
+
+		// Finally add to list, set flags, activate triggers
+		objects.add(object);
+		try {
+			o_setflag.invoke(object, GameObject.ATTACHED, true);
+			o_parent.set(object, null);
+		} catch (Throwable t) {
+		}
+		object.internal_begin();
+	}
+
+	private final void i_r_upd_lvl(GameObject object) {
+		try {
+			o_level.set(object, this);
+		} catch (Throwable t) {
+		}
+		o_ordered.put(object.getId(), object);
+		object.forEachComponent((id, component) -> {
+			c_ordered.put(component.getId(), component);
+		});
+		object.forEachChild((id, child) -> {
+			i_r_upd_lvl(child);
+		});
 	}
 
 	public synchronized GameObject removeObject(long id) {
-		GameObject obj = o_ordered.get(id);
-		if (obj != null) {
-			if (obj.getParent() != null) {
-				obj.getParent().removeChild(obj);
-			} else {
-				obj.internal_end();
-				objects.remove(obj);
-				o_ordered.remove(id);
-				GameObject.internal_detach(obj);
+		GameObject object = o_ordered.get(id);
+		if (!objects.contains(object)) {
+			return null;
+		}
+		if (object != null) {
+			object.internal_end();
+			objects.remove(object);
+			o_ordered.remove(id);
+			try {
+				o_parent.set(object, null);
+				o_setflag.invoke(object, GameObject.ATTACHED, false);
+			} catch (Throwable t) {
 			}
 		}
-		return obj;
+		return object;
 	}
 
 	public synchronized boolean deleteObject(long id) {
 		GameObject get = o_ordered.get(id);
+		if (!objects.contains(get)) {
+			return false;
+		}
 		if (get != null) {
-			if (get.getParent() != null) {
-				get.getParent().deleteChild(get);
-			} else {
-				get.destroy();
-			}
-
+			get.destroy();
 			return true;
 		}
 		return false;
@@ -162,6 +225,10 @@ public final class Level implements Updatable {
 		}
 		source.getWindow().getInputDispatcher().registerListener(controller);
 		this.activeInput = controller;
+	}
+
+	public boolean isDestroyed() {
+		return destroyed;
 	}
 
 	// Getter utility functions

@@ -22,4 +22,6 @@ public final class Opcode {
 
 	public static final byte DATA = (byte) 10;
 
+	public static final byte PINGPONG = (byte) 11;
+
 }

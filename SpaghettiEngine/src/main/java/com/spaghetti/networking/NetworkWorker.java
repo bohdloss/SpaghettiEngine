@@ -6,7 +6,9 @@ import java.io.OutputStream;
 import java.lang.reflect.*;
 import java.net.InetSocketAddress;
 import java.net.Socket;
+import java.nio.charset.Charset;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map.Entry;
 
@@ -28,6 +30,8 @@ public class NetworkWorker {
 	}
 
 	protected static final Identity IDENTITY = new Identity();
+	protected static final byte[] PING = "ping".getBytes(Charset.forName("UTF-16"));
+	protected static final byte[] PONG = "pong".getBytes(Charset.forName("UTF-16"));
 
 	// Data
 	protected long lostConnection;
@@ -36,6 +40,12 @@ public class NetworkWorker {
 	protected NetworkBuffer r_buffer;
 	protected Socket socket;
 	protected Authenticator authenticator;
+	protected boolean ping = true;
+
+	// Cache
+	protected final byte[] ping_buf = new byte[PING.length];
+	protected final byte[] pong_buf = new byte[PONG.length];
+	protected final ArrayList<Object> delete_list = new ArrayList<>(256);
 
 	// Player info
 	public GameObject player;
@@ -45,10 +55,10 @@ public class NetworkWorker {
 	protected byte[] length_b = new byte[4];
 
 	// Reflection
-	protected static final Field f_oid;
-	protected static final Field f_cid;
-	protected static final Field f_eid;
+	protected static final Field f_oid, f_cid, f_eid;
 	protected static final Field f_modifiers;
+	protected static final Method me_osetflag, me_csetflag, me_ogetflag, me_cgetflag;
+
 	protected static final HashMap<String, Class<?>> m_clss = new HashMap<>();
 	protected static final HashMap<Class<?>, Constructor<? extends GameObject>> m_oconstrs = new HashMap<>();
 	protected static final HashMap<Class<?>, Constructor<? extends GameComponent>> m_cconstrs = new HashMap<>();
@@ -56,27 +66,51 @@ public class NetworkWorker {
 	protected static final HashMap<Class<?>, Field[]> m_fields = new HashMap<>();
 	protected static final HashMap<Class<?>, Boolean> m_noreplicate = new HashMap<>();
 
+	// If only java let me define 'friend class NetworkWorker' in GameObject...
 	static {
-		Field o = null;
-		Field c = null;
-		Field ev = null;
-		Field mod = null;
+		Field oid = null;
+		Field cid = null;
+		Field eid = null;
+
+		Method osetflag = null;
+		Method csetflag = null;
+		Method ogetflag = null;
+		Method cgetflag = null;
+
+		Field modifiers = null;
+
 		try {
-			o = GameObject.class.getDeclaredField("id");
-			o.setAccessible(true);
-			c = GameComponent.class.getDeclaredField("id");
-			c.setAccessible(true);
-			ev = GameEvent.class.getDeclaredField("id");
-			ev.setAccessible(true);
-			mod = Field.class.getDeclaredField("modifiers"); // Android only: exception here
-			mod.setAccessible(true);
+			oid = GameObject.class.getDeclaredField("id");
+			oid.setAccessible(true);
+			cid = GameComponent.class.getDeclaredField("id");
+			cid.setAccessible(true);
+			eid = GameEvent.class.getDeclaredField("id");
+			eid.setAccessible(true);
+
+			osetflag = GameObject.class.getDeclaredMethod("internal_setflag", int.class, boolean.class);
+			osetflag.setAccessible(true);
+			csetflag = GameComponent.class.getDeclaredMethod("internal_setflag", int.class, boolean.class);
+			csetflag.setAccessible(true);
+			ogetflag = GameObject.class.getDeclaredMethod("internal_getflag", int.class);
+			ogetflag.setAccessible(true);
+			cgetflag = GameComponent.class.getDeclaredMethod("internal_getflag", int.class);
+			cgetflag.setAccessible(true);
+
+			modifiers = Field.class.getDeclaredField("modifiers");
+			modifiers.setAccessible(true);
 		} catch (Throwable e) {
-			// It won't happen unless on android
 		}
-		f_oid = o;
-		f_cid = c;
-		f_eid = ev;
-		f_modifiers = mod;
+
+		f_oid = oid;
+		f_cid = cid;
+		f_eid = eid;
+
+		me_osetflag = osetflag;
+		me_csetflag = csetflag;
+		me_ogetflag = ogetflag;
+		me_cgetflag = cgetflag;
+
+		f_modifiers = modifiers;
 	}
 
 	protected final HashMap<String, ClassInterpreter> interpreters = new HashMap<>();
@@ -95,6 +129,27 @@ public class NetworkWorker {
 	// Utility methods
 
 	public void destroy() {
+		try {
+			if (player != null) {
+				player.destroy();
+			}
+		} catch (Throwable t) {
+			Logger.error("Error deleting player", t);
+		}
+		try {
+			if (player_camera != null) {
+				player_camera.destroy();
+			}
+		} catch (Throwable t) {
+			Logger.error("Error deleting player camera", t);
+		}
+		try {
+			if (player_controller != null) {
+				player_controller.destroy();
+			}
+		} catch (Throwable t) {
+			Logger.error("Error deleting player controller", t);
+		}
 		this.w_buffer = null;
 		this.r_buffer = null;
 		this.length_b = null;
@@ -106,6 +161,7 @@ public class NetworkWorker {
 			throw new IllegalArgumentException("Invalid socket provided");
 		}
 		this.socket = socket;
+		ping = true;
 	}
 
 	public void provideAuthenticator(Authenticator authenticator) {
@@ -167,7 +223,7 @@ public class NetworkWorker {
 	}
 
 	@SuppressWarnings("unchecked")
-	protected static Constructor<?> o_constr(Class<?> cls) throws NoSuchMethodException, SecurityException {
+	protected static Constructor<?> o_constr(Class<?> cls) throws NoSuchMethodException {
 		Constructor<?> constructor = m_oconstrs.get(cls);
 		if (constructor == null) {
 			synchronized (m_oconstrs) {
@@ -185,7 +241,7 @@ public class NetworkWorker {
 	}
 
 	@SuppressWarnings("unchecked")
-	protected static Constructor<?> c_constr(Class<?> cls) throws NoSuchMethodException, SecurityException {
+	protected static Constructor<?> c_constr(Class<?> cls) throws NoSuchMethodException {
 		Constructor<?> constructor = m_cconstrs.get(cls);
 		if (constructor == null) {
 			synchronized (m_cconstrs) {
@@ -203,7 +259,7 @@ public class NetworkWorker {
 	}
 
 	@SuppressWarnings("unchecked")
-	protected static Constructor<?> e_constr(Class<?> cls) throws NoSuchMethodException, SecurityException {
+	protected static Constructor<?> e_constr(Class<?> cls) throws NoSuchMethodException {
 		Constructor<?> constructor = m_econstrs.get(cls);
 		if (constructor == null) {
 			synchronized (m_econstrs) {
@@ -464,11 +520,26 @@ public class NetworkWorker {
 		return true;
 	}
 
+	public void requestPing() {
+		w_buffer.putByte(Opcode.PINGPONG);
+		if (getGame().isClient()) {
+			w_buffer.putBytes(PONG);
+		} else {
+			w_buffer.putBytes(PING);
+		}
+	}
+
 	// Read functions
 
 	protected void invalid(byte opcode) {
-		Logger.warning("Remote socket sent an invalid operation (" + (opcode & 0xff)
+		Logger.warning("Remote client sent an invalid operation (" + (opcode & 0xff)
 				+ ") : the connection will be terminated");
+		resetSocket();
+	}
+
+	protected void invalid_privilege(byte opcode) {
+		Logger.warning("Remote client doesn't have enough permission to perform the following operation ("
+				+ (opcode & 0xff) + ") : the connection will be terminated");
 		resetSocket();
 	}
 
@@ -481,12 +552,21 @@ public class NetworkWorker {
 				invalid(opcode);
 				return;
 			case Opcode.LEVEL:
+				if (getGame().isServer()) {
+					invalid_privilege(opcode);
+				}
 				readLevel();
 				break;
 			case Opcode.GAMEOBJECT:
+				if (getGame().isServer()) {
+					invalid_privilege(opcode);
+				}
 				readObject(level);
 				break;
 			case Opcode.GAMECOMPONENT:
+				if (getGame().isServer()) {
+					invalid_privilege(opcode);
+				}
 				readComponent(level);
 				break;
 			case Opcode.GAMEEVENT:
@@ -496,13 +576,25 @@ public class NetworkWorker {
 				readIntention();
 				break;
 			case Opcode.CAMERA:
+				if (getGame().isServer()) {
+					invalid_privilege(opcode);
+				}
 				readActiveCamera(level);
 				break;
 			case Opcode.CONTROLLER:
+				if (getGame().isServer()) {
+					invalid_privilege(opcode);
+				}
 				readActiveController(level);
 				break;
 			case Opcode.DATA:
+				if (getGame().isServer()) {
+					invalid_privilege(opcode);
+				}
 				readObjectsData();
+				break;
+			case Opcode.PINGPONG:
+				handlePing();
 				break;
 			}
 		}
@@ -573,10 +665,81 @@ public class NetworkWorker {
 	public void readLevel() throws Throwable {
 		Level level = getLevel();
 
+		// First flag all objects as deletable
+		// this will be reverted by readChildren
+		// but only on objects that actually exist
+		level.forEachObject(this::recursive_flag);
+
 		// Check for item flag
 		while (r_buffer.getByte() == Opcode.ITEM) {
 			readChildren(level, (GameObject) null);
 		}
+
+		// If the objects are still flagged, it means
+		// they no longer exist, therefore they will
+		// be deleted
+		level.forEachObject(this::recursive_delete);
+		perform_delete();
+	}
+
+	protected void recursive_flag(GameObject obj) {
+		// Flag this object as deletable
+		try {
+			me_osetflag.invoke(obj, GameObject.DELETE, true);
+		} catch (Throwable t) {
+		}
+
+		// Flag components
+		obj.forEachComponent((id, component) -> {
+			try {
+				me_csetflag.invoke(component, GameComponent.DELETE, true);
+			} catch (Throwable t) {
+			}
+		});
+
+		// Flag children
+		obj.forEachChild((id, child) -> {
+			recursive_flag(child);
+		});
+	}
+
+	protected void recursive_delete(GameObject obj) {
+		// Check if flagged
+		try {
+			if ((boolean) me_ogetflag.invoke(obj, GameObject.DELETE)) {
+				Logger.info("Object " + obj.getId() + " became invalid and will be destroyed");
+				delete_list.add(obj);
+				return;
+			}
+		} catch (Throwable t) {
+		}
+
+		// Check on components
+		obj.forEachComponent((id, component) -> {
+			try {
+				if ((boolean) me_cgetflag.invoke(component, GameComponent.DELETE)) {
+					Logger.info("Component " + component.getId() + " became invalid and will be destroyed");
+					delete_list.add(component);
+				}
+			} catch (Throwable t) {
+			}
+		});
+
+		// Check on children
+		obj.forEachChild((id, child) -> {
+			recursive_delete(child);
+		});
+	}
+
+	protected void perform_delete() {
+		delete_list.forEach(object -> {
+			if (GameObject.class.isAssignableFrom(object.getClass())) {
+				((GameObject) object).destroy();
+			} else {
+				((GameComponent) object).destroy();
+			}
+		});
+		delete_list.clear();
 	}
 
 	public void readChildren(Level level, GameObject parent) throws ClassCastException, InstantiationException,
@@ -597,6 +760,7 @@ public class NetworkWorker {
 					parent.addChild(object);
 				}
 			}
+			me_osetflag.invoke(object, GameObject.DELETE, false);
 
 			// Check for item flag
 			while (r_buffer.getByte() == Opcode.ITEM) {
@@ -610,6 +774,7 @@ public class NetworkWorker {
 					f_cid.set(component, comp_id);
 					object.addComponent(component);
 				}
+				me_csetflag.invoke(component, GameComponent.DELETE, false);
 			}
 
 			// Check for item flag on children
@@ -708,6 +873,21 @@ public class NetworkWorker {
 		return true;
 	}
 
+	public void handlePing() {
+		if (getGame().isClient()) {
+			r_buffer.getBytes(ping_buf.length, ping_buf);
+			if (!Arrays.equals(ping_buf, PING)) {
+				return;
+			}
+			requestPing();
+		} else {
+			r_buffer.getBytes(pong_buf.length, pong_buf);
+			if (!Arrays.equals(pong_buf, PONG)) {
+				ping = false;
+			}
+		}
+	}
+
 	// Getters and setters
 
 	public Game getGame() {
@@ -726,7 +906,7 @@ public class NetworkWorker {
 	}
 
 	public boolean isConnected() {
-		return socket != null && !socket.isClosed();
+		return socket != null && !socket.isClosed() && ping;
 	}
 
 	public NetworkBuffer getWriteBuffer() {

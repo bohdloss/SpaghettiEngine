@@ -1,10 +1,8 @@
 package com.spaghetti.demo;
 
-import com.spaghetti.core.GameObject;
-import com.spaghetti.objects.Camera;
-import com.spaghetti.objects.Mesh;
-import com.spaghetti.render.Material;
-import com.spaghetti.render.Model;
+import com.spaghetti.core.*;
+import com.spaghetti.objects.*;
+import com.spaghetti.render.*;
 
 public class Player extends GameObject {
 

@@ -44,7 +44,7 @@ public class Client extends CoreComponent {
 				worker.readData();
 			} catch (Throwable t) {
 				// Socket error, just reconnect
-				Logger.error("Socket exception occurred, attempting reconnection", t);
+				Logger.error("Exception occurred, attempting reconnection", t);
 				String ip = worker.getRemoteIp();
 				int port = worker.getRemotePort();
 				boolean status = false;

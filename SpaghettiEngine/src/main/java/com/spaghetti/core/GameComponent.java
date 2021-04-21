@@ -5,6 +5,8 @@ import java.util.Random;
 
 import com.spaghetti.interfaces.*;
 import com.spaghetti.networking.NetworkBuffer;
+import com.spaghetti.utils.Logger;
+import com.spaghetti.utils.Utils;
 
 public abstract class GameComponent implements Updatable, Replicable {
 
@@ -20,9 +22,30 @@ public abstract class GameComponent implements Updatable, Replicable {
 		return new Random().nextLong();
 	}
 
+	private final void internal_setflag(int flag, boolean value) {
+		synchronized (flags_lock) {
+			flags = Utils.bitAt(flags, flag, value);
+		}
+	}
+
+	private final boolean internal_getflag(int flag) {
+		synchronized (flags_lock) {
+			return Utils.bitAt(flags, flag);
+		}
+	}
+
+	// O is attached flag
+	public static final int ATTACHED = 0;
+	// 1 is destroyed flag
+	public static final int DESTROYED = 1;
+	// 2 is delete flag
+	public static final int DELETE = 2;
+	// 3 is replicate flag
+	public static final int REPLICATE = 3;
+
+	private final Object flags_lock = new Object();
+	private int flags;
 	private GameObject owner;
-	private boolean destroyed;
-	private boolean attached;
 	private long id;
 
 	public GameComponent() {
@@ -74,16 +97,25 @@ public abstract class GameComponent implements Updatable, Replicable {
 	// Hierarchy methods
 
 	public final void destroy() {
-		owner.removeComponent(id);
-		onDestroy();
+		if (isDestroyed()) {
+			return;
+		}
+		if (owner != null) {
+			owner.removeComponent(id);
+		}
+		try {
+			onDestroy();
+		} catch (Throwable t) {
+			Logger.error("Error occurred in component", t);
+		}
 		owner = null;
-		destroyed = true;
+		internal_setflag(DESTROYED, true);
 	}
 
 	// Getters and setters
 
 	protected final boolean isDestroyed() {
-		return destroyed;
+		return internal_getflag(DESTROYED);
 	}
 
 	public final GameObject getOwner() {
@@ -91,19 +123,23 @@ public abstract class GameComponent implements Updatable, Replicable {
 	}
 
 	public final Level getLevel() {
-		return owner.getLevel();
+		return owner == null ? null : owner.getLevel();
 	}
 
 	public final Game getGame() {
-		return owner.getGame();
+		return owner == null ? null : owner.getGame();
 	}
 
 	public final long getId() {
 		return id;
 	}
 
-	public final boolean isAttached() {
-		return attached;
+	public final boolean isLocallyAttached() {
+		return Utils.bitAt(flags, ATTACHED);
+	}
+
+	public final boolean isGloballyAttached() {
+		return owner != null && owner.isGloballyAttached();
 	}
 
 }

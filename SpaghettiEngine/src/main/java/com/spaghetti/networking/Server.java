@@ -33,9 +33,10 @@ public class Server extends CoreComponent {
 	@Override
 	protected void terminate0() throws Throwable {
 		internal_banall();
-
 		clients = null;
 		bans = null;
+
+		internal_unbind();
 	}
 
 	@Override
@@ -60,7 +61,7 @@ public class Server extends CoreComponent {
 					client.readSocket();
 
 				} catch (Throwable e) {
-					Logger.error("I/O exception occurred in client " + entry.getKey(), e);
+					Logger.error("Exception occurred in client " + entry.getKey(), e);
 					Logger.info("Awaiting reconnection for " + awaitReconnect + " ms");
 					entry.getValue().resetSocket();
 					entry.getValue().setLostConnectionTime(System.currentTimeMillis());
@@ -79,11 +80,11 @@ public class Server extends CoreComponent {
 				}
 			}
 
-		} else if (isBound() && !canCloseServer()) {
+		} else if (isBound()) {
 			internal_accept();
 		}
 		if (canCloseServer() && isBound()) {
-			internal_unbind();
+//			internal_unbind();
 		}
 	}
 
@@ -229,6 +230,8 @@ public class Server extends CoreComponent {
 					Logger.info("RECONNECTED with client " + ip + " (" + clientId + ")");
 					return true;
 				}
+			} else {
+				Logger.warning("Attempt to connect more than once from the same network");
 			}
 		}
 

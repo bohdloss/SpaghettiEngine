@@ -72,6 +72,15 @@ public final class NetworkBuffer {
 		return buffer.get();
 	}
 
+	public void putBytes(byte[] bytes) {
+		buffer.put(bytes);
+	}
+
+	public void getBytes(int amount, byte[] buf) {
+		buffer.get(buf, 0, amount);
+		buffer.position(buffer.position() - amount);
+	}
+
 	public void putBoolean(boolean v) {
 		buffer.put(v ? b1 : b0);
 	}

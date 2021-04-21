@@ -293,52 +293,67 @@ public final class AssetManager {
 
 	// Lazy-loading getters
 
-	private void check(String name) {
+	private boolean check(String name) {
 		if (!ready) {
-			return;
+			Logger.warning("Can't check asset " + name + ", asset manager is not ready");
+			return false;
 		}
 		if (cache.get(name) == null) {
-			throw new NullPointerException("Non existant asset requested: " + name);
+			Logger.warning("Non existant asset requested: " + name);
+			return false;
 		}
+		return true;
 	}
 
 	public Asset custom(String name) {
-		check(name);
+		if (!check(name)) {
+			return null;
+		}
 		Asset ret = cache.get(name);
 		flagAsset(name);
 		return ret;
 	}
 
 	public Model model(String name) {
-		check(name);
+		if (!check(name)) {
+			return null;
+		}
 		Model ret = (Model) cache.get(name);
 		flagAsset(name);
 		return ret;
 	}
 
 	public Shader shader(String name) {
-		check(name);
+		if (!check(name)) {
+			return null;
+		}
 		Shader ret = (Shader) cache.get(name);
 		flagAsset(name);
 		return ret;
 	}
 
 	public ShaderProgram shaderProgram(String name) {
-		check(name);
+		if (!check(name)) {
+			return null;
+		}
 		ShaderProgram ret = (ShaderProgram) cache.get(name);
 		flagAsset(name);
 		return ret;
 	}
 
 	public Texture texture(String name) {
-		check(name);
+		if (!check(name)) {
+			return null;
+		}
 		Texture ret = (Texture) cache.get(name);
 		flagAsset(name);
 		return ret;
 	}
 
 	public Material material(String name) {
-		check(name);
+		if (!check(name)) {
+			return null;
+		}
 		Material ret = (Material) cache.get(name);
 		flagAsset(name);
 		return ret;
@@ -347,6 +362,9 @@ public final class AssetManager {
 	// Instant-loading getters
 
 	public Asset requireCustom(String name) {
+		if (!check(name)) {
+			return null;
+		}
 		Asset ret = custom(name);
 		if (!ret.valid()) {
 			loadAsset(name, false);
@@ -355,6 +373,9 @@ public final class AssetManager {
 	}
 
 	public Model requireModel(String name) {
+		if (!check(name)) {
+			return null;
+		}
 		Model ret = model(name);
 		if (!ret.valid()) {
 			loadAsset(name, false);
@@ -363,6 +384,9 @@ public final class AssetManager {
 	}
 
 	public Shader requireShader(String name) {
+		if (!check(name)) {
+			return null;
+		}
 		Shader ret = shader(name);
 		if (!ret.valid()) {
 			loadAsset(name, false);
@@ -371,6 +395,9 @@ public final class AssetManager {
 	}
 
 	public ShaderProgram requireShaderProgram(String name) {
+		if (!check(name)) {
+			return null;
+		}
 		ShaderProgram ret = shaderProgram(name);
 		if (!ret.valid()) {
 			loadAsset(name, false);
@@ -379,6 +406,9 @@ public final class AssetManager {
 	}
 
 	public Texture requireTexture(String name) {
+		if (!check(name)) {
+			return null;
+		}
 		Texture ret = texture(name);
 		if (!ret.valid()) {
 			loadAsset(name, false);
@@ -387,6 +417,9 @@ public final class AssetManager {
 	}
 
 	public Material requireMaterial(String name) {
+		if (!check(name)) {
+			return null;
+		}
 		Material ret = material(name);
 		if (!ret.valid()) {
 			loadAsset(name, false);

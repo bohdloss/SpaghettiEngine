@@ -39,7 +39,7 @@ public final class Logger {
 		String res = throwable.getClass().getName() + ": " + throwable.getMessage() + "\n";
 		StackTraceElement[] s = throwable.getStackTrace();
 		for (int i = 0; i < s.length; i++) {
-			res += "" + s[i].toString() + (i == s.length - 1 ? "" : "\n");
+			res += s[i].toString() + (i == s.length - 1 ? "" : "\n");
 		}
 		return res;
 	}

@@ -92,4 +92,13 @@ public final class Utils {
 		}
 	}
 
+	public static boolean bitAt(int num, int pos) {
+		return (num & (1 << pos)) != 0;
+	}
+
+	public static int bitAt(int num, int pos, boolean newval) {
+		int mask = newval ? (1 << pos) : ~(1 << pos);
+		return newval ? (num | mask) : (num & mask);
+	}
+
 }
