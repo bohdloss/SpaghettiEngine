@@ -5,3 +5,6 @@ material aaa coolness defaultSP
 texture apple_color /res/apple/apple.png
 material apple_mat apple_color defaultSP
 model apple_model /res/apple/apple.obj
+// skybox
+texture t_skybox /res/skybox/skybox.png
+material m_skybox t_skybox defaultSP

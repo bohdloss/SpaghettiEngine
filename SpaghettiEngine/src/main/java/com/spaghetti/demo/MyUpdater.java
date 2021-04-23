@@ -35,6 +35,9 @@ public class MyUpdater extends Updater {
 			level.addObject(new Player());
 		}
 
+		Mesh skybox = new Mesh(Model.get("square"), Material.get("m_skybox"));
+		skybox.setRelativeScale(20, 20, 1);
+		level.addObject(skybox);
 		level.addObject(floor);
 	}
 

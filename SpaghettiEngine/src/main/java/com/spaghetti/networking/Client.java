@@ -2,6 +2,7 @@ package com.spaghetti.networking;
 
 import java.io.IOException;
 import java.net.*;
+import java.util.Scanner;
 
 import com.spaghetti.core.*;
 import com.spaghetti.interfaces.JoinHandler;
@@ -22,8 +23,11 @@ public class Client extends CoreComponent {
 
 	@Override
 	protected void initialize0() throws Throwable {
+		Scanner scanner = new Scanner(System.in);
+		String ip = scanner.nextLine();
+		String port = scanner.nextLine();
 		worker = new NetworkWorker(this);
-		internal_connect("localhost", 9018);
+		internal_connect(ip, Integer.parseInt(port));
 	}
 
 	@Override

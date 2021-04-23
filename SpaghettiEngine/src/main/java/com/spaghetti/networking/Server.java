@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.net.*;
 import java.util.ArrayList;
 import java.util.Iterator;
+import java.util.Scanner;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -28,7 +29,10 @@ public class Server extends CoreComponent {
 
 	@Override
 	protected void initialize0() throws Throwable {
-		internal_bind(9018);
+		Scanner scanner = new Scanner(System.in);
+		String port = scanner.nextLine();
+		scanner.close();
+		internal_bind(Integer.parseInt(port));
 	}
 
 	@Override
