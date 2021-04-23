@@ -7,7 +7,6 @@ import com.spaghetti.core.GameWindow;
 import com.spaghetti.input.Controller;
 import com.spaghetti.input.Keys;
 import com.spaghetti.interfaces.*;
-import com.spaghetti.networking.NetworkBuffer;
 import com.spaghetti.physics.RigidBody;
 import com.spaghetti.utils.CMath;
 
@@ -22,13 +21,15 @@ public class PlayerController extends Controller {
 		player = (Player) getOwner();
 		rb = player.getComponent(RigidBody.class);
 	}
-	
+
+	@Override
 	protected void clientUpdate(double delta) {
 	}
-	
+
+	@Override
 	protected void serverUpdate(double delta) {
 	}
-	
+
 	@Override
 	protected void commonUpdate(double delta) {
 		Vector2d dir = new Vector2d();
@@ -58,10 +59,10 @@ public class PlayerController extends Controller {
 
 	@Override
 	public void onKeyPressed(int key, int x, int y) {
-		if(key == Keys.F11) {
+		if (key == Keys.F11) {
 			GameWindow window = getGame().getWindow();
 			window.toggleFullscreen();
 		}
 	}
-	
+
 }

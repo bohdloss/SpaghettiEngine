@@ -19,7 +19,7 @@ public class Player extends GameObject {
 
 	@Override
 	protected void onBeginPlay() {
-		if(!getGame().isMultiplayer()) {
+		if (!getGame().isMultiplayer()) {
 			getLevel().attachCamera(getChild(Camera.class));
 			getLevel().attachController(getComponent(Controller.class));
 		}
@@ -28,7 +28,7 @@ public class Player extends GameObject {
 	@Override
 	public void writeData(boolean isClient, NetworkBuffer buffer) {
 //		super.writeData(isClient, buffer);
-		if(isClient) {
+		if (isClient) {
 			Vector3d vec = new Vector3d();
 			getRelativePosition(vec);
 			buffer.putDouble(vec.x);
@@ -36,11 +36,11 @@ public class Player extends GameObject {
 			buffer.putDouble(vec.z);
 		}
 	}
-	
+
 	@Override
 	public void readData(boolean isClient, NetworkBuffer buffer) {
 //		super.readData(isClient, buffer);
-		if(!isClient) {
+		if (!isClient) {
 			Vector3d vec = new Vector3d();
 			vec.x = buffer.getDouble();
 			vec.y = buffer.getDouble();
@@ -48,5 +48,5 @@ public class Player extends GameObject {
 			setRelativePosition(vec);
 		}
 	}
-	
+
 }

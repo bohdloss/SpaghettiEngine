@@ -3,6 +3,7 @@ package com.spaghetti.demo;
 import com.spaghetti.core.*;
 import com.spaghetti.networking.*;
 import com.spaghetti.render.*;
+
 public class Demo {
 
 	public static Game server;

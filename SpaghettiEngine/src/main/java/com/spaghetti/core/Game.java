@@ -516,11 +516,11 @@ public final class Game {
 	public int getComponentAmount() {
 		return components.size();
 	}
-	
+
 	public CoreComponent getComponentAt(int index) {
 		return components.get(index);
 	}
-	
+
 	public AssetManager getAssetManager() {
 		return assetManager;
 	}

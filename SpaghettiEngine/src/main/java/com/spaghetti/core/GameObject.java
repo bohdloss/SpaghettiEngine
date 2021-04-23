@@ -1007,7 +1007,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 	@Override
 	public final void update(double delta) {
 		components.forEach((id, component) -> {
-			if(component != null) {
+			if (component != null) {
 				component.update(delta);
 			}
 		});
@@ -1019,7 +1019,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 			serverUpdate(delta);
 		}
 		children.forEach((id, object) -> {
-			if(object != null) {
+			if (object != null) {
 				object.update(delta);
 			}
 		});
@@ -1054,15 +1054,15 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 
 	@Override
 	public void writeData(boolean isClient, NetworkBuffer buffer) {
-		if(!isClient) {
+		if (!isClient) {
 			buffer.putDouble(relativePosition.x);
 			buffer.putDouble(relativePosition.y);
 			buffer.putDouble(relativePosition.z);
-			
+
 			buffer.putDouble(relativeScale.x);
 			buffer.putDouble(relativeScale.y);
 			buffer.putDouble(relativeScale.z);
-			
+
 			buffer.putDouble(relativeRotation.x);
 			buffer.putDouble(relativeRotation.y);
 			buffer.putDouble(relativeRotation.z);
@@ -1071,18 +1071,18 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 
 	@Override
 	public void readData(boolean isClient, NetworkBuffer buffer) {
-		if(isClient) {
-			relativePosition.x  = buffer.getDouble();
-			relativePosition.y  = buffer.getDouble();
-			relativePosition.z  = buffer.getDouble();
-			
-			relativeScale.x  = buffer.getDouble();
-			relativeScale.y  = buffer.getDouble();
-			relativeScale.z  = buffer.getDouble();
-			
-			relativeRotation.x  = buffer.getDouble();
-			relativeRotation.y  = buffer.getDouble();
-			relativeRotation.z  = buffer.getDouble();
+		if (isClient) {
+			relativePosition.x = buffer.getDouble();
+			relativePosition.y = buffer.getDouble();
+			relativePosition.z = buffer.getDouble();
+
+			relativeScale.x = buffer.getDouble();
+			relativeScale.y = buffer.getDouble();
+			relativeScale.z = buffer.getDouble();
+
+			relativeRotation.x = buffer.getDouble();
+			relativeRotation.y = buffer.getDouble();
+			relativeRotation.z = buffer.getDouble();
 		}
 	}
 

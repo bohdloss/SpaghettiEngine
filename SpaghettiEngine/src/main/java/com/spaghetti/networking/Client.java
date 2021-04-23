@@ -39,7 +39,7 @@ public class Client extends CoreComponent {
 			try {
 				// Write / read routine, in this order for server synchronization
 				worker.writeData();
-				
+
 				worker.writeSocket();
 				worker.readSocket();
 

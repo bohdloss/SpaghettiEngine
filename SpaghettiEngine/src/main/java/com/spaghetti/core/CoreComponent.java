@@ -140,18 +140,18 @@ public abstract class CoreComponent extends Thread {
 		} catch (Throwable t) {
 			_uncaught(t);
 		}
-		
+
 		// Final chance to handle some requests
 		requestChance = true;
 		while (true) {
 			boolean found = true;
-			for(int i = 0; i < source.getComponentAmount(); i++) {
-				if(!source.getComponentAt(i).requestChance) {
+			for (int i = 0; i < source.getComponentAmount(); i++) {
+				if (!source.getComponentAt(i).requestChance) {
 					found = false;
 					break;
 				}
 			}
-			if(found) {
+			if (found) {
 				break;
 			}
 			Utils.sleep(1);

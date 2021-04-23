@@ -476,7 +476,7 @@ public class NetworkWorker {
 	protected boolean readobj_test(Object obj) {
 		return !noReplicate(obj.getClass()) && (getGame().isClient() || toServerClass(obj.getClass()));
 	}
-	
+
 	// Read / Write interface
 
 	public void parseOperations() throws Throwable {
@@ -566,7 +566,7 @@ public class NetworkWorker {
 		// Read objects
 		while (r_buffer.getByte() == Opcode.ITEM) {
 			int skip = r_buffer.getInt();
-			if(skip < r_buffer.getPosition()) {
+			if (skip < r_buffer.getPosition()) {
 				throw new IllegalStateException();
 			}
 			long id = r_buffer.getLong();
@@ -575,8 +575,8 @@ public class NetworkWorker {
 				r_buffer.setPosition(skip);
 				continue;
 			}
-			if(!readobj_test(object)) {
-				if(getGame().isServer()) {
+			if (!readobj_test(object)) {
+				if (getGame().isServer()) {
 					invalid_privilege(Opcode.DATA);
 				}
 				return;
@@ -587,7 +587,7 @@ public class NetworkWorker {
 		// Read components
 		while (r_buffer.getByte() == Opcode.ITEM) {
 			int skip = r_buffer.getInt();
-			if(skip < r_buffer.getPosition()) {
+			if (skip < r_buffer.getPosition()) {
 				throw new IllegalStateException();
 			}
 			long id = r_buffer.getLong();
@@ -596,8 +596,8 @@ public class NetworkWorker {
 				r_buffer.setPosition(skip);
 				continue;
 			}
-			if(!readobj_test(component)) {
-				if(getGame().isServer()) {
+			if (!readobj_test(component)) {
+				if (getGame().isServer()) {
 					invalid_privilege(Opcode.DATA);
 				}
 				return;
@@ -753,7 +753,7 @@ public class NetworkWorker {
 	}
 
 	public void writeObject(GameObject obj) {
-		if(!writeobj_test(obj)) {
+		if (!writeobj_test(obj)) {
 			return;
 		}
 		w_buffer.putByte(Opcode.GAMEOBJECT);
@@ -768,17 +768,17 @@ public class NetworkWorker {
 
 	public void readObject(Level level) {
 		int skip = r_buffer.getInt();
-		if(skip < r_buffer.getPosition()) {
+		if (skip < r_buffer.getPosition()) {
 			throw new IllegalStateException();
 		}
 		long id = r_buffer.getLong();
 		GameObject obj = level.getObject(id);
-		if(obj == null) {
+		if (obj == null) {
 			r_buffer.setPosition(skip);
 			return;
 		}
-		if(!readobj_test(obj)) {
-			if(getGame().isServer()) {
+		if (!readobj_test(obj)) {
+			if (getGame().isServer()) {
 				invalid_privilege(Opcode.GAMEOBJECT);
 			}
 			r_buffer.setPosition(skip);
@@ -789,7 +789,7 @@ public class NetworkWorker {
 	}
 
 	public void writeComponent(GameComponent comp) {
-		if(!writeobj_test(comp)) {
+		if (!writeobj_test(comp)) {
 			return;
 		}
 		w_buffer.putByte(Opcode.GAMECOMPONENT);
@@ -803,18 +803,18 @@ public class NetworkWorker {
 	}
 
 	public void readComponent(Level level) {
-		int skip =  r_buffer.getInt();
-		if(skip < r_buffer.getPosition()) {
+		int skip = r_buffer.getInt();
+		if (skip < r_buffer.getPosition()) {
 			throw new IllegalStateException();
 		}
 		long id = r_buffer.getLong();
 		GameComponent comp = level.getComponent(id);
-		if(comp == null) {
+		if (comp == null) {
 			r_buffer.setPosition(skip);
 			return;
 		}
-		if(!readobj_test(comp)) {
-			if(getGame().isServer()) {
+		if (!readobj_test(comp)) {
+			if (getGame().isServer()) {
 				invalid_privilege(Opcode.GAMEOBJECT);
 			}
 			r_buffer.setPosition(skip);
@@ -1059,13 +1059,13 @@ public class NetworkWorker {
 	public CoreComponent getParent() {
 		return parent;
 	}
-	
+
 	public boolean isAwait() {
 		return await;
 	}
-	
+
 	public void setAwait(boolean val) {
 		this.await = val;
 	}
-	
+
 }

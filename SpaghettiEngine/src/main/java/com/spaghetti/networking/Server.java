@@ -60,20 +60,21 @@ public class Server extends CoreComponent {
 					// Write / read routine, in this order for client synchronization
 					client.writeSocket();
 					client.readSocket();
-					
+
 					client.parseOperations();
 
 				} catch (Throwable e) {
 					Logger.error("Exception occurred in client " + entry.getKey(), e);
-					
+
 					Integer get = disconnections.get(entry.getKey());
-					if(get == null) {
+					if (get == null) {
 						get = 0;
 					}
 					get++;
 					disconnections.put(entry.getKey(), get);
-					if(get >= maxDisconnections) {
-						Logger.warning("Client " + entry.getKey() + " lost connection too many times (" + get + ") and will now be banned from this server");
+					if (get >= maxDisconnections) {
+						Logger.warning("Client " + entry.getKey() + " lost connection too many times (" + get
+								+ ") and will now be banned from this server");
 						internal_ban(entry.getKey());
 					} else {
 						Logger.info("Awaiting reconnection for " + awaitReconnect + " ms");
@@ -87,10 +88,10 @@ public class Server extends CoreComponent {
 			for (Iterator<Entry<Long, NetworkWorker>> iterator = clients.entrySet().iterator(); iterator.hasNext();) {
 				Entry<Long, NetworkWorker> entry = iterator.next();
 				NetworkWorker client = entry.getValue();
-				
-				boolean remove = !client.isConnected() && 
-						System.currentTimeMillis() > client.getLostConnectionTime() + awaitReconnect &&
-						client.isAwait();
+
+				boolean remove = !client.isConnected()
+						&& System.currentTimeMillis() > client.getLostConnectionTime() + awaitReconnect
+						&& client.isAwait();
 				if (remove) {
 					Logger.info("Client " + entry.getKey() + " did not reconnect in time");
 					internal_kick(entry.getKey());
@@ -99,7 +100,7 @@ public class Server extends CoreComponent {
 			}
 
 		}
-		if(isBound()) {
+		if (isBound()) {
 			internal_accept();
 		}
 	}
@@ -204,19 +205,19 @@ public class Server extends CoreComponent {
 		for (int i = 0; i < ip.length(); i++) {
 			hash = 31 * hash + ip.charAt(i);
 		}
-		
+
 		// Check if client is banned
 		Long clientId = new Long(hash);
-		if(!bans.contains(clientId)) {
-				
+		if (!bans.contains(clientId)) {
+
 			// Check if it is already instantiated here and add it
 			if (!clients.containsKey(clientId)) {
-	
+
 				// New connection, initialize it
 				NetworkWorker client = new NetworkWorker(this);
 				client.provideSocket(socket);
 				clients.put(clientId, client);
-	
+
 				// Perform handshake
 				if (!internal_handshake(client)) {
 					Logger.warning("Client handshake failed (" + clientId + ")");
@@ -224,20 +225,20 @@ public class Server extends CoreComponent {
 				} else {
 					// Perform additional initialization on new connection
 					joinHandler.handleJoin(getGame().isClient(), client);
-	
+
 					// Success, return true
 					Logger.info("ACCEPTED connection from " + ip + " (" + clientId + ")");
 					return true;
 				}
-	
+
 			} else {
-	
+
 				// Existing connection, attempt reconnection
 				NetworkWorker client = clients.get(clientId);
 				if (!client.isConnected()) {
 					// Provide new socket to worker
 					client.provideSocket(socket);
-	
+
 					// Re-perform handshake for security reasons
 					if (!internal_handshake(client)) {
 						Logger.warning("Client handshake failed (" + clientId + ")");
@@ -253,7 +254,7 @@ public class Server extends CoreComponent {
 				}
 			}
 		}
-		
+
 		// Failure, close socket and return false
 		Logger.warning("REFUSED connection from " + ip);
 		try {

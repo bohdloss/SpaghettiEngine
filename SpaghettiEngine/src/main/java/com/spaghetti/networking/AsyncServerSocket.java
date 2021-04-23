@@ -27,7 +27,7 @@ public class AsyncServerSocket {
 	}
 
 	public Socket accept() throws IOException {
-		if(selector.select(1) == 0) {
+		if (selector.select(1) == 0) {
 			return null;
 		}
 		Set<SelectionKey> keys = selector.selectedKeys();
@@ -51,9 +51,7 @@ public class AsyncServerSocket {
 		channel.close();
 		server.close();
 	}
-	
-	
-	
+
 	// Getters and setters
 
 	public Selector getSelector() {

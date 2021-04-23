@@ -86,7 +86,7 @@ public final class GameWindow {
 			public void invoke(long window, int width, int height) {
 				self.width = width;
 				self.height = height;
-				if(!fullscreen) {
+				if (!fullscreen) {
 					self.iwidth = width;
 					self.iheight = iheight;
 				}
@@ -132,7 +132,7 @@ public final class GameWindow {
 		GLFW.glfwGetWindowSize(id, intx, inty);
 		width = intx[0];
 		height = inty[0];
-		if(!fullscreen) {
+		if (!fullscreen) {
 			iwidth = width;
 			iheight = height;
 		}
@@ -318,7 +318,7 @@ public final class GameWindow {
 
 	public void setFullscreen(boolean fullscreen) {
 		quickQueue(() -> {
-			if(this.fullscreen != fullscreen) {
+			if (this.fullscreen != fullscreen) {
 				this.fullscreen = fullscreen;
 			} else {
 				return null;
@@ -344,7 +344,7 @@ public final class GameWindow {
 	public void toggleFullscreen() {
 		setFullscreen(!fullscreen);
 	}
-	
+
 	public void center() {
 		quickQueue(() -> {
 			GLFWVidMode mode = GLFW.glfwGetVideoMode(GLFW.glfwGetPrimaryMonitor());
@@ -374,7 +374,7 @@ public final class GameWindow {
 	public boolean isFullscreen() {
 		return fullscreen;
 	}
-	
+
 	public InputDispatcher getInputDispatcher() {
 		return inputDispatcher;
 	}
