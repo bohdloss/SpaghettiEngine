@@ -4,6 +4,7 @@ import java.lang.reflect.Field;
 import java.lang.reflect.Method;
 import java.util.HashMap;
 import java.util.Random;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 
 import org.joml.Matrix4d;
@@ -65,8 +66,8 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 	private long id; // This uniquely identifies any object
 	private Level level;
 	private GameObject parent;
-	private HashMap<Long, GameObject> children = new HashMap<>();
-	private HashMap<Long, GameComponent> components = new HashMap<>();
+	private ConcurrentHashMap<Long, GameObject> children = new ConcurrentHashMap<>();
+	private ConcurrentHashMap<Long, GameComponent> components = new ConcurrentHashMap<>();
 
 	public GameObject() {
 		this.id = newId();
@@ -173,6 +174,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 
 		// onBeginPlay() happens if this is globally attached
 		if (isGloballyAttached()) {
+			level.c_ordered.put(component.getId(), component);
 			try {
 				component.onBeginPlay();
 			} catch (Throwable t) {
@@ -523,7 +525,6 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		}
 		level = null;
 		parent = null;
-		children = null;
 		internal_setflag(DESTROYED, true);
 	}
 
@@ -640,11 +641,8 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 
 	// World interaction
 
-	@Replicate
 	protected final Vector3d relativePosition = new Vector3d();
-	@Replicate
 	protected final Vector3d relativeScale = new Vector3d(1, 1, 1);
-	@Replicate
 	protected final Vector3d relativeRotation = new Vector3d();
 
 	// Position getters
@@ -1009,7 +1007,9 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 	@Override
 	public final void update(double delta) {
 		components.forEach((id, component) -> {
-			component.update(delta);
+			if(component != null) {
+				component.update(delta);
+			}
 		});
 
 		commonUpdate(delta);
@@ -1019,7 +1019,9 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 			serverUpdate(delta);
 		}
 		children.forEach((id, object) -> {
-			object.update(delta);
+			if(object != null) {
+				object.update(delta);
+			}
 		});
 	}
 
@@ -1052,10 +1054,36 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 
 	@Override
 	public void writeData(boolean isClient, NetworkBuffer buffer) {
+		if(!isClient) {
+			buffer.putDouble(relativePosition.x);
+			buffer.putDouble(relativePosition.y);
+			buffer.putDouble(relativePosition.z);
+			
+			buffer.putDouble(relativeScale.x);
+			buffer.putDouble(relativeScale.y);
+			buffer.putDouble(relativeScale.z);
+			
+			buffer.putDouble(relativeRotation.x);
+			buffer.putDouble(relativeRotation.y);
+			buffer.putDouble(relativeRotation.z);
+		}
 	}
 
 	@Override
 	public void readData(boolean isClient, NetworkBuffer buffer) {
+		if(isClient) {
+			relativePosition.x  = buffer.getDouble();
+			relativePosition.y  = buffer.getDouble();
+			relativePosition.z  = buffer.getDouble();
+			
+			relativeScale.x  = buffer.getDouble();
+			relativeScale.y  = buffer.getDouble();
+			relativeScale.z  = buffer.getDouble();
+			
+			relativeRotation.x  = buffer.getDouble();
+			relativeRotation.y  = buffer.getDouble();
+			relativeRotation.z  = buffer.getDouble();
+		}
 	}
 
 	// Event dispatching

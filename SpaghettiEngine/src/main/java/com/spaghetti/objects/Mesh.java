@@ -24,9 +24,11 @@ public class Mesh extends GameObject {
 
 	@Override
 	public void render(Matrix4d projection, double delta) {
-		material.use();
-		material.setProjection(projection);
-		model.render();
+		if(material != null && model != null) {
+			material.use();
+			material.setProjection(projection);
+			model.render();
+		}
 	}
 
 	public Model getModel() {

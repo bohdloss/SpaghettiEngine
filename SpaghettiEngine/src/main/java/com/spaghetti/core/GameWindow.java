@@ -34,6 +34,7 @@ public final class GameWindow {
 	protected long id;
 	protected boolean visible;
 	protected int minWidth, minHeight, maxWidth, maxHeight;
+	protected int iwidth, iheight;
 	protected int width, height;
 	protected Game source;
 	protected InputDispatcher inputDispatcher;
@@ -65,10 +66,14 @@ public final class GameWindow {
 		this.minHeight = defaultMinimumHeight;
 		this.maxWidth = defaultMaximumWidth;
 		this.maxHeight = defaultMaximumHeight;
+		this.width = defaultWidth;
+		this.height = defaultHeight;
+		this.iwidth = width;
+		this.iheight = height;
 
 		// GLFW native window initialization
 
-		id = GLFW.glfwCreateWindow(defaultWidth, defaultHeight, title, 0, 0);
+		id = GLFW.glfwCreateWindow(width, height, title, 0, 0);
 		if (id == 0) {
 			// In case the window does not initialize properly
 			throw new IllegalStateException("GLFW window initialization failed");
@@ -81,6 +86,10 @@ public final class GameWindow {
 			public void invoke(long window, int width, int height) {
 				self.width = width;
 				self.height = height;
+				if(!fullscreen) {
+					self.iwidth = width;
+					self.iheight = iheight;
+				}
 
 				Level l = source.getActiveLevel();
 				if (l != null) {
@@ -110,12 +119,8 @@ public final class GameWindow {
 		});
 		gatherSize();
 		center();
-
 		GLFW.glfwSetWindowSizeLimits(id, minWidth, minHeight, maxWidth, maxHeight);
-
-		if (fullscreen) {
-			toggleFullscreen(fullscreen);
-		}
+		setFullscreen(fullscreen);
 	}
 
 	public GameWindow(Game source) {
@@ -127,6 +132,10 @@ public final class GameWindow {
 		GLFW.glfwGetWindowSize(id, intx, inty);
 		width = intx[0];
 		height = inty[0];
+		if(!fullscreen) {
+			iwidth = width;
+			iheight = height;
+		}
 	}
 
 	// Wrap native functions
@@ -304,33 +313,38 @@ public final class GameWindow {
 	}
 
 	public void swap() {
-		// This absolutely cannot be queued
-		// Must be fast enough to run every frame
-
 		GLFW.glfwSwapBuffers(id);
 	}
 
-	public void toggleFullscreen(boolean fullscreen) {
+	public void setFullscreen(boolean fullscreen) {
 		quickQueue(() -> {
+			if(this.fullscreen != fullscreen) {
+				this.fullscreen = fullscreen;
+			} else {
+				return null;
+			}
 			GLFWVidMode mode = GLFW.glfwGetVideoMode(GLFW.glfwGetPrimaryMonitor());
 
 			int width = 1, height = 1;
 
-			if (!fullscreen) {
-				width = (int) (mode.width() * 0.7d);
-				height = (int) (mode.height() * 0.7d);
-			} else {
+			if (fullscreen) {
 				width = mode.width();
 				height = mode.height();
+			} else {
+				width = iwidth;
+				height = iheight;
 			}
-			GLFW.glfwSetWindowMonitor(id, !fullscreen ? 0 : GLFW.glfwGetPrimaryMonitor(), 0, 0, width, height,
+			GLFW.glfwSetWindowMonitor(id, fullscreen ? GLFW.glfwGetPrimaryMonitor() : 0, 0, 0, width, height,
 					GLFW.GLFW_DONT_CARE);
 			center();
-			this.fullscreen = fullscreen;
 			return null;
 		});
 	}
 
+	public void toggleFullscreen() {
+		setFullscreen(!fullscreen);
+	}
+	
 	public void center() {
 		quickQueue(() -> {
 			GLFWVidMode mode = GLFW.glfwGetVideoMode(GLFW.glfwGetPrimaryMonitor());
@@ -357,6 +371,10 @@ public final class GameWindow {
 		return GLFW.glfwGetWindowAttrib(id, GLFW.GLFW_FOCUSED) == 1;
 	}
 
+	public boolean isFullscreen() {
+		return fullscreen;
+	}
+	
 	public InputDispatcher getInputDispatcher() {
 		return inputDispatcher;
 	}

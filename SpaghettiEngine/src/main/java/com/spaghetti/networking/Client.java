@@ -38,10 +38,12 @@ public class Client extends CoreComponent {
 		if (isConnected()) {
 			try {
 				// Write / read routine, in this order for server synchronization
+				worker.writeData();
+				
 				worker.writeSocket();
 				worker.readSocket();
 
-				worker.readData();
+				worker.parseOperations();
 			} catch (Throwable t) {
 				// Socket error, just reconnect
 				Logger.error("Exception occurred, attempting reconnection", t);

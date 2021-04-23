@@ -60,35 +60,39 @@ public class Renderer extends CoreComponent {
 
 	@Override
 	protected void loopEvents(double delta) throws Throwable {
-		if (window.shouldClose()) {
-			getGame().stopAsync();
+		try {
+			if (window.shouldClose()) {
+				getGame().stopAsync();
+			}
+			
+			Camera camera = getCamera();
+			if (camera != null) {
+				// Draw level to camera frame buffer
+				camera.render(null, delta);
+	
+				// Draw texture from frame buffer to screen
+	
+				// Reset render matrix
+				renderMatrix.identity();
+				// Calculate the scale
+				double scale = CMath.min(window.getWidth() / camera.getTargetRatio(), window.getHeight());
+				// Scale the matrix accordingly dividing by window size
+				renderMatrix.scale((scale * camera.getTargetRatio()) / window.getWidth(), -scale / window.getHeight(), 1);
+				// Render textured quad
+				defaultShader.use();
+				defaultShader.setProjection(renderMatrix);
+				camera.getFrameBuffer().getColorTexture().use(0);
+				GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_STENCIL_BUFFER_BIT);
+				sceneRenderer.render();
+			}
+	
+			window.swap();
+	
+			fps++;
+		} catch(Throwable t) {
+			Logger.error("Rendering generated an exception", t);
 		}
-
-		Camera camera = getCamera();
-		if (camera != null) {
-			// Draw level to camera frame buffer
-			camera.render(null, delta);
-
-			// Draw texture from frame buffer to screen
-
-			// Reset render matrix
-			renderMatrix.identity();
-			// Calculate the scale
-			double scale = CMath.min(window.getWidth() / camera.getTargetRatio(), window.getHeight());
-			// Scale the matrix accordingly dividing by window size
-			renderMatrix.scale((scale * camera.getTargetRatio()) / window.getWidth(), -scale / window.getHeight(), 1);
-			// Render textured quad
-			defaultShader.use();
-			defaultShader.setProjection(renderMatrix);
-			camera.getFrameBuffer().getColorTexture().use(0);
-			GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_STENCIL_BUFFER_BIT);
-			sceneRenderer.render();
-		}
-
-		window.swap();
-
-		fps++;
-
+		
 		if (System.currentTimeMillis() >= lastCheck + 1000) {
 			Logger.info(fps + " FPS");
 			fps = 0;

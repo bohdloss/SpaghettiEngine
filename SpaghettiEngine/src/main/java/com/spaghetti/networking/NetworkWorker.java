@@ -41,6 +41,7 @@ public class NetworkWorker {
 	protected Socket socket;
 	protected Authenticator authenticator;
 	protected boolean ping = true;
+	protected boolean await;
 
 	// Cache
 	protected final byte[] ping_buf = new byte[PING.length];
@@ -65,6 +66,8 @@ public class NetworkWorker {
 	protected static final HashMap<Class<?>, Constructor<? extends GameEvent>> m_econstrs = new HashMap<>();
 	protected static final HashMap<Class<?>, Field[]> m_fields = new HashMap<>();
 	protected static final HashMap<Class<?>, Boolean> m_noreplicate = new HashMap<>();
+	protected static final HashMap<Field, Boolean> m_toserver = new HashMap<>();
+	protected static final HashMap<Class<?>, Boolean> m_toservercls = new HashMap<>();
 
 	// If only java let me define 'friend class NetworkWorker' in GameObject...
 	static {
@@ -180,7 +183,7 @@ public class NetworkWorker {
 		w_buffer.putByte(Opcode.END);
 
 		OutputStream os = socket.getOutputStream();
-		int length = w_buffer.buffer.position();
+		int length = w_buffer.getPosition();
 
 		length_b[0] = (byte) ((length >> 24) & 0xff);
 		length_b[1] = (byte) ((length >> 16) & 0xff);
@@ -188,10 +191,10 @@ public class NetworkWorker {
 		length_b[3] = (byte) (length & 0xff);
 
 		os.write(length_b);
-		os.write(w_buffer.buffer.array(), 0, length);
+		os.write(w_buffer.asArray(), 0, length);
 		os.flush();
 
-		w_buffer.buffer.clear();
+		w_buffer.clear();
 	}
 
 	public void readSocket() throws IOException {
@@ -200,8 +203,8 @@ public class NetworkWorker {
 		int length = length_b[3] & 0xFF | (length_b[2] & 0xFF) << 8 | (length_b[1] & 0xFF) << 16
 				| (length_b[0] & 0xFF) << 24;
 
-		Utils.effectiveRead(is, r_buffer.buffer.array(), 0, length);
-		r_buffer.buffer.clear();
+		Utils.effectiveRead(is, r_buffer.asArray(), 0, length);
+		r_buffer.clear();
 	}
 
 	// Reflection caching
@@ -287,6 +290,28 @@ public class NetworkWorker {
 		return value;
 	}
 
+	protected static boolean toServer(Field field) {
+		Boolean value = m_toserver.get(field);
+		if (value == null) {
+			synchronized (m_toserver) {
+				value = field.getAnnotation(ToServer.class) != null;
+				m_toserver.put(field, value);
+			}
+		}
+		return value;
+	}
+
+	protected static boolean toServerClass(Class<?> cls) {
+		Boolean value = m_toservercls.get(cls);
+		if (value == null) {
+			synchronized (m_toservercls) {
+				value = cls.getAnnotation(ToServer.class) != null;
+				m_toservercls.put(cls, value);
+			}
+		}
+		return value;
+	}
+
 	protected static Field[] fields(Class<?> cls) {
 		Field[] fields_ = m_fields.get(cls);
 		if (fields_ == null) {
@@ -305,8 +330,7 @@ public class NetworkWorker {
 
 			list = new ArrayList<>();
 
-			// Gather all declared m_fields from super classes until GameObject or
-			// GameComponent is reached
+			// Gather all declared fields from super classes
 			Class<?> current = cls;
 			do {
 				for (Field field : current.getDeclaredFields()) {
@@ -317,7 +341,7 @@ public class NetworkWorker {
 				current = current.getSuperclass();
 			} while (current != null);
 
-			// Remove any restriction from gathered m_fields
+			// Remove any restriction from gathered fields
 			for (Field field : list) {
 				field.setAccessible(true);
 
@@ -387,31 +411,199 @@ public class NetworkWorker {
 		}
 	}
 
-	// Write functions
+	protected void writeObjectCustom(GameObject obj) {
+		boolean client = getGame().isClient();
+		// Here we write fields flagged with @Replicate in GameObjects
+		for (Field field : fields(obj.getClass())) {
+			if (client == toServer(field)) {
+				writeField(field, obj);
+			}
+		}
+		obj.writeData(parent.getGame().isClient(), w_buffer);
+	}
 
-	public void writeObjectsData() {
+	protected void readObjectCustom(GameObject obj) {
+		boolean client = getGame().isClient();
+		// Here we read fields flagged with @Replicate in GameObjects
+		for (Field field : fields(obj.getClass())) {
+			if (client != toServer(field)) {
+				readField(field, obj);
+			}
+		}
+		obj.readData(parent.getGame().isClient(), r_buffer);
+	}
+
+	protected void writeComponentCustom(GameComponent comp) {
+		boolean client = getGame().isClient();
+		// Here we write fields flagged with @Replicate in GameComponents
+		for (Field field : fields(comp.getClass())) {
+			if (client == toServer(field)) {
+				writeField(field, comp);
+			}
+		}
+		comp.writeData(parent.getGame().isClient(), w_buffer);
+	}
+
+	protected void readComponentCustom(GameComponent comp) {
+		boolean client = getGame().isClient();
+		// Here we read fields flagged with @Replicate in GameComponents
+		for (Field field : fields(comp.getClass())) {
+			if (client != toServer(field)) {
+				readField(field, comp);
+			}
+		}
+		comp.readData(parent.getGame().isClient(), r_buffer);
+	}
+
+	protected void writeEventCustom(GameEvent event) {
+		// Here we write fields flagged with @Replicate in GameEvents
+		for (Field field : fields(event.getClass())) {
+			writeField(field, event);
+		}
+	}
+
+	protected void readEventCustom(GameEvent event) {
+		// Here we read fields flagged with @Replicate in GameEvents
+		for (Field field : fields(event.getClass())) {
+			readField(field, event);
+		}
+	}
+
+	protected boolean writeobj_test(Object obj) {
+		return !noReplicate(obj.getClass()) && (getGame().isServer() || toServerClass(obj.getClass()));
+	}
+
+	protected boolean readobj_test(Object obj) {
+		return !noReplicate(obj.getClass()) && (getGame().isClient() || toServerClass(obj.getClass()));
+	}
+	
+	// Read / Write interface
+
+	public void parseOperations() throws Throwable {
+		byte opcode;
+		Level level = getLevel();
+		while ((opcode = r_buffer.getByte()) != Opcode.END) {
+			switch (opcode) {
+			default:
+				invalid(opcode);
+				return;
+			case Opcode.LEVEL:
+				if (getGame().isServer()) {
+					invalid_privilege(opcode);
+				}
+				readLevel();
+				break;
+			case Opcode.GAMEOBJECT:
+				readObject(level);
+				break;
+			case Opcode.GAMECOMPONENT:
+				readComponent(level);
+				break;
+			case Opcode.GAMEEVENT:
+				readGameEvent();
+				break;
+			case Opcode.INTENTION:
+				readIntention();
+				break;
+			case Opcode.CAMERA:
+				if (getGame().isServer()) {
+					invalid_privilege(opcode);
+				}
+				readActiveCamera(level);
+				break;
+			case Opcode.CONTROLLER:
+				if (getGame().isServer()) {
+					invalid_privilege(opcode);
+				}
+				readActiveController(level);
+				break;
+			case Opcode.DATA:
+				readData();
+				break;
+			case Opcode.PINGPONG:
+				handlePing();
+				break;
+			}
+		}
+	}
+
+	public void writeData() {
 		Level level = getLevel();
 		w_buffer.putByte(Opcode.DATA);
 
 		// Write objects
 		level.forEachActualObject((id, object) -> {
-			if (!noReplicate(object.getClass())) {
+			if (writeobj_test(object)) {
 				w_buffer.putByte(Opcode.ITEM);
+				int pos = w_buffer.getPosition();
+				w_buffer.skip(Integer.BYTES); // Allocate memory for skip destination
 				w_buffer.putLong(object.getId());
 				writeObjectCustom(object);
+				int dest = w_buffer.getPosition();
+				w_buffer.putIntAt(pos, dest); // Write destination
 			}
 		});
 		w_buffer.putByte(Opcode.STOP);
 
 		// Write components
 		level.forEachComponent((id, component) -> {
-			if (!noReplicate(component.getClass())) {
+			if (writeobj_test(component)) {
 				w_buffer.putByte(Opcode.ITEM);
+				int pos = w_buffer.getPosition();
+				w_buffer.skip(Integer.BYTES); // Allocate memory for skip destination
 				w_buffer.putLong(component.getId());
 				writeComponentCustom(component);
+				int dest = w_buffer.getPosition();
+				w_buffer.putIntAt(pos, dest); // Write destination
 			}
 		});
 		w_buffer.putByte(Opcode.STOP);
+	}
+
+	public void readData() {
+		Level level = getLevel();
+
+		// Read objects
+		while (r_buffer.getByte() == Opcode.ITEM) {
+			int skip = r_buffer.getInt();
+			if(skip < r_buffer.getPosition()) {
+				throw new IllegalStateException();
+			}
+			long id = r_buffer.getLong();
+			GameObject object = level.getObject(id);
+			if (object == null) {
+				r_buffer.setPosition(skip);
+				continue;
+			}
+			if(!readobj_test(object)) {
+				if(getGame().isServer()) {
+					invalid_privilege(Opcode.DATA);
+				}
+				return;
+			}
+			readObjectCustom(object);
+		}
+
+		// Read components
+		while (r_buffer.getByte() == Opcode.ITEM) {
+			int skip = r_buffer.getInt();
+			if(skip < r_buffer.getPosition()) {
+				throw new IllegalStateException();
+			}
+			long id = r_buffer.getLong();
+			GameComponent component = level.getComponent(id);
+			if (component == null) {
+				r_buffer.setPosition(skip);
+				continue;
+			}
+			if(!readobj_test(component)) {
+				if(getGame().isServer()) {
+					invalid_privilege(Opcode.DATA);
+				}
+				return;
+			}
+			readComponentCustom(component);
+		}
 	}
 
 	public void writeLevel() {
@@ -423,14 +615,72 @@ public class NetworkWorker {
 		w_buffer.putByte(Opcode.STOP);
 	}
 
+	public void readLevel() throws Throwable {
+		Level level = getLevel();
+
+		// First flag all objects as deletable
+		// this will be reverted by readChildren
+		// but only on objects that actually exist
+		level.forEachObject(this::recursive_flag);
+
+		// Check for item flag
+		while (r_buffer.getByte() == Opcode.ITEM) {
+			readChildren(level, (GameObject) null);
+		}
+
+		// If the objects are still flagged, it means
+		// they no longer exist, therefore they will
+		// be deleted
+		level.forEachObject(this::recursive_delete);
+		perform_delete();
+	}
+
 	public void writeActiveCamera() {
 		w_buffer.putByte(Opcode.CAMERA);
 		w_buffer.putLong(player_camera == null ? -1 : player_camera.getId());
 	}
 
+	public void readActiveCamera(Level level) {
+		long camera_id = r_buffer.getLong();
+		// -1 means null
+		if (camera_id != -1) {
+			// Obtain level camera
+			Camera level_camera = (Camera) level.getObject(camera_id);
+
+			// Check differences with local camera
+			if (level_camera != player_camera) {
+				// Apply changes
+				player_camera = level_camera;
+				level.attachCamera(level_camera);
+			}
+		} else {
+			player_camera = null;
+			level.detachCamera();
+		}
+	}
+
 	public void writeActiveController() {
 		w_buffer.putByte(Opcode.CONTROLLER);
 		w_buffer.putLong(player_controller == null ? -1 : player_controller.getId());
+	}
+
+	public void readActiveController(Level level) {
+		long controller_id = r_buffer.getLong();
+		// -1 means null
+		if (controller_id != -1) {
+			// Obtain level controller
+			Controller level_controller = (Controller) level.getComponent(controller_id);
+
+			// Check differences with local controller
+			if (level_controller != player_controller) {
+				// Apply changes
+				player_controller = level_controller;
+				level.attachController(level_controller);
+			}
+		} else {
+			player_controller = null;
+			level.detachController();
+		}
 	}
 
 	public void writeChildren(GameObject obj) {
@@ -454,292 +704,6 @@ public class NetworkWorker {
 
 		obj.forEachChild((id, child) -> writeChildren(child));
 		w_buffer.putByte(Opcode.STOP); // Put stop flag on children
-	}
-
-	public void writeObject(GameObject obj) {
-		w_buffer.putByte(Opcode.GAMEOBJECT);
-		w_buffer.putLong(obj.getId());
-		// Let the object write custom data
-		writeObjectCustom(obj);
-	}
-
-	public void writeComponent(GameComponent comp) {
-		w_buffer.putByte(Opcode.GAMECOMPONENT);
-		w_buffer.putLong(comp.getId());
-		// Let the component write custom data
-		writeComponentCustom(comp);
-	}
-
-	protected void writeObjectCustom(GameObject obj) {
-		// Here we write fields flagged with @Replicate in GameObjects
-		for (Field field : fields(obj.getClass())) {
-			writeField(field, obj);
-		}
-		obj.writeData(parent.getGame().isClient(), w_buffer);
-	}
-
-	protected void writeComponentCustom(GameComponent comp) {
-		// Here we write fields flagged with @Replicate in GameComponents
-		for (Field field : fields(comp.getClass())) {
-			writeField(field, comp);
-		}
-		comp.writeData(parent.getGame().isClient(), w_buffer);
-	}
-
-	protected void writeEventCustom(GameEvent event) {
-		// Here we write fields flagged with @Replicate in GameEvents
-		for (Field field : fields(event.getClass())) {
-			writeField(field, event);
-		}
-	}
-
-	public void writeIntention(GameObject issuer, long intention) {
-		w_buffer.putByte(Opcode.INTENTION);
-		w_buffer.putLong(issuer.getId());
-		w_buffer.putLong(intention);
-	}
-
-	public void writeGameEvent(GameObject issuer, GameEvent event) {
-		w_buffer.putByte(Opcode.GAMEEVENT);
-		w_buffer.putLong(issuer.getId());
-
-		w_buffer.putString(event.getClass().getName());
-		w_buffer.putLong(event.getId());
-		writeEventCustom(event);
-	}
-
-	public boolean writeAuthentication() {
-		if (authenticator == null) {
-			authenticator = new DefaultAuthenticator();
-		}
-		if (parent.getGame().isClient()) {
-			authenticator.w_client_auth(this, w_buffer);
-		} else {
-			return authenticator.w_server_auth(this, w_buffer);
-		}
-		return true;
-	}
-
-	public void requestPing() {
-		w_buffer.putByte(Opcode.PINGPONG);
-		if (getGame().isClient()) {
-			w_buffer.putBytes(PONG);
-		} else {
-			w_buffer.putBytes(PING);
-		}
-	}
-
-	// Read functions
-
-	protected void invalid(byte opcode) {
-		Logger.warning("Remote client sent an invalid operation (" + (opcode & 0xff)
-				+ ") : the connection will be terminated");
-		resetSocket();
-	}
-
-	protected void invalid_privilege(byte opcode) {
-		Logger.warning("Remote client doesn't have enough permission to perform the following operation ("
-				+ (opcode & 0xff) + ") : the connection will be terminated");
-		resetSocket();
-	}
-
-	public void readData() throws Throwable {
-		byte opcode;
-		Level level = getLevel();
-		while ((opcode = r_buffer.getByte()) != Opcode.END) {
-			switch (opcode) {
-			default:
-				invalid(opcode);
-				return;
-			case Opcode.LEVEL:
-				if (getGame().isServer()) {
-					invalid_privilege(opcode);
-				}
-				readLevel();
-				break;
-			case Opcode.GAMEOBJECT:
-				if (getGame().isServer()) {
-					invalid_privilege(opcode);
-				}
-				readObject(level);
-				break;
-			case Opcode.GAMECOMPONENT:
-				if (getGame().isServer()) {
-					invalid_privilege(opcode);
-				}
-				readComponent(level);
-				break;
-			case Opcode.GAMEEVENT:
-				readGameEvent();
-				break;
-			case Opcode.INTENTION:
-				readIntention();
-				break;
-			case Opcode.CAMERA:
-				if (getGame().isServer()) {
-					invalid_privilege(opcode);
-				}
-				readActiveCamera(level);
-				break;
-			case Opcode.CONTROLLER:
-				if (getGame().isServer()) {
-					invalid_privilege(opcode);
-				}
-				readActiveController(level);
-				break;
-			case Opcode.DATA:
-				if (getGame().isServer()) {
-					invalid_privilege(opcode);
-				}
-				readObjectsData();
-				break;
-			case Opcode.PINGPONG:
-				handlePing();
-				break;
-			}
-		}
-	}
-
-	public void readActiveCamera(Level level) {
-		long camera_id = r_buffer.getLong();
-		// -1 means null
-		if (camera_id != -1) {
-			// Obtain level camera
-			Camera level_camera = (Camera) level.getObject(camera_id);
-
-			// Check differences with local camera
-			if (level_camera != player_camera) {
-				// Apply changes
-				player_camera = level_camera;
-				level.attachCamera(level_camera);
-			}
-		} else {
-			player_camera = null;
-			level.detachCamera();
-		}
-	}
-
-	public void readActiveController(Level level) {
-		long controller_id = r_buffer.getLong();
-		// -1 means null
-		if (controller_id != -1) {
-			// Obtain level controller
-			Controller level_controller = (Controller) level.getComponent(controller_id);
-
-			// Check differences with local controller
-			if (level_controller != player_controller) {
-				// Apply changes
-				player_controller = level_controller;
-				level.attachController(level_controller);
-			}
-		} else {
-			player_controller = null;
-			level.detachController();
-		}
-	}
-
-	public void readObjectsData() {
-		Level level = getLevel();
-
-		// Read objects
-		while (r_buffer.getByte() == Opcode.ITEM) {
-			long id = r_buffer.getLong();
-			GameObject object = level.getObject(id);
-			if (object == null) {
-				continue;
-			}
-			readObjectCustom(object);
-		}
-
-		// Read components
-		while (r_buffer.getByte() == Opcode.ITEM) {
-			long id = r_buffer.getLong();
-			GameComponent component = level.getComponent(id);
-			if (component == null) {
-				continue;
-			}
-			readComponentCustom(component);
-		}
-	}
-
-	public void readLevel() throws Throwable {
-		Level level = getLevel();
-
-		// First flag all objects as deletable
-		// this will be reverted by readChildren
-		// but only on objects that actually exist
-		level.forEachObject(this::recursive_flag);
-
-		// Check for item flag
-		while (r_buffer.getByte() == Opcode.ITEM) {
-			readChildren(level, (GameObject) null);
-		}
-
-		// If the objects are still flagged, it means
-		// they no longer exist, therefore they will
-		// be deleted
-		level.forEachObject(this::recursive_delete);
-		perform_delete();
-	}
-
-	protected void recursive_flag(GameObject obj) {
-		// Flag this object as deletable
-		try {
-			me_osetflag.invoke(obj, GameObject.DELETE, true);
-		} catch (Throwable t) {
-		}
-
-		// Flag components
-		obj.forEachComponent((id, component) -> {
-			try {
-				me_csetflag.invoke(component, GameComponent.DELETE, true);
-			} catch (Throwable t) {
-			}
-		});
-
-		// Flag children
-		obj.forEachChild((id, child) -> {
-			recursive_flag(child);
-		});
-	}
-
-	protected void recursive_delete(GameObject obj) {
-		// Check if flagged
-		try {
-			if ((boolean) me_ogetflag.invoke(obj, GameObject.DELETE)) {
-				Logger.info("Object " + obj.getId() + " became invalid and will be destroyed");
-				delete_list.add(obj);
-				return;
-			}
-		} catch (Throwable t) {
-		}
-
-		// Check on components
-		obj.forEachComponent((id, component) -> {
-			try {
-				if ((boolean) me_cgetflag.invoke(component, GameComponent.DELETE)) {
-					Logger.info("Component " + component.getId() + " became invalid and will be destroyed");
-					delete_list.add(component);
-				}
-			} catch (Throwable t) {
-			}
-		});
-
-		// Check on children
-		obj.forEachChild((id, child) -> {
-			recursive_delete(child);
-		});
-	}
-
-	protected void perform_delete() {
-		delete_list.forEach(object -> {
-			if (GameObject.class.isAssignableFrom(object.getClass())) {
-				((GameObject) object).destroy();
-			} else {
-				((GameComponent) object).destroy();
-			}
-		});
-		delete_list.clear();
 	}
 
 	public void readChildren(Level level, GameObject parent) throws ClassCastException, InstantiationException,
@@ -788,41 +752,82 @@ public class NetworkWorker {
 
 	}
 
+	public void writeObject(GameObject obj) {
+		if(!writeobj_test(obj)) {
+			return;
+		}
+		w_buffer.putByte(Opcode.GAMEOBJECT);
+		int pos = w_buffer.getPosition();
+		w_buffer.skip(Integer.BYTES);
+		w_buffer.putLong(obj.getId());
+		// Let the object write custom data
+		writeObjectCustom(obj);
+		int dest = w_buffer.getPosition();
+		w_buffer.putIntAt(pos, dest);
+	}
+
 	public void readObject(Level level) {
+		int skip = r_buffer.getInt();
+		if(skip < r_buffer.getPosition()) {
+			throw new IllegalStateException();
+		}
 		long id = r_buffer.getLong();
 		GameObject obj = level.getObject(id);
+		if(obj == null) {
+			r_buffer.setPosition(skip);
+			return;
+		}
+		if(!readobj_test(obj)) {
+			if(getGame().isServer()) {
+				invalid_privilege(Opcode.GAMEOBJECT);
+			}
+			r_buffer.setPosition(skip);
+			return;
+		}
 		// Read back custom data from object
 		readObjectCustom(obj);
 	}
 
+	public void writeComponent(GameComponent comp) {
+		if(!writeobj_test(comp)) {
+			return;
+		}
+		w_buffer.putByte(Opcode.GAMECOMPONENT);
+		int pos = w_buffer.getPosition();
+		w_buffer.skip(Integer.BYTES);
+		w_buffer.putLong(comp.getId());
+		// Let the component write custom data
+		writeComponentCustom(comp);
+		int dest = w_buffer.getPosition();
+		w_buffer.putIntAt(pos, dest);
+	}
+
 	public void readComponent(Level level) {
+		int skip =  r_buffer.getInt();
+		if(skip < r_buffer.getPosition()) {
+			throw new IllegalStateException();
+		}
 		long id = r_buffer.getLong();
 		GameComponent comp = level.getComponent(id);
+		if(comp == null) {
+			r_buffer.setPosition(skip);
+			return;
+		}
+		if(!readobj_test(comp)) {
+			if(getGame().isServer()) {
+				invalid_privilege(Opcode.GAMEOBJECT);
+			}
+			r_buffer.setPosition(skip);
+			return;
+		}
 		// Read back custom data from component
 		readComponentCustom(comp);
 	}
 
-	protected void readObjectCustom(GameObject obj) {
-		// Here we read m_fields flagged with @Replicate in GameObjects
-		for (Field field : fields(obj.getClass())) {
-			readField(field, obj);
-		}
-		obj.readData(parent.getGame().isClient(), r_buffer);
-	}
-
-	protected void readComponentCustom(GameComponent comp) {
-		// Here we read m_fields flagged with @Replicate in GameComponents
-		for (Field field : fields(comp.getClass())) {
-			readField(field, comp);
-		}
-		comp.readData(parent.getGame().isClient(), r_buffer);
-	}
-
-	protected void readEventCustom(GameEvent event) {
-		// Here we read fields flagged with @Replicate in GameEvents
-		for (Field field : fields(event.getClass())) {
-			readField(field, event);
-		}
+	public void writeIntention(GameObject issuer, long intention) {
+		w_buffer.putByte(Opcode.INTENTION);
+		w_buffer.putLong(issuer.getId());
+		w_buffer.putLong(intention);
 	}
 
 	public void readIntention() {
@@ -834,6 +839,15 @@ public class NetworkWorker {
 		EventDispatcher event_dispatcher = Game.getGame().getEventDispatcher();
 
 		event_dispatcher.dispatchIntention(IDENTITY, issuer, intention);
+	}
+
+	public void writeGameEvent(GameObject issuer, GameEvent event) {
+		w_buffer.putByte(Opcode.GAMEEVENT);
+		w_buffer.putLong(issuer.getId());
+
+		w_buffer.putString(event.getClass().getName());
+		w_buffer.putLong(event.getId());
+		writeEventCustom(event);
 	}
 
 	public void readGameEvent() throws ClassCastException, InstantiationException, IllegalArgumentException,
@@ -861,6 +875,18 @@ public class NetworkWorker {
 
 	}
 
+	public boolean writeAuthentication() {
+		if (authenticator == null) {
+			authenticator = new DefaultAuthenticator();
+		}
+		if (parent.getGame().isClient()) {
+			authenticator.w_client_auth(this, w_buffer);
+		} else {
+			return authenticator.w_server_auth(this, w_buffer);
+		}
+		return true;
+	}
+
 	public boolean readAuthentication() {
 		if (authenticator == null) {
 			authenticator = new DefaultAuthenticator();
@@ -873,19 +899,100 @@ public class NetworkWorker {
 		return true;
 	}
 
+	public void requestPing() {
+		w_buffer.putByte(Opcode.PINGPONG);
+		if (getGame().isClient()) {
+			w_buffer.putBytes(PONG, 0, PONG.length);
+		} else {
+			w_buffer.putBytes(PING, 0, PING.length);
+		}
+	}
+
 	public void handlePing() {
 		if (getGame().isClient()) {
-			r_buffer.getBytes(ping_buf.length, ping_buf);
+			r_buffer.getBytes(ping_buf, 0, ping_buf.length);
 			if (!Arrays.equals(ping_buf, PING)) {
 				return;
 			}
 			requestPing();
 		} else {
-			r_buffer.getBytes(pong_buf.length, pong_buf);
+			r_buffer.getBytes(pong_buf, 0, pong_buf.length);
 			if (!Arrays.equals(pong_buf, PONG)) {
 				ping = false;
 			}
 		}
+	}
+
+	// Utility methods
+
+	protected void invalid(byte opcode) {
+		Logger.warning("Remote client sent an invalid operation (" + (opcode & 0xff)
+				+ ") : the connection will be terminated");
+		resetSocket();
+	}
+
+	protected void invalid_privilege(byte opcode) {
+		Logger.warning("Remote client doesn't have enough permission to perform the following operation ("
+				+ (opcode & 0xff) + ") : the connection will be terminated");
+		resetSocket();
+	}
+
+	protected void recursive_flag(GameObject obj) {
+		// Flag this object as deletable
+		try {
+			me_osetflag.invoke(obj, GameObject.DELETE, true);
+		} catch (Throwable t) {
+		}
+
+		// Flag components
+		obj.forEachComponent((id, component) -> {
+			try {
+				me_csetflag.invoke(component, GameComponent.DELETE, true);
+			} catch (Throwable t) {
+			}
+		});
+
+		// Flag children
+		obj.forEachChild((id, child) -> {
+			recursive_flag(child);
+		});
+	}
+
+	protected void recursive_delete(GameObject obj) {
+		// Check if flagged
+		try {
+			if ((boolean) me_ogetflag.invoke(obj, GameObject.DELETE)) {
+				delete_list.add(obj);
+				return;
+			}
+		} catch (Throwable t) {
+		}
+
+		// Check on components
+		obj.forEachComponent((id, component) -> {
+			try {
+				if ((boolean) me_cgetflag.invoke(component, GameComponent.DELETE)) {
+					delete_list.add(component);
+				}
+			} catch (Throwable t) {
+			}
+		});
+
+		// Check on children
+		obj.forEachChild((id, child) -> {
+			recursive_delete(child);
+		});
+	}
+
+	protected void perform_delete() {
+		delete_list.forEach(object -> {
+			if (GameObject.class.isAssignableFrom(object.getClass())) {
+				((GameObject) object).destroy();
+			} else {
+				((GameComponent) object).destroy();
+			}
+		});
+		delete_list.clear();
 	}
 
 	// Getters and setters
@@ -952,5 +1059,13 @@ public class NetworkWorker {
 	public CoreComponent getParent() {
 		return parent;
 	}
-
+	
+	public boolean isAwait() {
+		return await;
+	}
+	
+	public void setAwait(boolean val) {
+		this.await = val;
+	}
+	
 }

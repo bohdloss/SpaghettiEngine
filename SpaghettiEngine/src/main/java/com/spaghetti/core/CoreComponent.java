@@ -12,6 +12,7 @@ public abstract class CoreComponent extends Thread {
 	private volatile boolean allowRun;
 	private volatile boolean allowStop;
 	private volatile boolean executionEnd;
+	private volatile boolean requestChance;
 	private volatile long lastTime;
 
 	public final void initialize() throws Throwable {
@@ -138,6 +139,23 @@ public abstract class CoreComponent extends Thread {
 			terminate0();
 		} catch (Throwable t) {
 			_uncaught(t);
+		}
+		
+		// Final chance to handle some requests
+		requestChance = true;
+		while (true) {
+			boolean found = true;
+			for(int i = 0; i < source.getComponentAmount(); i++) {
+				if(!source.getComponentAt(i).requestChance) {
+					found = false;
+					break;
+				}
+			}
+			if(found) {
+				break;
+			}
+			Utils.sleep(1);
+			functionDispatcher.computeEvents();
 		}
 	}
 

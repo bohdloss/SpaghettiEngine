@@ -90,6 +90,7 @@ public final class Game {
 	private volatile AssetManager assetManager;
 	private volatile EventDispatcher eventDispatcher;
 
+	private final ArrayList<CoreComponent> components = new ArrayList<>(4);
 	private volatile Updater updater;
 	private volatile Renderer renderer;
 	private volatile Client client;
@@ -142,22 +143,26 @@ public final class Game {
 
 		if (updater != null) {
 			this.updater = updater;
+			this.components.add(updater);
 			this.updater.setName("UPDATER");
 			registerThread(this.updater);
 		}
 		if (renderer != null) {
 			this.renderer = renderer;
+			this.components.add(renderer);
 			this.renderer.setName("RENDERER");
 			registerThread(this.renderer);
 			window = new GameWindow(this);
 		}
 		if (client != null) {
 			this.client = client;
+			this.components.add(client);
 			this.client.setName("CLIENT");
 			registerThread(this.client);
 		}
 		if (server != null) {
 			this.server = server;
+			this.components.add(server);
 			this.server.setName("SERVER");
 			registerThread(this.server);
 		}
@@ -317,7 +322,7 @@ public final class Game {
 
 		// Raise shutdown signal
 
-		Logger.info(this, "Executing shutdown hooks...");
+		Logger.info(this, "Dispatching stop signal...");
 		eventDispatcher.raiseSignal((GameObject) null, Signals.SIGSTOP);
 
 		// Allow finalization to begin
@@ -338,7 +343,7 @@ public final class Game {
 
 		// Then wait for finalization
 
-		Logger.info(this, "Executing gloabl shutdown hooks...");
+		Logger.info(this, "Executing cleanup...");
 		if (updater != null) {
 			updater.waitTerminate();
 		}
@@ -508,6 +513,14 @@ public final class Game {
 		return server.getDispatcher();
 	}
 
+	public int getComponentAmount() {
+		return components.size();
+	}
+	
+	public CoreComponent getComponentAt(int index) {
+		return components.get(index);
+	}
+	
 	public AssetManager getAssetManager() {
 		return assetManager;
 	}

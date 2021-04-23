@@ -7,6 +7,8 @@ import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.SocketChannel;
 
+// Unused class, might be integrated at a later stage
+
 public class AsyncSocket {
 
 	protected Selector selector;

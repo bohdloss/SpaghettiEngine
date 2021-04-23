@@ -4,6 +4,7 @@ import java.lang.reflect.*;
 import java.util.ArrayList;
 import java.util.ConcurrentModificationException;
 import java.util.HashMap;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
@@ -40,8 +41,8 @@ public final class Level implements Updatable {
 	protected boolean destroyed;
 	protected Game source;
 	protected ArrayList<GameObject> objects = new ArrayList<>();
-	protected HashMap<Long, GameObject> o_ordered = new HashMap<>();
-	protected HashMap<Long, GameComponent> c_ordered = new HashMap<>();
+	protected ConcurrentHashMap<Long, GameObject> o_ordered = new ConcurrentHashMap<>();
+	protected ConcurrentHashMap<Long, GameComponent> c_ordered = new ConcurrentHashMap<>();
 	protected Camera activeCamera;
 	protected Controller activeInput;
 

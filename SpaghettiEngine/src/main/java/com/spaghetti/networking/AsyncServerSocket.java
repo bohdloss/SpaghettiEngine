@@ -3,6 +3,7 @@ package com.spaghetti.networking;
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.ServerSocket;
+import java.net.Socket;
 import java.nio.channels.SelectionKey;
 import java.nio.channels.Selector;
 import java.nio.channels.ServerSocketChannel;
@@ -22,11 +23,13 @@ public class AsyncServerSocket {
 		this.selector = Selector.open();
 		server.bind(new InetSocketAddress("localhost", port));
 		channel.configureBlocking(false);
-		channel.register(selector, channel.validOps());
+		channel.register(selector, SelectionKey.OP_ACCEPT);
 	}
 
-	public AsyncSocket accept() throws IOException {
-		selector.select();
+	public Socket accept() throws IOException {
+		if(selector.select(1) == 0) {
+			return null;
+		}
 		Set<SelectionKey> keys = selector.selectedKeys();
 		Iterator<SelectionKey> iterator = keys.iterator();
 
@@ -37,12 +40,20 @@ public class AsyncServerSocket {
 				if (schannel == null) {
 					continue;
 				}
-				return new AsyncSocket(selector, schannel);
+				iterator.remove();
+				return schannel.socket();
 			}
 		}
 		return null;
 	}
 
+	public void close() throws IOException {
+		channel.close();
+		server.close();
+	}
+	
+	
+	
 	// Getters and setters
 
 	public Selector getSelector() {

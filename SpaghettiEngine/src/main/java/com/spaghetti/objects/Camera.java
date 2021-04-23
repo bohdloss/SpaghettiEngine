@@ -62,6 +62,15 @@ public class Camera extends GameObject {
 		if (getLevel().getActiveCamera() == this) {
 			getLevel().detachCamera();
 		}
+		if(!getGame().isHeadless()) {
+			if(!getGame().getRenderer().isAlive()) {
+				throw new IllegalStateException("Can't delete framebuffer: RENDERER died");
+			}
+			getGame().getRendererDispatcher().quickQueue(() -> {
+				renderTarget.delete();
+				return null;
+			});
+		}
 	}
 
 	public Matrix4d getProjection() {
