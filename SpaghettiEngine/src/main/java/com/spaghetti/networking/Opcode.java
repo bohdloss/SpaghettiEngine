@@ -17,6 +17,7 @@ public final class Opcode {
 
 	public static final byte CAMERA = (byte) 7;
 	public static final byte CONTROLLER = (byte) 8;
+	public static final byte PLAYER = (byte) 12;
 
 	public static final byte END = (byte) 9;
 

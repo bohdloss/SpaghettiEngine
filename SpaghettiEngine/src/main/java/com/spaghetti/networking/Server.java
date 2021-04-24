@@ -9,6 +9,8 @@ import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.spaghetti.core.*;
+import com.spaghetti.events.GameEvent;
+import com.spaghetti.interfaces.EventHandler;
 import com.spaghetti.interfaces.JoinHandler;
 import com.spaghetti.utils.*;
 
@@ -29,9 +31,33 @@ public class Server extends CoreComponent {
 
 	@Override
 	protected void initialize0() throws Throwable {
+		getGame().getEventDispatcher().registerEventHandler(new EventHandler() {
+
+			@Override
+			public void handleEvent(boolean isClient, GameObject issuer, GameEvent event) {
+				if(event instanceof OnClientConnect) {
+					OnClientConnect occ = (OnClientConnect) event;
+					NetworkWorker client = occ.getClient();
+					long clientId = occ.getClientId();
+					try {
+						client.writeLevel();
+						client.writeActivePlayer();
+						client.writeActiveCamera();
+						client.writeActiveController();
+						
+						client.writeSocket();
+						client.readSocket();
+						Logger.info("Connection correctly establised with client " + clientId);
+					} catch (Throwable t) {
+						internal_clienterror(t, client, clientId);
+					}
+				}
+			}
+			
+		});
+		
 		Scanner scanner = new Scanner(System.in);
 		String port = scanner.nextLine();
-		scanner.close();
 		internal_bind(Integer.parseInt(port));
 	}
 
@@ -55,37 +81,17 @@ public class Server extends CoreComponent {
 					if (!client.isConnected()) {
 						continue;
 					}
-
-					client.writeLevel();
+					
 					client.writeData();
-					client.writeActiveCamera();
-					client.writeActiveController();
-
+					
 					// Write / read routine, in this order for client synchronization
 					client.writeSocket();
 					client.readSocket();
 
 					client.parseOperations();
 
-				} catch (Throwable e) {
-					Logger.error("Exception occurred in client " + entry.getKey(), e);
-
-					Integer get = disconnections.get(entry.getKey());
-					if (get == null) {
-						get = 0;
-					}
-					get++;
-					disconnections.put(entry.getKey(), get);
-					if (get >= maxDisconnections) {
-						Logger.warning("Client " + entry.getKey() + " lost connection too many times (" + get
-								+ ") and will now be banned from this server");
-						internal_ban(entry.getKey());
-					} else {
-						Logger.info("Awaiting reconnection for " + awaitReconnect + " ms");
-						entry.getValue().setAwait(true);
-						entry.getValue().resetSocket();
-						entry.getValue().setLostConnectionTime(System.currentTimeMillis());
-					}
+				} catch (Throwable t) {
+					internal_clienterror(t, entry.getValue(), entry.getKey());
 				}
 			}
 
@@ -109,6 +115,27 @@ public class Server extends CoreComponent {
 		}
 	}
 
+	protected void internal_clienterror(Throwable error, NetworkWorker client, long clientId) {
+		Logger.error("Exception occurred in client " + clientId, error);
+
+		Integer get = disconnections.get(clientId);
+		if (get == null) {
+			get = 0;
+		}
+		get++;
+		disconnections.put(clientId, get);
+		if (get >= maxDisconnections) {
+			Logger.warning("Client " + clientId + " lost connection too many times (" + get
+					+ ") and will now be banned from this server");
+			internal_ban(clientId);
+		} else {
+			Logger.info("Awaiting reconnection for " + awaitReconnect + " ms");
+			client.setAwait(true);
+			client.resetSocket();
+			client.setLostConnectionTime(System.currentTimeMillis());
+		}
+	}
+	
 	@Override
 	protected final CoreComponent provideSelf() {
 		return getGame().getServer();
@@ -229,6 +256,7 @@ public class Server extends CoreComponent {
 				} else {
 					// Perform additional initialization on new connection
 					joinHandler.handleJoin(getGame().isClient(), client);
+					getGame().getEventDispatcher().raiseEvent(null, new OnClientConnect(client, clientId));
 
 					// Success, return true
 					Logger.info("ACCEPTED connection from " + ip + " (" + clientId + ")");

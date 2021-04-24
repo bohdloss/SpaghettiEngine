@@ -4,8 +4,12 @@ import com.spaghetti.networking.NetworkBuffer;
 
 public interface Replicable {
 
-	public abstract void writeData(boolean isClient, NetworkBuffer dataBuffer);
+	public abstract void writeDataServer(NetworkBuffer dataBuffer);
 
-	public abstract void readData(boolean isClient, NetworkBuffer dataBuffer);
+	public abstract void readDataServer(NetworkBuffer dataBuffer);
 
+	public abstract void writeDataClient(NetworkBuffer dataBuffer);
+	
+	public abstract void readDataClient(NetworkBuffer dataBuffer);
+	
 }

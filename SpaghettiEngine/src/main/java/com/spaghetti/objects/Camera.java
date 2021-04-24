@@ -6,10 +6,12 @@ import org.joml.Vector3d;
 import org.lwjgl.opengl.GL11;
 
 import com.spaghetti.core.*;
-import com.spaghetti.interfaces.Replicate;
+import com.spaghetti.interfaces.*;
+import com.spaghetti.networking.NetworkBuffer;
 import com.spaghetti.render.*;
 import com.spaghetti.utils.*;
 
+@ToClient
 public class Camera extends GameObject {
 
 	// Instance fields
@@ -154,6 +156,17 @@ public class Camera extends GameObject {
 
 	}
 
+	@Override
+	public void readDataClient(NetworkBuffer buffer) {
+		super.readDataClient(buffer);
+		calcScale();
+	}
+	
+	@Override
+	public void writeDataServer(NetworkBuffer buffer) {
+		super.writeDataServer(buffer);
+	}
+	
 	@Override
 	public void render(Matrix4d projection, double delta) {
 		checkTarget();

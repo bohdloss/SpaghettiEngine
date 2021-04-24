@@ -75,30 +75,7 @@ public final class Physics extends GameObject {
 
 	// Networking
 
-	@Override
-	public void writeData(boolean isClient, NetworkBuffer buffer) {
-//		buffer.putInt(body_count);
-//		RigidBody body = body_list;
-//		while(body != null) {
-//			buffer.putLong(body.getId());
-//			body = body.next;
-//		}
-	}
-
-	@Override
-	public void readData(boolean isClient, NetworkBuffer buffer) {
-//		body_count = buffer.getInt();
-//		for(int i = 0; i < body_count; i++) {
-//			long id = buffer.getLong();
-//			RigidBody body = (RigidBody) getLevel().getComponent(id);
-//			if(body == null) {
-//				throw new NullPointerException();
-//			}
-//			if(!containsBody(body)) {
-//				addBody(body);
-//			}
-//		}
-	}
+	// TODO
 
 	// Getters
 

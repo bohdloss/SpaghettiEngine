@@ -9,8 +9,10 @@ public final class NetworkBuffer {
 	private static final Charset UTF_16 = Charset.forName("UTF-16");
 
 	protected ByteBuffer buffer;
+	protected final NetworkWorker owner;
 
-	public NetworkBuffer(int size) {
+	public NetworkBuffer(NetworkWorker owner, int size) {
+		this.owner = owner;
 		buffer = ByteBuffer.allocate(size);
 	}
 
@@ -274,6 +276,10 @@ public final class NetworkBuffer {
 
 	// Utility
 
+	public NetworkWorker getWorker() {
+		return owner;
+	}
+	
 	public void skip(int amount) {
 		buffer.position(buffer.position() + amount);
 	}

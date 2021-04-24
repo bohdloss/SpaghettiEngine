@@ -42,6 +42,8 @@ public class NetworkWorker {
 	protected Authenticator authenticator;
 	protected boolean ping = true;
 	protected boolean await;
+	protected HashMap<Class<?>, ClassReplicationRule> cls_rules;
+	protected HashMap<Field, FieldReplicationRule> field_rules;
 
 	// Cache
 	protected final byte[] ping_buf = new byte[PING.length];
@@ -120,8 +122,23 @@ public class NetworkWorker {
 
 	public NetworkWorker(CoreComponent parent) {
 		this.parent = parent;
-		this.w_buffer = new NetworkBuffer(Game.getGame().getOptions().getOption(GameOptions.PREFIX + "networkbuffer"));
-		this.r_buffer = new NetworkBuffer(Game.getGame().getOptions().getOption(GameOptions.PREFIX + "networkbuffer"));
+		this.w_buffer = new NetworkBuffer(this, Game.getGame().getOptions().getOption(GameOptions.PREFIX + "networkbuffer"));
+		this.r_buffer = new NetworkBuffer(this, Game.getGame().getOptions().getOption(GameOptions.PREFIX + "networkbuffer"));
+		
+		cls_rules = ClassReplicationRule.rules.get(parent.getGame());
+		if(cls_rules == null) {
+			HashMap<Class<?>, ClassReplicationRule> hm = new HashMap<>();
+			ClassReplicationRule.rules.put(parent.getGame(), hm);
+			cls_rules = hm;
+		}
+		
+		field_rules = FieldReplicationRule.rules.get(parent.getGame());
+		if(field_rules == null) {
+			HashMap<Field, FieldReplicationRule> hm = new HashMap<>();
+			FieldReplicationRule.rules.put(parent.getGame(), hm);
+			field_rules = hm;
+		}
+		
 		registerInterpreters();
 	}
 
@@ -193,7 +210,7 @@ public class NetworkWorker {
 		os.write(length_b);
 		os.write(w_buffer.asArray(), 0, length);
 		os.flush();
-
+		
 		w_buffer.clear();
 	}
 
@@ -204,7 +221,8 @@ public class NetworkWorker {
 				| (length_b[0] & 0xFF) << 24;
 
 		Utils.effectiveRead(is, r_buffer.asArray(), 0, length);
-		r_buffer.clear();
+		r_buffer.setPosition(0);
+		r_buffer.setLimit(length);
 	}
 
 	// Reflection caching
@@ -290,28 +308,6 @@ public class NetworkWorker {
 		return value;
 	}
 
-	protected static boolean toServer(Field field) {
-		Boolean value = m_toserver.get(field);
-		if (value == null) {
-			synchronized (m_toserver) {
-				value = field.getAnnotation(ToServer.class) != null;
-				m_toserver.put(field, value);
-			}
-		}
-		return value;
-	}
-
-	protected static boolean toServerClass(Class<?> cls) {
-		Boolean value = m_toservercls.get(cls);
-		if (value == null) {
-			synchronized (m_toservercls) {
-				value = cls.getAnnotation(ToServer.class) != null;
-				m_toservercls.put(cls, value);
-			}
-		}
-		return value;
-	}
-
 	protected static Field[] fields(Class<?> cls) {
 		Field[] fields_ = m_fields.get(cls);
 		if (fields_ == null) {
@@ -322,7 +318,39 @@ public class NetworkWorker {
 		}
 		return fields_;
 	}
+	
+	protected boolean test_writeClass(Class<?> cls) {
+		ClassReplicationRule rule = cls_rules.get(cls);
+		if(rule == null) {
+			rule = new ClassReplicationRule(cls);
+		}
+		return rule.testWrite();
+	}
+	
+	protected boolean test_readClass(Class<?> cls) {
+		ClassReplicationRule rule = cls_rules.get(cls);
+		if(rule == null) {
+			rule = new ClassReplicationRule(cls);
+		}
+		return rule.testRead();
+	}
 
+	protected boolean test_writeField(Field field) {
+		FieldReplicationRule rule = field_rules.get(field);
+		if(rule == null) {
+			rule = new FieldReplicationRule(field);
+		}
+		return rule.testWrite();
+	}
+	
+	protected boolean test_readField(Field field) {
+		FieldReplicationRule rule = field_rules.get(field);
+		if(rule == null) {
+			rule = new FieldReplicationRule(field);
+		}
+		return rule.testRead();
+	}
+	
 	protected static Field[] gatherReplicable(Class<?> cls) {
 		ArrayList<Field> list = null;
 		try {
@@ -412,47 +440,59 @@ public class NetworkWorker {
 	}
 
 	protected void writeObjectCustom(GameObject obj) {
-		boolean client = getGame().isClient();
 		// Here we write fields flagged with @Replicate in GameObjects
 		for (Field field : fields(obj.getClass())) {
-			if (client == toServer(field)) {
+			if (test_writeField(field)) {
 				writeField(field, obj);
 			}
 		}
-		obj.writeData(parent.getGame().isClient(), w_buffer);
+		if(getGame().isClient()) {
+			obj.writeDataClient(w_buffer);
+		} else {
+			obj.writeDataServer(w_buffer);
+		}
 	}
 
 	protected void readObjectCustom(GameObject obj) {
-		boolean client = getGame().isClient();
 		// Here we read fields flagged with @Replicate in GameObjects
 		for (Field field : fields(obj.getClass())) {
-			if (client != toServer(field)) {
+			if (test_readField(field)) {
 				readField(field, obj);
 			}
 		}
-		obj.readData(parent.getGame().isClient(), r_buffer);
+		if(getGame().isClient()) {
+			obj.readDataClient(r_buffer);
+		} else {
+			obj.readDataServer(r_buffer);
+		}
 	}
 
 	protected void writeComponentCustom(GameComponent comp) {
-		boolean client = getGame().isClient();
 		// Here we write fields flagged with @Replicate in GameComponents
 		for (Field field : fields(comp.getClass())) {
-			if (client == toServer(field)) {
+			if (test_writeField(field)) {
 				writeField(field, comp);
 			}
 		}
-		comp.writeData(parent.getGame().isClient(), w_buffer);
+		if(getGame().isClient()) {
+			comp.writeDataClient(w_buffer);
+		} else {
+			comp.writeDataServer(w_buffer);
+		}
 	}
 
 	protected void readComponentCustom(GameComponent comp) {
-		boolean client = getGame().isClient();
 		// Here we read fields flagged with @Replicate in GameComponents
 		for (Field field : fields(comp.getClass())) {
-			if (client != toServer(field)) {
+			if (test_readField(field)) {
 				readField(field, comp);
 			}
 		}
-		comp.readData(parent.getGame().isClient(), r_buffer);
+		if(getGame().isClient()) {
+			comp.writeDataClient(w_buffer);
+		} else {
+			comp.writeDataServer(w_buffer);
+		}
 	}
 
 	protected void writeEventCustom(GameEvent event) {
@@ -467,14 +507,6 @@ public class NetworkWorker {
 		for (Field field : fields(event.getClass())) {
 			readField(field, event);
 		}
-	}
-
-	protected boolean writeobj_test(Object obj) {
-		return !noReplicate(obj.getClass()) && (getGame().isServer() || toServerClass(obj.getClass()));
-	}
-
-	protected boolean readobj_test(Object obj) {
-		return !noReplicate(obj.getClass()) && (getGame().isClient() || toServerClass(obj.getClass()));
 	}
 
 	// Read / Write interface
@@ -517,6 +549,12 @@ public class NetworkWorker {
 				}
 				readActiveController(level);
 				break;
+			case Opcode.PLAYER:
+				if(getGame().isServer()) {
+					invalid_privilege(opcode);
+				}
+				readActivePlayer(level);
+				break;
 			case Opcode.DATA:
 				readData();
 				break;
@@ -533,7 +571,7 @@ public class NetworkWorker {
 
 		// Write objects
 		level.forEachActualObject((id, object) -> {
-			if (writeobj_test(object)) {
+			if (test_writeClass(object.getClass())) {
 				w_buffer.putByte(Opcode.ITEM);
 				int pos = w_buffer.getPosition();
 				w_buffer.skip(Integer.BYTES); // Allocate memory for skip destination
@@ -547,7 +585,7 @@ public class NetworkWorker {
 
 		// Write components
 		level.forEachComponent((id, component) -> {
-			if (writeobj_test(component)) {
+			if (test_writeClass(component.getClass())) {
 				w_buffer.putByte(Opcode.ITEM);
 				int pos = w_buffer.getPosition();
 				w_buffer.skip(Integer.BYTES); // Allocate memory for skip destination
@@ -575,7 +613,7 @@ public class NetworkWorker {
 				r_buffer.setPosition(skip);
 				continue;
 			}
-			if (!readobj_test(object)) {
+			if (!test_readClass(object.getClass())) {
 				if (getGame().isServer()) {
 					invalid_privilege(Opcode.DATA);
 				}
@@ -596,7 +634,7 @@ public class NetworkWorker {
 				r_buffer.setPosition(skip);
 				continue;
 			}
-			if (!readobj_test(component)) {
+			if (!test_readClass(component.getClass())) {
 				if (getGame().isServer()) {
 					invalid_privilege(Opcode.DATA);
 				}
@@ -683,6 +721,28 @@ public class NetworkWorker {
 		}
 	}
 
+	public void writeActivePlayer() {
+		w_buffer.putByte(Opcode.PLAYER);
+		w_buffer.putLong(player == null ? -1 : player.getId());
+	}
+	
+	public void readActivePlayer(Level level) {
+		long player_id = r_buffer.getLong();
+		// -1 means null
+		if (player_id != -1) {
+			// Obtain level player
+			GameObject level_player = level.getObject(player_id);
+
+			// Check differences with local player
+			if (level_player != player) {
+				// Apply changes
+				player = level_player;
+			}
+		} else {
+			player = null;
+		}
+	}
+	
 	public void writeChildren(GameObject obj) {
 		if (noReplicate(obj.getClass())) {
 			return;
@@ -753,7 +813,7 @@ public class NetworkWorker {
 	}
 
 	public void writeObject(GameObject obj) {
-		if (!writeobj_test(obj)) {
+		if (!test_writeClass(obj.getClass())) {
 			return;
 		}
 		w_buffer.putByte(Opcode.GAMEOBJECT);
@@ -777,7 +837,7 @@ public class NetworkWorker {
 			r_buffer.setPosition(skip);
 			return;
 		}
-		if (!readobj_test(obj)) {
+		if (!test_readClass(obj.getClass())) {
 			if (getGame().isServer()) {
 				invalid_privilege(Opcode.GAMEOBJECT);
 			}
@@ -789,7 +849,7 @@ public class NetworkWorker {
 	}
 
 	public void writeComponent(GameComponent comp) {
-		if (!writeobj_test(comp)) {
+		if (!test_writeClass(comp.getClass())) {
 			return;
 		}
 		w_buffer.putByte(Opcode.GAMECOMPONENT);
@@ -813,7 +873,7 @@ public class NetworkWorker {
 			r_buffer.setPosition(skip);
 			return;
 		}
-		if (!readobj_test(comp)) {
+		if (!test_readClass(comp.getClass())) {
 			if (getGame().isServer()) {
 				invalid_privilege(Opcode.GAMEOBJECT);
 			}
@@ -926,17 +986,31 @@ public class NetworkWorker {
 	// Utility methods
 
 	protected void invalid(byte opcode) {
-		Logger.warning("Remote client sent an invalid operation (" + (opcode & 0xff)
+		Logger.error("Remote host sent an invalid operation (" + (opcode & 0xff)
 				+ ") : the connection will be terminated");
-		resetSocket();
+		error_log(r_buffer);
+		throw new IllegalStateException();
 	}
 
 	protected void invalid_privilege(byte opcode) {
 		Logger.warning("Remote client doesn't have enough permission to perform the following operation ("
 				+ (opcode & 0xff) + ") : the connection will be terminated");
-		resetSocket();
+		error_log(r_buffer);
+		throw new IllegalStateException();
 	}
 
+	protected void error_log(NetworkBuffer buffer) {
+		Logger.error("Buffer position/limit/capacity: " +
+				buffer.getPosition() + "/" + buffer.getLimit() + "/" + buffer.getSize());
+		Logger.error("Last byte: " + (buffer.getByteAt(buffer.getPosition() - 1) & 0xFF));
+		Logger.error("Full buffer log:");
+		String dump = new String();
+		for(int i = 0; i < buffer.getLimit(); i++) {
+			dump += (buffer.asArray()[i] & 0xFF) + (i == buffer.getLimit() - 1 ? "" : ".");
+		}
+		Logger.error(dump);
+	}
+	
 	protected void recursive_flag(GameObject obj) {
 		// Flag this object as deletable
 		try {

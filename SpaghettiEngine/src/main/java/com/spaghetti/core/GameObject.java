@@ -1053,37 +1053,41 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 	}
 
 	@Override
-	public void writeData(boolean isClient, NetworkBuffer buffer) {
-		if (!isClient) {
-			buffer.putDouble(relativePosition.x);
-			buffer.putDouble(relativePosition.y);
-			buffer.putDouble(relativePosition.z);
+	public void writeDataServer(NetworkBuffer buffer) {
+		buffer.putDouble(relativePosition.x);
+		buffer.putDouble(relativePosition.y);
+		buffer.putDouble(relativePosition.z);
 
-			buffer.putDouble(relativeScale.x);
-			buffer.putDouble(relativeScale.y);
-			buffer.putDouble(relativeScale.z);
+		buffer.putDouble(relativeScale.x);
+		buffer.putDouble(relativeScale.y);
+		buffer.putDouble(relativeScale.z);
 
-			buffer.putDouble(relativeRotation.x);
-			buffer.putDouble(relativeRotation.y);
-			buffer.putDouble(relativeRotation.z);
-		}
+		buffer.putDouble(relativeRotation.x);
+		buffer.putDouble(relativeRotation.y);
+		buffer.putDouble(relativeRotation.z);
 	}
 
 	@Override
-	public void readData(boolean isClient, NetworkBuffer buffer) {
-		if (isClient) {
-			relativePosition.x = buffer.getDouble();
-			relativePosition.y = buffer.getDouble();
-			relativePosition.z = buffer.getDouble();
+	public void readDataServer(NetworkBuffer buffer) {
+	}
+	
+	@Override
+	public void writeDataClient(NetworkBuffer buffer) {
+	}
+	
+	@Override
+	public void readDataClient(NetworkBuffer buffer) {
+		relativePosition.x = buffer.getDouble();
+		relativePosition.y = buffer.getDouble();
+		relativePosition.z = buffer.getDouble();
 
-			relativeScale.x = buffer.getDouble();
-			relativeScale.y = buffer.getDouble();
-			relativeScale.z = buffer.getDouble();
+		relativeScale.x = buffer.getDouble();
+		relativeScale.y = buffer.getDouble();
+		relativeScale.z = buffer.getDouble();
 
-			relativeRotation.x = buffer.getDouble();
-			relativeRotation.y = buffer.getDouble();
-			relativeRotation.z = buffer.getDouble();
-		}
+		relativeRotation.x = buffer.getDouble();
+		relativeRotation.y = buffer.getDouble();
+		relativeRotation.z = buffer.getDouble();
 	}
 
 	// Event dispatching

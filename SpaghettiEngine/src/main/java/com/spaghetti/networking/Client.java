@@ -5,7 +5,8 @@ import java.net.*;
 import java.util.Scanner;
 
 import com.spaghetti.core.*;
-import com.spaghetti.interfaces.JoinHandler;
+import com.spaghetti.events.GameEvent;
+import com.spaghetti.interfaces.*;
 import com.spaghetti.utils.*;
 
 public class Client extends CoreComponent {
@@ -15,14 +16,34 @@ public class Client extends CoreComponent {
 	protected long clientId;
 	protected int reconnectAttempts = 10;
 
-	protected boolean justConnected;
-
 	public Client() {
 		joinHandler = new DefaultJoinHandler();
 	}
 
 	@Override
 	protected void initialize0() throws Throwable {
+		getGame().getEventDispatcher().registerEventHandler(new EventHandler() {
+
+			@Override
+			public void handleEvent(boolean isClient, GameObject issuer, GameEvent event) {
+				if(event instanceof OnClientConnect) {
+					OnClientConnect occ = (OnClientConnect) event;
+					NetworkWorker client = occ.getClient();
+					long clientId = occ.getClientId();
+					try {
+						client.writeSocket();
+						client.readSocket();
+						
+						client.parseOperations();
+						Logger.info("Connection correctly established");
+					} catch (Throwable t) {
+						internal_clienterror(t, client, clientId);
+					}
+				}
+			}
+			
+		});
+		
 		Scanner scanner = new Scanner(System.in);
 		String ip = scanner.nextLine();
 		String port = scanner.nextLine();
@@ -49,26 +70,30 @@ public class Client extends CoreComponent {
 
 				worker.parseOperations();
 			} catch (Throwable t) {
-				// Socket error, just reconnect
-				Logger.error("Exception occurred, attempting reconnection", t);
-				String ip = worker.getRemoteIp();
-				int port = worker.getRemotePort();
-				boolean status = false;
-				for (int attemtps = 0; attemtps < reconnectAttempts; attemtps++) {
-					Utils.sleep(1000);
-					if (internal_connect(ip, port)) {
-						status = true;
-						break;
-					}
-				}
-				if (!status) {
-					Logger.warning(
-							"Couldn't reconnect with server after " + reconnectAttempts + " attemtps, giving up");
-				}
+				internal_clienterror(t, worker, clientId);
 			}
 		}
 	}
 
+	protected void internal_clienterror(Throwable t, NetworkWorker client, long clientId) {
+		// Socket error, just reconnect
+		Logger.error("Exception occurred, attempting reconnection", t);
+		String ip = client.getRemoteIp();
+		int port = client.getRemotePort();
+		boolean status = false;
+		for (int attemtps = 0; attemtps < reconnectAttempts; attemtps++) {
+			Utils.sleep(1000);
+			if (internal_connect(ip, port)) {
+				status = true;
+				break;
+			}
+		}
+		if (!status) {
+			Logger.warning(
+					"Couldn't reconnect with server after " + reconnectAttempts + " attemtps, giving up");
+		}
+	}
+	
 	@Override
 	protected final CoreComponent provideSelf() {
 		return getGame().getClient();
@@ -94,7 +119,7 @@ public class Client extends CoreComponent {
 				internal_disconnect();
 				return false;
 			} else {
-				justConnected = true;
+				getGame().getEventDispatcher().raiseEvent(null, new OnClientConnect(worker, clientId));
 			}
 		} catch (UnknownHostException e) {
 			Logger.warning("Host could not be resolved: " + ip);
@@ -151,6 +176,10 @@ public class Client extends CoreComponent {
 		return worker.getLocalPort();
 	}
 
+	public NetworkWorker getWorker() {
+		return worker;
+	}
+	
 	public JoinHandler getJoinHandler() {
 		return joinHandler;
 	}

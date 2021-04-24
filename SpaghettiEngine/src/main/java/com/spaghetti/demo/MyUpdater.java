@@ -29,7 +29,7 @@ public class MyUpdater extends Updater {
 
 		floor = new Mesh(Model.get("square"), Material.get("defaultMAT"));
 		floor.setRelativeScale(15, 2, 1);
-		floor.setRelativePosition(0, -3, 0);
+		floor.setRelativePosition(0, -3, -5);
 
 		if (!getGame().isMultiplayer()) {
 			level.addObject(new Player());
@@ -37,6 +37,7 @@ public class MyUpdater extends Updater {
 
 		Mesh skybox = new Mesh(Model.get("square"), Material.get("m_skybox"));
 		skybox.setRelativeScale(20, 20, 1);
+		skybox.setRelativeZ(- 10);
 		level.addObject(skybox);
 		level.addObject(floor);
 	}

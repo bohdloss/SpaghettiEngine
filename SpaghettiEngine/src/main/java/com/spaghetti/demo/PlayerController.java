@@ -6,16 +6,15 @@ import org.joml.Vector3d;
 import com.spaghetti.core.GameWindow;
 import com.spaghetti.input.Controller;
 import com.spaghetti.input.Keys;
-import com.spaghetti.interfaces.*;
+import com.spaghetti.interfaces.Replicate;
 import com.spaghetti.physics.RigidBody;
 import com.spaghetti.utils.CMath;
 
-@ToServer
 public class PlayerController extends Controller {
 
 	protected Player player;
 	protected RigidBody rb;
-
+	
 	@Override
 	protected void onBeginPlay() {
 		player = (Player) getOwner();

@@ -4,17 +4,21 @@ import org.joml.Vector3d;
 
 import com.spaghetti.core.*;
 import com.spaghetti.input.Controller;
+import com.spaghetti.interfaces.*;
 import com.spaghetti.networking.NetworkBuffer;
 import com.spaghetti.objects.*;
 import com.spaghetti.render.*;
 
+@Bidirectional
 public class Player extends GameObject {
 
 	public Player() {
-		addChild(new Mesh(Model.get("square"), Material.get("defaultMAT")));
-		addChild(new Camera());
-		getChild(Camera.class).setFov(20);
-		addComponent(new PlayerController());
+		if(Game.getGame().hasAuthority()) {
+			addChild(new Mesh(Model.get("square"), Material.get("defaultMAT")));
+			addChild(new Camera());
+			getChild(Camera.class).setFov(20);
+			addComponent(new PlayerController());
+		}
 	}
 
 	@Override
@@ -25,10 +29,13 @@ public class Player extends GameObject {
 		}
 	}
 
+	public boolean isLocal() {
+		return getGame().getClient() == null ? true : getGame().getClient().getWorker().player == this;
+	}
+	
 	@Override
-	public void writeData(boolean isClient, NetworkBuffer buffer) {
-//		super.writeData(isClient, buffer);
-		if (isClient) {
+	public void writeDataServer(NetworkBuffer buffer) {
+		if(buffer.getWorker().player != this) {
 			Vector3d vec = new Vector3d();
 			getRelativePosition(vec);
 			buffer.putDouble(vec.x);
@@ -38,9 +45,8 @@ public class Player extends GameObject {
 	}
 
 	@Override
-	public void readData(boolean isClient, NetworkBuffer buffer) {
-//		super.readData(isClient, buffer);
-		if (!isClient) {
+	public void readDataServer(NetworkBuffer buffer) {
+		if(buffer.getWorker().player == this) {
 			Vector3d vec = new Vector3d();
 			vec.x = buffer.getDouble();
 			vec.y = buffer.getDouble();
@@ -49,4 +55,26 @@ public class Player extends GameObject {
 		}
 	}
 
+	@Override
+	public void writeDataClient(NetworkBuffer buffer) {
+		if(isLocal()) {
+			Vector3d vec = new Vector3d();
+			getRelativePosition(vec);
+			buffer.putDouble(vec.x);
+			buffer.putDouble(vec.y);
+			buffer.putDouble(vec.z);
+		}
+	}
+	
+	@Override
+	public void readDataClient(NetworkBuffer buffer) {
+		if(!isLocal()) {
+			Vector3d vec = new Vector3d();
+			vec.x = buffer.getDouble();
+			vec.y = buffer.getDouble();
+			vec.z = buffer.getDouble();
+			setRelativePosition(vec);
+		}
+	}
+	
 }

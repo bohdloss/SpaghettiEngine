@@ -21,7 +21,7 @@ public class AsyncServerSocket {
 		this.channel = ServerSocketChannel.open();
 		this.server = channel.socket();
 		this.selector = Selector.open();
-		server.bind(new InetSocketAddress("localhost", port));
+		server.bind(new InetSocketAddress(port));
 		channel.configureBlocking(false);
 		channel.register(selector, SelectionKey.OP_ACCEPT);
 	}
