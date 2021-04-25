@@ -1,5 +1,4 @@
 @echo off
-
 echo COMPILING...
-mvn compile assembly:single
+call mvn compile assembly:single
 echo COMPILED

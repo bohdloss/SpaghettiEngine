@@ -1,2 +1,3 @@
-make.bat
-run.nat
+@echo off
+call make.bat
+call run.bat

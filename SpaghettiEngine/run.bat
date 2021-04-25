@@ -1,9 +1,10 @@
-@echo off
+@ECHO OFF
 
 echo RUNNING..
 cd target
 dir /s/b *.jar > name.txt
-set jar_name=<name.txt
+set /p JARNAME=<name.txt
+java -jar %JARNAME%
 del name.txt
-java -jar %jar_name%
 echo DONE
+cd ..
