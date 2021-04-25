@@ -1054,17 +1054,32 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 
 	@Override
 	public void writeDataServer(NetworkBuffer buffer) {
-		buffer.putDouble(relativePosition.x);
-		buffer.putDouble(relativePosition.y);
-		buffer.putDouble(relativePosition.z);
+		if (relativePosition.x == 0 && relativePosition.y == 0 && relativePosition.z == 0) {
+			buffer.putBoolean(true);
+		} else {
+			buffer.putBoolean(false);
+			buffer.putDouble(relativePosition.x);
+			buffer.putDouble(relativePosition.y);
+			buffer.putDouble(relativePosition.z);
+		}
 
-		buffer.putDouble(relativeScale.x);
-		buffer.putDouble(relativeScale.y);
-		buffer.putDouble(relativeScale.z);
+		if (relativeScale.x == 0 && relativeScale.y == 0 && relativeScale.z == 0) {
+			buffer.putBoolean(true);
+		} else {
+			buffer.putBoolean(false);
+			buffer.putDouble(relativeScale.x);
+			buffer.putDouble(relativeScale.y);
+			buffer.putDouble(relativeScale.z);
+		}
 
-		buffer.putDouble(relativeRotation.x);
-		buffer.putDouble(relativeRotation.y);
-		buffer.putDouble(relativeRotation.z);
+		if (relativeRotation.x == 0 && relativeRotation.y == 0 && relativeRotation.z == 0) {
+			buffer.putBoolean(true);
+		} else {
+			buffer.putBoolean(false);
+			buffer.putDouble(relativeRotation.x);
+			buffer.putDouble(relativeRotation.y);
+			buffer.putDouble(relativeRotation.z);
+		}
 	}
 
 	@Override
@@ -1077,17 +1092,35 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 
 	@Override
 	public void readDataClient(NetworkBuffer buffer) {
-		relativePosition.x = buffer.getDouble();
-		relativePosition.y = buffer.getDouble();
-		relativePosition.z = buffer.getDouble();
+		if (buffer.getBoolean()) {
+			relativePosition.x = 0;
+			relativePosition.y = 0;
+			relativePosition.z = 0;
+		} else {
+			relativePosition.x = buffer.getDouble();
+			relativePosition.y = buffer.getDouble();
+			relativePosition.z = buffer.getDouble();
+		}
 
-		relativeScale.x = buffer.getDouble();
-		relativeScale.y = buffer.getDouble();
-		relativeScale.z = buffer.getDouble();
+		if (buffer.getBoolean()) {
+			relativeScale.x = 0;
+			relativeScale.y = 0;
+			relativeScale.z = 0;
+		} else {
+			relativeScale.x = buffer.getDouble();
+			relativeScale.y = buffer.getDouble();
+			relativeScale.z = buffer.getDouble();
+		}
 
-		relativeRotation.x = buffer.getDouble();
-		relativeRotation.y = buffer.getDouble();
-		relativeRotation.z = buffer.getDouble();
+		if (buffer.getBoolean()) {
+			relativeRotation.x = 0;
+			relativeRotation.y = 0;
+			relativeRotation.z = 0;
+		} else {
+			relativeRotation.x = buffer.getDouble();
+			relativeRotation.y = buffer.getDouble();
+			relativeRotation.z = buffer.getDouble();
+		}
 	}
 
 	// Event dispatching

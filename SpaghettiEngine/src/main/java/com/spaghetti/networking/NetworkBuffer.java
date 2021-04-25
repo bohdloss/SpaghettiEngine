@@ -3,10 +3,17 @@ package com.spaghetti.networking;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 
+import com.spaghetti.utils.Utils;
+
 public final class NetworkBuffer {
 
 	private static final byte b0 = (byte) 0, b1 = (byte) 1;
-	private static final Charset UTF_16 = Charset.forName("UTF-16");
+	public static final Charset UTF_16 = Charset.forName("UTF-16");
+	public static final Charset UTF_16BE = Charset.forName("UTF-16BE");
+	public static final Charset UTF_16LE = Charset.forName("UTF-16LE");
+	public static final Charset UTF_8 = Charset.forName("UTF-8");
+	public static final Charset US_ASCII = Charset.forName("US-ASCII");
+	public static final Charset ISO_8859_1 = Charset.forName("ISO-8859-1");
 
 	protected ByteBuffer buffer;
 	protected final NetworkWorker owner;
@@ -197,32 +204,91 @@ public final class NetworkBuffer {
 	}
 
 	// String
-	public void putString(String v) {
-		byte[] array = v.getBytes(UTF_16);
+	public void putString(boolean cache, String v, Charset charset) {
+		if (cache) {
+			short hash = Utils.shortHash(v);
+			buffer.putShort(hash);
+			if (!owner.str_cache.containsKey(hash)) {
+				owner.str_cache.put(hash, v);
+			} else {
+				return;
+			}
+		}
+		byte[] array = v.getBytes(charset);
 		buffer.putInt(array.length);
 		buffer.put(array);
 	}
 
-	public void putStringAt(int index, String v) {
-		byte[] array = v.getBytes(UTF_16);
+	public void putString(String v, Charset charset) {
+		putString(false, v, charset);
+	}
+
+	public void putStringAt(int index, boolean cache, String v, Charset charset) {
+		if (cache) {
+			putShortAt(index, (short) owner.str_cache.size());
+			owner.str_cache.put((short) owner.str_cache.size(), v);
+			index += Short.BYTES;
+		}
+		byte[] array = v.getBytes(charset);
 		buffer.putInt(index, array.length);
 		putBytesAt(index + Integer.BYTES, array);
 	}
 
-	public String getString() {
+	public void putStringAt(int index, String v, Charset charset) {
+		putStringAt(index, false, v, charset);
+	}
+
+	public void putString(String v) {
+		putString(v, UTF_8);
+	}
+
+	public void putStringAt(int index, String v) {
+		putStringAt(index, v, UTF_8);
+	}
+
+	public String getString(boolean cache, Charset charset) {
+		if (cache) {
+			short hash = buffer.getShort();
+			if (!owner.str_cache.containsKey(hash)) {
+				int length = buffer.getInt();
+				byte[] bytes = new byte[length];
+				buffer.get(bytes, 0, length);
+				String str = new String(bytes, charset);
+				owner.str_cache.put(hash, str);
+				return str;
+			} else {
+				return owner.str_cache.get(hash);
+			}
+		}
 		int length = buffer.getInt();
 		byte[] bytes = new byte[length];
 		buffer.get(bytes, 0, length);
-		String ret = new String(bytes, UTF_16);
+		String ret = new String(bytes, charset);
 		return ret;
 	}
 
-	public String getStringAt(int index) {
+	public String getString(Charset charset) {
+		return getString(false, charset);
+	}
+
+	public String getStringAt(int index, boolean cache, Charset charset) {
 		int length = buffer.getInt(index);
 		byte[] bytes = new byte[length];
 		getBytesAt(index + Integer.BYTES, bytes);
-		String ret = new String(bytes, UTF_16);
+		String ret = new String(bytes, charset);
 		return ret;
+	}
+
+	public String getStringAt(int index, Charset charset) {
+		return getStringAt(index, false, charset);
+	}
+
+	public String getString() {
+		return getString(UTF_8);
+	}
+
+	public String getStringAt(int index) {
+		return getStringAt(index, UTF_8);
 	}
 
 	// Generic

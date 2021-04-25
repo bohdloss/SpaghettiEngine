@@ -3,14 +3,12 @@ package com.spaghetti.objects;
 import org.joml.Matrix4d;
 
 import com.spaghetti.core.*;
-import com.spaghetti.interfaces.Replicate;
+import com.spaghetti.networking.NetworkBuffer;
 import com.spaghetti.render.*;
 
 public class Mesh extends GameObject {
 
-	@Replicate
 	protected Model model;
-	@Replicate
 	protected Material material;
 
 	public Mesh(Model model, Material material) {
@@ -45,6 +43,22 @@ public class Mesh extends GameObject {
 
 	public void setMaterial(Material material) {
 		this.material = material;
+	}
+
+	@Override
+	public void writeDataServer(NetworkBuffer buffer) {
+		super.writeDataServer(buffer);
+		buffer.putString(true, model == null ? "" : model.getName(), NetworkBuffer.UTF_8);
+		buffer.putString(true, material == null ? "" : material.getName(), NetworkBuffer.UTF_8);
+	}
+
+	@Override
+	public void readDataClient(NetworkBuffer buffer) {
+		super.readDataClient(buffer);
+		String modelname = buffer.getString(true, NetworkBuffer.UTF_8);
+		String materialname = buffer.getString(true, NetworkBuffer.UTF_8);
+		this.model = modelname.equals("") ? null : getGame().getAssetManager().model(modelname);
+		this.material = materialname.equals("") ? null : getGame().getAssetManager().material(materialname);
 	}
 
 }

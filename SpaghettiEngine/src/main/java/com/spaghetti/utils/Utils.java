@@ -101,4 +101,31 @@ public final class Utils {
 		return newval ? (num | mask) : (num & mask);
 	}
 
+	public static long longHash(String str) {
+		long hash = 1125899906842597L;
+
+		for (int i = 0; i < str.length(); i++) {
+			hash = 31 * hash + str.charAt(i);
+		}
+		return hash;
+	}
+
+	public static int intHash(String str) {
+		int hash = 13464481;
+
+		for (int i = 0; i < str.length(); i++) {
+			hash = 31 * hash + str.charAt(i);
+		}
+		return hash;
+	}
+
+	public static short shortHash(String str) {
+		short hash = 14951;
+
+		for (int i = 0; i < str.length(); i++) {
+			hash = (short) (hash * 31 + str.charAt(i));
+		}
+		return hash;
+	}
+
 }

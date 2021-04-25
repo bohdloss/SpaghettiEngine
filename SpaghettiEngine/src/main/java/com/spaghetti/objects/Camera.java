@@ -6,18 +6,15 @@ import org.joml.Vector3d;
 import org.lwjgl.opengl.GL11;
 
 import com.spaghetti.core.*;
-import com.spaghetti.interfaces.*;
 import com.spaghetti.networking.NetworkBuffer;
 import com.spaghetti.render.*;
 import com.spaghetti.utils.*;
 
-@ToClient
 public class Camera extends GameObject {
 
 	// Instance fields
 
 	protected double scale;
-	@Replicate
 	protected double fov = 10;
 	protected double targetRatio = 16 / 9; // 16:9 resolution
 
@@ -26,7 +23,6 @@ public class Camera extends GameObject {
 	protected Matrix4d view = new Matrix4d();
 
 	protected int width, height;
-	@Replicate
 	protected boolean clearColor = true, clearDepth = true, clearStencil = true;
 
 	protected FrameBuffer renderTarget;
@@ -165,12 +161,20 @@ public class Camera extends GameObject {
 	@Override
 	public void readDataClient(NetworkBuffer buffer) {
 		super.readDataClient(buffer);
+		fov = buffer.getDouble();
+		clearColor = buffer.getBoolean();
+		clearDepth = buffer.getBoolean();
+		clearStencil = buffer.getBoolean();
 		calcScale();
 	}
 
 	@Override
 	public void writeDataServer(NetworkBuffer buffer) {
 		super.writeDataServer(buffer);
+		buffer.putDouble(fov);
+		buffer.putBoolean(clearColor);
+		buffer.putBoolean(clearDepth);
+		buffer.putBoolean(clearStencil);
 	}
 
 	@Override

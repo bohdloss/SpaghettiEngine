@@ -254,11 +254,7 @@ public class Server extends CoreComponent {
 
 		// Hash remote ip address
 		String ip = ((InetSocketAddress) socket.getRemoteSocketAddress()).getAddress().getHostAddress();
-		long hash = 1125899906842597L;
-
-		for (int i = 0; i < ip.length(); i++) {
-			hash = 31 * hash + ip.charAt(i);
-		}
+		long hash = Utils.longHash(ip);
 
 		// Check if client is banned
 		Long clientId = new Long(hash);

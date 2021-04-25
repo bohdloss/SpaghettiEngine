@@ -210,14 +210,15 @@ public final class DefaultInterpreters {
 		interpreters.put("com.spaghetti.assets.Asset", new ClassInterpreter() {
 			@Override
 			public void writeClass(Field field, Object object, NetworkBuffer buffer) throws IllegalAccessException {
-				buffer.putString(((Asset) field.get(object)).getName());
+				Asset asset = (Asset) field.get(object);
+				buffer.putString(asset == null ? "" : asset.getName());
 			}
 
 			@Override
 			public void readClass(Field field, Object object, NetworkBuffer buffer) throws IllegalAccessException {
 				AssetManager asset_manager = Game.getGame().getAssetManager();
 				String asset_name = buffer.getString();
-				Asset asset = asset_manager.custom(asset_name);
+				Asset asset = asset_name.equals("") ? null : asset_manager.custom(asset_name);
 				field.set(object, asset);
 			}
 		});

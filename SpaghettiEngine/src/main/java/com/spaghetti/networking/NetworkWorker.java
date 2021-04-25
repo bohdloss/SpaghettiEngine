@@ -50,6 +50,7 @@ public class NetworkWorker {
 	protected final byte[] ping_buf = new byte[PING.length];
 	protected final byte[] pong_buf = new byte[PONG.length];
 	protected final ArrayList<Object> delete_list = new ArrayList<>(256);
+	protected final HashMap<Short, String> str_cache = new HashMap<>();
 
 	// Player info
 	public GameObject player;
@@ -185,6 +186,7 @@ public class NetworkWorker {
 		}
 		this.socket = socket;
 		ping = true;
+		str_cache.clear();
 	}
 
 	public void provideAuthenticator(Authenticator authenticator) {
@@ -196,6 +198,7 @@ public class NetworkWorker {
 			Socket s = this.socket;
 			this.socket = null;
 			Utils.socketClose(s);
+			str_cache.clear();
 		}
 	}
 
@@ -753,14 +756,14 @@ public class NetworkWorker {
 		w_buffer.putByte(Opcode.ITEM); // Put item flag
 
 		w_buffer.putLong(obj.getId()); // Put id of the object
-		w_buffer.putString(obj.getClass().getName()); // Put class of the object
+		w_buffer.putString(true, obj.getClass().getName(), NetworkBuffer.UTF_8); // Put class of the object
 
 		obj.forEachComponent((id, component) -> {
 			if (!noReplicate(component.getClass())) {
 				w_buffer.putByte(Opcode.ITEM); // Put item flag
 
 				w_buffer.putLong(component.getId()); // Put id of component
-				w_buffer.putString(component.getClass().getName()); // Put class of component
+				w_buffer.putString(true, component.getClass().getName(), NetworkBuffer.UTF_8); // Put class of component
 			}
 		});
 		w_buffer.putByte(Opcode.STOP); // Put stop flag
@@ -774,7 +777,7 @@ public class NetworkWorker {
 
 		try {
 			long id = r_buffer.getLong(); // Get id of object
-			String clazz = r_buffer.getString(); // Get class of object
+			String clazz = r_buffer.getString(true, NetworkBuffer.UTF_8); // Get class of object
 
 			GameObject object = level.getObject(id);
 			if (object == null) {
@@ -796,7 +799,7 @@ public class NetworkWorker {
 			// Check for item flag
 			while (r_buffer.getByte() == Opcode.ITEM) {
 				long comp_id = r_buffer.getLong(); // Get id of component
-				String comp_clazz = r_buffer.getString(); // Get class of component
+				String comp_clazz = r_buffer.getString(true, NetworkBuffer.UTF_8); // Get class of component
 
 				GameComponent component = object.getComponent(comp_id);
 				if (component == null) {
@@ -1026,7 +1029,10 @@ public class NetworkWorker {
 	protected void error_log(NetworkBuffer buffer) {
 		Logger.error("Buffer position/limit/capacity: " + buffer.getPosition() + "/" + buffer.getLimit() + "/"
 				+ buffer.getSize());
-		Logger.error("Last byte: " + (buffer.getByteAt(buffer.getPosition() - 1) & 0xFF));
+		try {
+			Logger.error("Last byte: " + (buffer.getByteAt(buffer.getPosition() - 1) & 0xFF));
+		} catch (Throwable t) {
+		}
 		Logger.error("Full buffer log:");
 		String dump = new String();
 		for (int i = 0; i < buffer.getLimit(); i++) {
