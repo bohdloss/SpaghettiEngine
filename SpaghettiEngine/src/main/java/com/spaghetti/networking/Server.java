@@ -3,19 +3,19 @@ package com.spaghetti.networking;
 import java.io.IOException;
 import java.net.*;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.Iterator;
-import java.util.Scanner;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.spaghetti.core.*;
 import com.spaghetti.events.GameEvent;
-import com.spaghetti.interfaces.EventHandler;
 import com.spaghetti.interfaces.JoinHandler;
 import com.spaghetti.utils.*;
 
 public class Server extends CoreComponent {
 
+	protected HashMap<GameObject, Object> events = new HashMap<>();
 	protected AsyncServerSocket server;
 	protected JoinHandler joinHandler;
 	protected ConcurrentHashMap<Long, NetworkWorker> clients = new ConcurrentHashMap<>();
@@ -31,34 +31,27 @@ public class Server extends CoreComponent {
 
 	@Override
 	protected void initialize0() throws Throwable {
-		getGame().getEventDispatcher().registerEventHandler(new EventHandler() {
+		getGame().getEventDispatcher().registerEventHandler((isClient, issuer, event) -> {
+			if (event instanceof OnClientConnect) {
+				OnClientConnect occ = (OnClientConnect) event;
+				NetworkWorker client = occ.getClient();
+				long clientId = occ.getClientId();
+				try {
+					client.writeLevel();
+					client.writeActivePlayer();
+					client.writeActiveCamera();
+					client.writeActiveController();
 
-			@Override
-			public void handleEvent(boolean isClient, GameObject issuer, GameEvent event) {
-				if(event instanceof OnClientConnect) {
-					OnClientConnect occ = (OnClientConnect) event;
-					NetworkWorker client = occ.getClient();
-					long clientId = occ.getClientId();
-					try {
-						client.writeLevel();
-						client.writeActivePlayer();
-						client.writeActiveCamera();
-						client.writeActiveController();
-						
-						client.writeSocket();
-						client.readSocket();
-						Logger.info("Connection correctly establised with client " + clientId);
-					} catch (Throwable t) {
-						internal_clienterror(t, client, clientId);
-					}
+					client.writeSocket();
+					client.readSocket();
+					Logger.info("Connection correctly establised with client " + clientId);
+				} catch (Throwable t) {
+					internal_clienterror(t, client, clientId);
 				}
 			}
-			
 		});
-		
-		Scanner scanner = new Scanner(System.in);
-		String port = scanner.nextLine();
-		internal_bind(Integer.parseInt(port));
+
+		internal_bind(9018);
 	}
 
 	@Override
@@ -81,9 +74,21 @@ public class Server extends CoreComponent {
 					if (!client.isConnected()) {
 						continue;
 					}
-					
+
+					synchronized (events) {
+						events.forEach((issuer, event) -> {
+							if (GameEvent.class.isAssignableFrom(event.getClass())) {
+								GameEvent game_event = (GameEvent) event;
+								if (!game_event.skip(client, false)) {
+									client.writeGameEvent(issuer, game_event);
+								}
+							} else {
+								client.writeIntention(issuer, (Long) event);
+							}
+						});
+					}
 					client.writeData();
-					
+
 					// Write / read routine, in this order for client synchronization
 					client.writeSocket();
 					client.readSocket();
@@ -93,6 +98,9 @@ public class Server extends CoreComponent {
 				} catch (Throwable t) {
 					internal_clienterror(t, entry.getValue(), entry.getKey());
 				}
+			}
+			synchronized (events) {
+				events.clear();
 			}
 
 			for (Iterator<Entry<Long, NetworkWorker>> iterator = clients.entrySet().iterator(); iterator.hasNext();) {
@@ -115,6 +123,26 @@ public class Server extends CoreComponent {
 		}
 	}
 
+	@Override
+	protected final CoreComponent provideSelf() {
+		return getGame().getServer();
+	}
+
+	public void queueEvent(GameObject issuer, GameEvent event) {
+		if (event == null) {
+			throw new IllegalArgumentException();
+		}
+		synchronized (events) {
+			events.put(issuer, event);
+		}
+	}
+
+	public void queueIntention(GameObject issuer, long intention) {
+		synchronized (events) {
+			events.put(issuer, intention);
+		}
+	}
+
 	protected void internal_clienterror(Throwable error, NetworkWorker client, long clientId) {
 		Logger.error("Exception occurred in client " + clientId, error);
 
@@ -134,11 +162,6 @@ public class Server extends CoreComponent {
 			client.resetSocket();
 			client.setLostConnectionTime(System.currentTimeMillis());
 		}
-	}
-	
-	@Override
-	protected final CoreComponent provideSelf() {
-		return getGame().getServer();
 	}
 
 	public boolean kick(long id) {
@@ -255,7 +278,7 @@ public class Server extends CoreComponent {
 					internal_kick(clientId);
 				} else {
 					// Perform additional initialization on new connection
-					joinHandler.handleJoin(getGame().isClient(), client);
+					joinHandler.handleJoin(false, client);
 					getGame().getEventDispatcher().raiseEvent(null, new OnClientConnect(client, clientId));
 
 					// Success, return true

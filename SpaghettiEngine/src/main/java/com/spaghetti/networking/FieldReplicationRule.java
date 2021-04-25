@@ -9,64 +9,62 @@ import com.spaghetti.interfaces.*;
 public class FieldReplicationRule {
 
 	public static final HashMap<Game, HashMap<Field, FieldReplicationRule>> rules = new HashMap<>();
-	
+
 	protected static enum ReplicationType {
-		TOSERVER,
-		TOCLIENT,
-		BIDIRECTIONAL
+		TOSERVER, TOCLIENT, BIDIRECTIONAL
 	}
-	
+
 	protected final Field target;
 	protected boolean calculated;
 	protected boolean readRule;
 	protected boolean writeRule;
-	
+
 	public FieldReplicationRule(Field target) {
-		if(target == null) {
+		if (target == null) {
 			throw new IllegalArgumentException();
 		}
-		this.target =  target;
-		synchronized(rules) {
+		this.target = target;
+		synchronized (rules) {
 			Game game = Game.getGame();
 			HashMap<Field, FieldReplicationRule> game_map = rules.get(game);
-			if(game_map == null) {
+			if (game_map == null) {
 				game_map = new HashMap<>();
 				rules.put(game, game_map);
 			}
 			game_map.put(target, this);
 		}
 	}
-	
+
 	protected boolean calculateRule(boolean write) {
 		boolean client = Game.getGame().isClient();
-		
+
 		// Allow custom tags on fields only if the enclosing class is Bidirectional
 		// otherwise inherit the class' tag
 		ReplicationType reptype = ReplicationType.TOCLIENT;
 		Class<?> declaring = target.getDeclaringClass();
-		if(declaring.getAnnotation(Bidirectional.class) != null) {
-			
+		if (declaring.getAnnotation(Bidirectional.class) != null) {
+
 			// Determine replication type
-			if(target.getAnnotation(ToServer.class) != null) {
+			if (target.getAnnotation(ToServer.class) != null) {
 				reptype = ReplicationType.TOSERVER;
-			} else if(target.getAnnotation(ToClient.class) != null) {
+			} else if (target.getAnnotation(ToClient.class) != null) {
 				reptype = ReplicationType.TOCLIENT;
-			} else if(target.getAnnotation(Bidirectional.class) != null) {
+			} else if (target.getAnnotation(Bidirectional.class) != null) {
 				reptype = ReplicationType.BIDIRECTIONAL;
 			}
-			
+
 		} else {
-			
+
 			// Determine inherited replication type
-			if(declaring.getAnnotation(ToServer.class) != null) {
+			if (declaring.getAnnotation(ToServer.class) != null) {
 				reptype = ReplicationType.TOSERVER;
-			} else if(declaring.getAnnotation(ToClient.class) != null) {
+			} else if (declaring.getAnnotation(ToClient.class) != null) {
 				reptype = ReplicationType.TOCLIENT;
 			}
-			
+
 		}
-		
-		switch(reptype) {
+
+		switch (reptype) {
 		case TOCLIENT:
 			return client != write;
 		case TOSERVER:
@@ -76,29 +74,29 @@ public class FieldReplicationRule {
 		}
 		return true;
 	}
-	
+
 	public boolean testWrite() {
-		if(!calculated) {
+		if (!calculated) {
 			writeRule = calculateRule(true);
 			readRule = calculateRule(false);
 			calculated = true;
 		}
 		return writeRule;
 	}
-	
+
 	public boolean testRead() {
-		if(!calculated) {
+		if (!calculated) {
 			writeRule = calculateRule(true);
 			readRule = calculateRule(false);
 			calculated = true;
 		}
 		return readRule;
 	}
-	
+
 	// Getters and setters
-	
+
 	public final Field getTargetClass() {
 		return target;
 	}
-	
+
 }

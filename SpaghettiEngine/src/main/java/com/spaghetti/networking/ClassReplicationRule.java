@@ -8,51 +8,49 @@ import com.spaghetti.interfaces.*;
 public class ClassReplicationRule {
 
 	public static final HashMap<Game, HashMap<Class<?>, ClassReplicationRule>> rules = new HashMap<>();
-	
+
 	protected static enum ReplicationType {
-		TOSERVER,
-		TOCLIENT,
-		BIDIRECTIONAL
+		TOSERVER, TOCLIENT, BIDIRECTIONAL
 	}
-	
+
 	protected final Class<?> target;
 	protected boolean calculated;
 	protected boolean readRule;
 	protected boolean writeRule;
-	
+
 	public ClassReplicationRule(Class<?> target) {
-		if(target == null) {
+		if (target == null) {
 			throw new IllegalArgumentException();
 		}
-		this.target =  target;
-		synchronized(rules) {
+		this.target = target;
+		synchronized (rules) {
 			Game game = Game.getGame();
 			HashMap<Class<?>, ClassReplicationRule> game_map = rules.get(game);
-			if(game_map == null) {
+			if (game_map == null) {
 				game_map = new HashMap<>();
 				rules.put(game, game_map);
 			}
 			game_map.put(target, this);
 		}
 	}
-	
+
 	protected boolean calculateRule(boolean write) {
 		boolean client = Game.getGame().isClient();
-		if(target.getAnnotation(NoReplicate.class) != null) {
+		if (target.getAnnotation(NoReplicate.class) != null) {
 			return false;
 		}
-		
+
 		// Determine replication type
 		ReplicationType reptype = ReplicationType.TOCLIENT;
-		if(target.getAnnotation(ToServer.class) != null) {
+		if (target.getAnnotation(ToServer.class) != null) {
 			reptype = ReplicationType.TOSERVER;
-		} else if(target.getAnnotation(ToClient.class) != null) {
+		} else if (target.getAnnotation(ToClient.class) != null) {
 			reptype = ReplicationType.TOCLIENT;
-		} else if(target.getAnnotation(Bidirectional.class) != null) {
+		} else if (target.getAnnotation(Bidirectional.class) != null) {
 			reptype = ReplicationType.BIDIRECTIONAL;
 		}
-		
-		switch(reptype) {
+
+		switch (reptype) {
 		case TOCLIENT:
 			return client != write;
 		case TOSERVER:
@@ -62,29 +60,29 @@ public class ClassReplicationRule {
 		}
 		return true;
 	}
-	
+
 	public boolean testWrite() {
-		if(!calculated) {
+		if (!calculated) {
 			writeRule = calculateRule(true);
 			readRule = calculateRule(false);
 			calculated = true;
 		}
 		return writeRule;
 	}
-	
+
 	public boolean testRead() {
-		if(!calculated) {
+		if (!calculated) {
 			writeRule = calculateRule(true);
 			readRule = calculateRule(false);
 			calculated = true;
 		}
 		return readRule;
 	}
-	
+
 	// Getters and setters
-	
+
 	public final Class<?> getTargetClass() {
 		return target;
 	}
-	
+
 }

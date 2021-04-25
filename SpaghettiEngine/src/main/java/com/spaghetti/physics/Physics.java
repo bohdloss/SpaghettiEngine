@@ -4,7 +4,6 @@ import org.joml.Vector2d;
 
 import com.spaghetti.core.GameObject;
 import com.spaghetti.interfaces.Replicate;
-import com.spaghetti.networking.NetworkBuffer;
 
 public final class Physics extends GameObject {
 

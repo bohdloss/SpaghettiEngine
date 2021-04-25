@@ -279,7 +279,7 @@ public final class NetworkBuffer {
 	public NetworkWorker getWorker() {
 		return owner;
 	}
-	
+
 	public void skip(int amount) {
 		buffer.position(buffer.position() + amount);
 	}

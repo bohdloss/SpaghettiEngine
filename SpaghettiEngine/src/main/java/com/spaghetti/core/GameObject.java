@@ -1070,11 +1070,11 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 	@Override
 	public void readDataServer(NetworkBuffer buffer) {
 	}
-	
+
 	@Override
 	public void writeDataClient(NetworkBuffer buffer) {
 	}
-	
+
 	@Override
 	public void readDataClient(NetworkBuffer buffer) {
 		relativePosition.x = buffer.getDouble();

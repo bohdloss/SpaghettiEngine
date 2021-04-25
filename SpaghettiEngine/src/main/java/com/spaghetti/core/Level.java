@@ -204,7 +204,7 @@ public final class Level implements Updatable {
 		activeCamera = camera;
 	}
 
-	public Controller getController() {
+	public Controller getActiveController() {
 		return activeInput;
 	}
 

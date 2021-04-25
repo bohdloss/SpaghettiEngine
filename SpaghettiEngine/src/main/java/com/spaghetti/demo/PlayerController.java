@@ -6,7 +6,6 @@ import org.joml.Vector3d;
 import com.spaghetti.core.GameWindow;
 import com.spaghetti.input.Controller;
 import com.spaghetti.input.Keys;
-import com.spaghetti.interfaces.Replicate;
 import com.spaghetti.physics.RigidBody;
 import com.spaghetti.utils.CMath;
 
@@ -14,7 +13,7 @@ public class PlayerController extends Controller {
 
 	protected Player player;
 	protected RigidBody rb;
-	
+
 	@Override
 	protected void onBeginPlay() {
 		player = (Player) getOwner();
@@ -31,6 +30,10 @@ public class PlayerController extends Controller {
 
 	@Override
 	protected void commonUpdate(double delta) {
+		if (getLevel().getActiveController() != this) {
+			return;
+		}
+
 		Vector2d dir = new Vector2d();
 		if (Keys.keydown(Keys.A)) {
 			dir.x -= 1;

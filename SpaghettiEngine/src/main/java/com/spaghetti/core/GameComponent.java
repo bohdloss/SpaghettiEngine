@@ -71,7 +71,7 @@ public abstract class GameComponent implements Updatable, Replicable {
 	@Override
 	public void readDataServer(NetworkBuffer buffer) {
 	}
-	
+
 	@Override
 	public void writeDataClient(NetworkBuffer buffer) {
 	}

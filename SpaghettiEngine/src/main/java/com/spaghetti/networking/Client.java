@@ -2,7 +2,7 @@ package com.spaghetti.networking;
 
 import java.io.IOException;
 import java.net.*;
-import java.util.Scanner;
+import java.util.HashMap;
 
 import com.spaghetti.core.*;
 import com.spaghetti.events.GameEvent;
@@ -11,6 +11,7 @@ import com.spaghetti.utils.*;
 
 public class Client extends CoreComponent {
 
+	protected HashMap<GameObject, Object> events = new HashMap<>();
 	protected NetworkWorker worker;
 	protected JoinHandler joinHandler;
 	protected long clientId;
@@ -22,33 +23,25 @@ public class Client extends CoreComponent {
 
 	@Override
 	protected void initialize0() throws Throwable {
-		getGame().getEventDispatcher().registerEventHandler(new EventHandler() {
+		getGame().getEventDispatcher().registerEventHandler((isClient, issuer, event) -> {
+			if (event instanceof OnClientConnect) {
+				OnClientConnect occ = (OnClientConnect) event;
+				NetworkWorker client = occ.getClient();
+				long clientId = occ.getClientId();
+				try {
+					client.writeSocket();
+					client.readSocket();
 
-			@Override
-			public void handleEvent(boolean isClient, GameObject issuer, GameEvent event) {
-				if(event instanceof OnClientConnect) {
-					OnClientConnect occ = (OnClientConnect) event;
-					NetworkWorker client = occ.getClient();
-					long clientId = occ.getClientId();
-					try {
-						client.writeSocket();
-						client.readSocket();
-						
-						client.parseOperations();
-						Logger.info("Connection correctly established");
-					} catch (Throwable t) {
-						internal_clienterror(t, client, clientId);
-					}
+					client.parseOperations();
+					Logger.info("Connection correctly established");
+				} catch (Throwable t) {
+					internal_clienterror(t, client, clientId);
 				}
 			}
-			
 		});
-		
-		Scanner scanner = new Scanner(System.in);
-		String ip = scanner.nextLine();
-		String port = scanner.nextLine();
+
 		worker = new NetworkWorker(this);
-		internal_connect(ip, Integer.parseInt(port));
+		internal_connect("localhost", 9018);
 	}
 
 	@Override
@@ -63,6 +56,18 @@ public class Client extends CoreComponent {
 		if (isConnected()) {
 			try {
 				// Write / read routine, in this order for server synchronization
+				synchronized (events) {
+					events.forEach((issuer, event) -> {
+						if (GameEvent.class.isAssignableFrom(event.getClass())) {
+							GameEvent game_event = (GameEvent) event;
+							if (!game_event.skip(worker, true)) {
+								worker.writeGameEvent(issuer, game_event);
+							}
+						} else {
+							worker.writeIntention(issuer, (Long) event);
+						}
+					});
+				}
 				worker.writeData();
 
 				worker.writeSocket();
@@ -72,6 +77,29 @@ public class Client extends CoreComponent {
 			} catch (Throwable t) {
 				internal_clienterror(t, worker, clientId);
 			}
+			synchronized (events) {
+				events.clear();
+			}
+		}
+	}
+
+	@Override
+	protected final CoreComponent provideSelf() {
+		return getGame().getClient();
+	}
+
+	public void queueEvent(GameObject issuer, GameEvent event) {
+		if (event == null) {
+			throw new IllegalArgumentException();
+		}
+		synchronized (events) {
+			events.put(issuer, event);
+		}
+	}
+
+	public void queueIntention(GameObject issuer, long intention) {
+		synchronized (events) {
+			events.put(issuer, intention);
 		}
 	}
 
@@ -89,14 +117,8 @@ public class Client extends CoreComponent {
 			}
 		}
 		if (!status) {
-			Logger.warning(
-					"Couldn't reconnect with server after " + reconnectAttempts + " attemtps, giving up");
+			Logger.warning("Couldn't reconnect with server after " + reconnectAttempts + " attemtps, giving up");
 		}
-	}
-	
-	@Override
-	protected final CoreComponent provideSelf() {
-		return getGame().getClient();
 	}
 
 	public boolean connect(String ip, int port) {
@@ -110,7 +132,7 @@ public class Client extends CoreComponent {
 		}
 		try {
 			Socket socket = new Socket(ip, port); // Perform connection
-			joinHandler.handleJoin(getGame().isClient(), worker); // Handle joining server
+			joinHandler.handleJoin(true, worker); // Handle joining server
 			worker.provideSocket(socket); // Give socket to worker
 
 			// Server handshake
@@ -179,7 +201,7 @@ public class Client extends CoreComponent {
 	public NetworkWorker getWorker() {
 		return worker;
 	}
-	
+
 	public JoinHandler getJoinHandler() {
 		return joinHandler;
 	}

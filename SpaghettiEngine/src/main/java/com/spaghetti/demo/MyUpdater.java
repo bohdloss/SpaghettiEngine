@@ -6,6 +6,7 @@ import com.spaghetti.core.*;
 import com.spaghetti.input.Updater;
 import com.spaghetti.objects.Camera;
 import com.spaghetti.objects.Mesh;
+import com.spaghetti.objects.SkyboxMesh;
 import com.spaghetti.physics.Physics;
 import com.spaghetti.render.*;
 
@@ -35,9 +36,9 @@ public class MyUpdater extends Updater {
 			level.addObject(new Player());
 		}
 
-		Mesh skybox = new Mesh(Model.get("square"), Material.get("m_skybox"));
+		SkyboxMesh skybox = new SkyboxMesh(Model.get("square"), Material.get("m_skybox"));
 		skybox.setRelativeScale(20, 20, 1);
-		skybox.setRelativeZ(- 10);
+		skybox.setRelativeZ(-10);
 		level.addObject(skybox);
 		level.addObject(floor);
 	}

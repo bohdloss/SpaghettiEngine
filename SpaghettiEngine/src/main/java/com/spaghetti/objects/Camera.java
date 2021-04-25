@@ -84,6 +84,12 @@ public class Camera extends GameObject {
 		return cache;
 	}
 
+	public Matrix4d getUntransformedProjection() {
+		cache.set(projection);
+		cache.scale(scale, scale, 1);
+		return cache;
+	}
+
 	protected void checkTarget() {
 		if (renderTarget == null) {
 			Vector2i res = getGame().getOptions().getOption(GameOptions.PREFIX + "resolution");
@@ -161,12 +167,12 @@ public class Camera extends GameObject {
 		super.readDataClient(buffer);
 		calcScale();
 	}
-	
+
 	@Override
 	public void writeDataServer(NetworkBuffer buffer) {
 		super.writeDataServer(buffer);
 	}
-	
+
 	@Override
 	public void render(Matrix4d projection, double delta) {
 		checkTarget();

@@ -28,10 +28,14 @@ public final class EventDispatcher {
 	// Immediately dispatch signals because they are not transmitted over network
 	private void dispatchSignal(GameObject issuer, long signal) {
 		if (sig_ghandles.size() == 0) {
-			Logger.info(game, "Signal (" + signal + ") received but no joinHandler registered");
+			Logger.info(game, "Signal (" + signal + ") received but no handler registered");
 		} else {
 			sig_ghandles.forEach(handler -> {
-				handler.handleSignal(game.isClient(), issuer, signal);
+				try {
+					handler.handleSignal(game.isClient(), issuer, signal);
+				} catch (Throwable t) {
+					Logger.error("Error dispatching signal", t);
+				}
 			});
 		}
 	}
@@ -43,19 +47,33 @@ public final class EventDispatcher {
 	public void raiseEvent(GameObject issuer, GameEvent event) {
 		event.setFrom(game.isClient() ? GameEvent.CLIENT : GameEvent.SERVER);
 		dispatchEvent(issuer, event);
+		if (event.isCancelled()) {
+			return;
+		}
+		if (game.getClient() != null) {
+			Client client = game.getClient();
+			client.queueEvent(issuer, event);
+		} else {
+			Server server = game.getServer();
+			server.queueEvent(issuer, event);
+		}
 	}
 
-	// Dispatch signals before sending them over network and when they are received
+	// Dispatch events before sending them over network and when they are received
 	// from network
 	private void dispatchEvent(GameObject issuer, GameEvent event) {
 		event.setFrom(game.isClient() ? GameEvent.SERVER : GameEvent.CLIENT);
 
 		if (evnt_ghandles.size() == 0) {
-			Logger.info(game, "Event (" + (event.getFrom() == GameEvent.CLIENT ? "CLIENT" : "SERVER") + ", "
-					+ event.getId() + ") received but no joinHandler registered");
+			Logger.info(game, "Event (from " + (event.getFrom() == GameEvent.CLIENT ? "CLIENT" : "SERVER") + ", with id"
+					+ event.getId() + ") received but no handler registered");
 		} else {
 			evnt_ghandles.forEach(handler -> {
-				handler.handleEvent(game.isClient(), issuer, event);
+				try {
+					handler.handleEvent(game.isClient(), issuer, event);
+				} catch (Throwable t) {
+					Logger.error("Error dispatching event", t);
+				}
 			});
 		}
 	}
@@ -73,15 +91,26 @@ public final class EventDispatcher {
 		if (!game.isMultiplayer()) {
 			throw new UnsupportedOperationException("You can't raise intentions in a singleplayer environment");
 		}
+		if (game.getClient() != null) {
+			Client client = game.getClient();
+			client.queueIntention(issuer, intention);
+		} else {
+			Server server = game.getServer();
+			server.queueIntention(issuer, intention);
+		}
 	}
 
 	// Dispatch intentions only when received
 	private void dispatchIntention(GameObject issuer, long intention) {
 		if (int_ghandles.size() == 0) {
-			Logger.warning(game, "Intention (" + intention + ") received but no joinHandler is registered");
+			Logger.warning(game, "Intention (" + intention + ") received but no handler is registered");
 		} else {
 			int_ghandles.forEach(handler -> {
-				handler.handleIntention(game.isClient(), issuer, intention);
+				try {
+					handler.handleIntention(game.isClient(), issuer, intention);
+				} catch (Throwable t) {
+					Logger.error("Error dispatching intention", t);
+				}
 			});
 		}
 	}

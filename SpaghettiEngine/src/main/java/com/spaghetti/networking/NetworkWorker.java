@@ -18,6 +18,7 @@ import com.spaghetti.events.GameEvent;
 import com.spaghetti.input.Controller;
 import com.spaghetti.interfaces.*;
 import com.spaghetti.objects.Camera;
+import com.spaghetti.utils.FunctionDispatcher;
 import com.spaghetti.utils.GameOptions;
 import com.spaghetti.utils.Logger;
 import com.spaghetti.utils.Utils;
@@ -122,23 +123,25 @@ public class NetworkWorker {
 
 	public NetworkWorker(CoreComponent parent) {
 		this.parent = parent;
-		this.w_buffer = new NetworkBuffer(this, Game.getGame().getOptions().getOption(GameOptions.PREFIX + "networkbuffer"));
-		this.r_buffer = new NetworkBuffer(this, Game.getGame().getOptions().getOption(GameOptions.PREFIX + "networkbuffer"));
-		
+		this.w_buffer = new NetworkBuffer(this,
+				Game.getGame().getOptions().getOption(GameOptions.PREFIX + "networkbuffer"));
+		this.r_buffer = new NetworkBuffer(this,
+				Game.getGame().getOptions().getOption(GameOptions.PREFIX + "networkbuffer"));
+
 		cls_rules = ClassReplicationRule.rules.get(parent.getGame());
-		if(cls_rules == null) {
+		if (cls_rules == null) {
 			HashMap<Class<?>, ClassReplicationRule> hm = new HashMap<>();
 			ClassReplicationRule.rules.put(parent.getGame(), hm);
 			cls_rules = hm;
 		}
-		
+
 		field_rules = FieldReplicationRule.rules.get(parent.getGame());
-		if(field_rules == null) {
+		if (field_rules == null) {
 			HashMap<Field, FieldReplicationRule> hm = new HashMap<>();
 			FieldReplicationRule.rules.put(parent.getGame(), hm);
 			field_rules = hm;
 		}
-		
+
 		registerInterpreters();
 	}
 
@@ -210,7 +213,7 @@ public class NetworkWorker {
 		os.write(length_b);
 		os.write(w_buffer.asArray(), 0, length);
 		os.flush();
-		
+
 		w_buffer.clear();
 	}
 
@@ -318,18 +321,18 @@ public class NetworkWorker {
 		}
 		return fields_;
 	}
-	
+
 	protected boolean test_writeClass(Class<?> cls) {
 		ClassReplicationRule rule = cls_rules.get(cls);
-		if(rule == null) {
+		if (rule == null) {
 			rule = new ClassReplicationRule(cls);
 		}
 		return rule.testWrite();
 	}
-	
+
 	protected boolean test_readClass(Class<?> cls) {
 		ClassReplicationRule rule = cls_rules.get(cls);
-		if(rule == null) {
+		if (rule == null) {
 			rule = new ClassReplicationRule(cls);
 		}
 		return rule.testRead();
@@ -337,20 +340,20 @@ public class NetworkWorker {
 
 	protected boolean test_writeField(Field field) {
 		FieldReplicationRule rule = field_rules.get(field);
-		if(rule == null) {
+		if (rule == null) {
 			rule = new FieldReplicationRule(field);
 		}
 		return rule.testWrite();
 	}
-	
+
 	protected boolean test_readField(Field field) {
 		FieldReplicationRule rule = field_rules.get(field);
-		if(rule == null) {
+		if (rule == null) {
 			rule = new FieldReplicationRule(field);
 		}
 		return rule.testRead();
 	}
-	
+
 	protected static Field[] gatherReplicable(Class<?> cls) {
 		ArrayList<Field> list = null;
 		try {
@@ -446,7 +449,7 @@ public class NetworkWorker {
 				writeField(field, obj);
 			}
 		}
-		if(getGame().isClient()) {
+		if (getGame().isClient()) {
 			obj.writeDataClient(w_buffer);
 		} else {
 			obj.writeDataServer(w_buffer);
@@ -460,7 +463,7 @@ public class NetworkWorker {
 				readField(field, obj);
 			}
 		}
-		if(getGame().isClient()) {
+		if (getGame().isClient()) {
 			obj.readDataClient(r_buffer);
 		} else {
 			obj.readDataServer(r_buffer);
@@ -474,7 +477,7 @@ public class NetworkWorker {
 				writeField(field, comp);
 			}
 		}
-		if(getGame().isClient()) {
+		if (getGame().isClient()) {
 			comp.writeDataClient(w_buffer);
 		} else {
 			comp.writeDataServer(w_buffer);
@@ -488,7 +491,7 @@ public class NetworkWorker {
 				readField(field, comp);
 			}
 		}
-		if(getGame().isClient()) {
+		if (getGame().isClient()) {
 			comp.writeDataClient(w_buffer);
 		} else {
 			comp.writeDataServer(w_buffer);
@@ -550,7 +553,7 @@ public class NetworkWorker {
 				readActiveController(level);
 				break;
 			case Opcode.PLAYER:
-				if(getGame().isServer()) {
+				if (getGame().isServer()) {
 					invalid_privilege(opcode);
 				}
 				readActivePlayer(level);
@@ -725,7 +728,7 @@ public class NetworkWorker {
 		w_buffer.putByte(Opcode.PLAYER);
 		w_buffer.putLong(player == null ? -1 : player.getId());
 	}
-	
+
 	public void readActivePlayer(Level level) {
 		long player_id = r_buffer.getLong();
 		// -1 means null
@@ -742,7 +745,7 @@ public class NetworkWorker {
 			player = null;
 		}
 	}
-	
+
 	public void writeChildren(GameObject obj) {
 		if (noReplicate(obj.getClass())) {
 			return;
@@ -766,8 +769,8 @@ public class NetworkWorker {
 		w_buffer.putByte(Opcode.STOP); // Put stop flag on children
 	}
 
-	public void readChildren(Level level, GameObject parent) throws ClassCastException, InstantiationException,
-			InvocationTargetException, NoSuchMethodException, ClassNotFoundException {
+	public void readChildren(Level level, GameObject parent)
+			throws InstantiationException, InvocationTargetException, NoSuchMethodException, ClassNotFoundException {
 
 		try {
 			long id = r_buffer.getLong(); // Get id of object
@@ -776,7 +779,11 @@ public class NetworkWorker {
 			GameObject object = level.getObject(id);
 			if (object == null) {
 				// Build and add the object if not present
-				object = (GameObject) o_constr(cls(clazz)).newInstance();
+				Class<?> objclass = cls(clazz);
+				if (!GameObject.class.isAssignableFrom(objclass)) {
+					throw new IllegalStateException("Invalid object class");
+				}
+				object = (GameObject) o_constr(objclass).newInstance();
 				f_oid.set(object, id);
 				if (parent == null) {
 					level.addObject(object);
@@ -794,7 +801,11 @@ public class NetworkWorker {
 				GameComponent component = object.getComponent(comp_id);
 				if (component == null) {
 					// Build and add the component if not present
-					component = (GameComponent) c_constr(cls(comp_clazz)).newInstance();
+					Class<?> compclass = cls(comp_clazz);
+					if (!GameComponent.class.isAssignableFrom(compclass)) {
+						throw new IllegalStateException("Invalid component class");
+					}
+					component = (GameComponent) c_constr(compclass).newInstance();
 					f_cid.set(component, comp_id);
 					object.addComponent(component);
 				}
@@ -886,7 +897,7 @@ public class NetworkWorker {
 
 	public void writeIntention(GameObject issuer, long intention) {
 		w_buffer.putByte(Opcode.INTENTION);
-		w_buffer.putLong(issuer.getId());
+		w_buffer.putLong(issuer == null ? -1 : issuer.getId());
 		w_buffer.putLong(intention);
 	}
 
@@ -895,23 +906,27 @@ public class NetworkWorker {
 		long intention = r_buffer.getLong();
 
 		Level level = getLevel();
-		GameObject issuer = level.getObject(issuer_id);
-		EventDispatcher event_dispatcher = Game.getGame().getEventDispatcher();
+		GameObject issuer = issuer_id == -1 ? null : level.getObject(issuer_id);
+		FunctionDispatcher func_dispatcher = getGame().getUpdaterDispatcher();
+		EventDispatcher event_dispatcher = getGame().getEventDispatcher();
 
-		event_dispatcher.dispatchIntention(IDENTITY, issuer, intention);
+		func_dispatcher.queue(() -> {
+			event_dispatcher.dispatchIntention(IDENTITY, issuer, intention);
+			return null;
+		}, true);
 	}
 
 	public void writeGameEvent(GameObject issuer, GameEvent event) {
 		w_buffer.putByte(Opcode.GAMEEVENT);
-		w_buffer.putLong(issuer.getId());
+		w_buffer.putLong(issuer == null ? -1 : issuer.getId());
 
 		w_buffer.putString(event.getClass().getName());
 		w_buffer.putLong(event.getId());
 		writeEventCustom(event);
 	}
 
-	public void readGameEvent() throws ClassCastException, InstantiationException, IllegalArgumentException,
-			InvocationTargetException, NoSuchMethodException, SecurityException, ClassNotFoundException {
+	public void readGameEvent() throws InstantiationException, IllegalArgumentException, InvocationTargetException,
+			NoSuchMethodException, SecurityException, ClassNotFoundException {
 
 		try {
 
@@ -920,13 +935,22 @@ public class NetworkWorker {
 			long event_id = r_buffer.getLong();
 
 			Level level = getLevel();
-			GameObject issuer = level.getObject(issuer_id);
-			GameEvent event = (GameEvent) e_constr(cls(event_class)).newInstance();
+			GameObject issuer = issuer_id == -1 ? null : level.getObject(issuer_id);
+			Class<?> eventclass = cls(event_class);
+			if (!GameEvent.class.isAssignableFrom(eventclass)) {
+				throw new IllegalStateException("Invalid event class");
+			}
+			GameEvent event = (GameEvent) e_constr(eventclass).newInstance();
 			f_eid.set(event, event_id);
-			EventDispatcher event_dispatcher = Game.getGame().getEventDispatcher();
+			EventDispatcher event_dispatcher = getGame().getEventDispatcher();
+			FunctionDispatcher func_dispatcher = getGame().getUpdaterDispatcher();
 			readEventCustom(event);
+			event.setFrom(getGame().isClient() ? GameEvent.SERVER : GameEvent.CLIENT);
 
-			event_dispatcher.dispatchEvent(IDENTITY, issuer, event);
+			func_dispatcher.queue(() -> {
+				event_dispatcher.dispatchEvent(IDENTITY, issuer, event);
+				return null;
+			}, true);
 
 		} catch (IllegalAccessException e) {
 			// This should not happen even with errors while parsing
@@ -986,8 +1010,8 @@ public class NetworkWorker {
 	// Utility methods
 
 	protected void invalid(byte opcode) {
-		Logger.error("Remote host sent an invalid operation (" + (opcode & 0xff)
-				+ ") : the connection will be terminated");
+		Logger.error(
+				"Remote host sent an invalid operation (" + (opcode & 0xff) + ") : the connection will be terminated");
 		error_log(r_buffer);
 		throw new IllegalStateException();
 	}
@@ -1000,17 +1024,17 @@ public class NetworkWorker {
 	}
 
 	protected void error_log(NetworkBuffer buffer) {
-		Logger.error("Buffer position/limit/capacity: " +
-				buffer.getPosition() + "/" + buffer.getLimit() + "/" + buffer.getSize());
+		Logger.error("Buffer position/limit/capacity: " + buffer.getPosition() + "/" + buffer.getLimit() + "/"
+				+ buffer.getSize());
 		Logger.error("Last byte: " + (buffer.getByteAt(buffer.getPosition() - 1) & 0xFF));
 		Logger.error("Full buffer log:");
 		String dump = new String();
-		for(int i = 0; i < buffer.getLimit(); i++) {
+		for (int i = 0; i < buffer.getLimit(); i++) {
 			dump += (buffer.asArray()[i] & 0xFF) + (i == buffer.getLimit() - 1 ? "" : ".");
 		}
 		Logger.error(dump);
 	}
-	
+
 	protected void recursive_flag(GameObject obj) {
 		// Flag this object as deletable
 		try {
