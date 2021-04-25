@@ -17,6 +17,8 @@ public class ClassReplicationRule {
 	protected boolean calculated;
 	protected boolean readRule;
 	protected boolean writeRule;
+	protected long lastCheck;
+	protected long delay;
 
 	public ClassReplicationRule(Class<?> target) {
 		if (target == null) {
@@ -50,6 +52,15 @@ public class ClassReplicationRule {
 			reptype = ReplicationType.BIDIRECTIONAL;
 		}
 
+		if (target.getAnnotation(ReplicationDelay.class) != null) {
+			ReplicationDelay da = target.getAnnotation(ReplicationDelay.class);
+			if (client) {
+				delay = da.toServer();
+			} else {
+				delay = da.toClient();
+			}
+		}
+
 		switch (reptype) {
 		case TOCLIENT:
 			return client != write;
@@ -63,20 +74,22 @@ public class ClassReplicationRule {
 
 	public boolean testWrite() {
 		if (!calculated) {
-			writeRule = calculateRule(true);
-			readRule = calculateRule(false);
-			calculated = true;
+			doInit();
 		}
-		return writeRule;
+		return writeRule && (System.currentTimeMillis() > lastCheck + delay);
 	}
 
 	public boolean testRead() {
 		if (!calculated) {
-			writeRule = calculateRule(true);
-			readRule = calculateRule(false);
-			calculated = true;
+			doInit();
 		}
 		return readRule;
+	}
+
+	protected void doInit() {
+		writeRule = calculateRule(true);
+		readRule = calculateRule(false);
+		calculated = true;
 	}
 
 	// Getters and setters
