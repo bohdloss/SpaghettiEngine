@@ -1,6 +1,6 @@
 package com.spaghetti.demo;
 
-import org.joml.Vector3d;
+import org.joml.Vector3f;
 
 import com.spaghetti.core.*;
 import com.spaghetti.input.Controller;
@@ -36,21 +36,21 @@ public class Player extends GameObject {
 	@Override
 	public void writeDataServer(NetworkBuffer buffer) {
 		if (buffer.getWorker().player != this) {
-			Vector3d vec = new Vector3d();
+			Vector3f vec = new Vector3f();
 			getRelativePosition(vec);
-			buffer.putDouble(vec.x);
-			buffer.putDouble(vec.y);
-			buffer.putDouble(vec.z);
+			buffer.putFloat(vec.x);
+			buffer.putFloat(vec.y);
+			buffer.putFloat(vec.z);
 		}
 	}
 
 	@Override
 	public void readDataServer(NetworkBuffer buffer) {
 		if (buffer.getWorker().player == this) {
-			Vector3d vec = new Vector3d();
-			vec.x = buffer.getDouble();
-			vec.y = buffer.getDouble();
-			vec.z = buffer.getDouble();
+			Vector3f vec = new Vector3f();
+			vec.x = buffer.getFloat();
+			vec.y = buffer.getFloat();
+			vec.z = buffer.getFloat();
 			setRelativePosition(vec);
 		}
 	}
@@ -58,21 +58,21 @@ public class Player extends GameObject {
 	@Override
 	public void writeDataClient(NetworkBuffer buffer) {
 		if (isLocal()) {
-			Vector3d vec = new Vector3d();
+			Vector3f vec = new Vector3f();
 			getRelativePosition(vec);
-			buffer.putDouble(vec.x);
-			buffer.putDouble(vec.y);
-			buffer.putDouble(vec.z);
+			buffer.putFloat(vec.x);
+			buffer.putFloat(vec.y);
+			buffer.putFloat(vec.z);
 		}
 	}
 
 	@Override
 	public void readDataClient(NetworkBuffer buffer) {
 		if (!isLocal()) {
-			Vector3d vec = new Vector3d();
-			vec.x = buffer.getDouble();
-			vec.y = buffer.getDouble();
-			vec.z = buffer.getDouble();
+			Vector3f vec = new Vector3f();
+			vec.x = buffer.getFloat();
+			vec.y = buffer.getFloat();
+			vec.z = buffer.getFloat();
 			setRelativePosition(vec);
 		}
 	}

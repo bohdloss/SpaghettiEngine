@@ -1,7 +1,7 @@
 package com.spaghetti.demo;
 
-import org.joml.Vector2d;
-import org.joml.Vector3d;
+import org.joml.Vector2f;
+import org.joml.Vector3f;
 
 import com.spaghetti.core.GameWindow;
 import com.spaghetti.input.Controller;
@@ -21,20 +21,20 @@ public class PlayerController extends Controller {
 	}
 
 	@Override
-	protected void clientUpdate(double delta) {
+	protected void clientUpdate(float delta) {
 	}
 
 	@Override
-	protected void serverUpdate(double delta) {
+	protected void serverUpdate(float delta) {
 	}
 
 	@Override
-	protected void commonUpdate(double delta) {
+	protected void commonUpdate(float delta) {
 		if (getLevel().getActiveController() != this) {
 			return;
 		}
 
-		Vector2d dir = new Vector2d();
+		Vector2f dir = new Vector2f();
 		if (Keys.keydown(Keys.A)) {
 			dir.x -= 1;
 		}
@@ -49,11 +49,11 @@ public class PlayerController extends Controller {
 		}
 
 		if (dir.x != 0 || dir.y != 0) {
-			double angle = CMath.lookAt(dir);
-			double mod = 10 * getGame().getTickMultiplier(delta);
-			double x = Math.cos(angle) * mod;
-			double y = Math.sin(angle) * mod;
-			Vector3d pos = new Vector3d();
+			float angle = CMath.lookAt(dir);
+			float mod = 10 * getGame().getTickMultiplier(delta);
+			float x = (float) Math.cos(angle) * mod;
+			float y = (float) Math.sin(angle) * mod;
+			Vector3f pos = new Vector3f();
 			player.getWorldPosition(pos);
 			player.setWorldPosition(pos.x + x, pos.y + y, pos.z);
 		}

@@ -2,6 +2,6 @@ package com.spaghetti.interfaces;
 
 public interface Updatable {
 
-	public abstract void update(double delta);
+	public abstract void update(float delta);
 
 }

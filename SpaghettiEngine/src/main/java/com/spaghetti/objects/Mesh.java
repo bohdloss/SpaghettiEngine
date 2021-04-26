@@ -1,6 +1,6 @@
 package com.spaghetti.objects;
 
-import org.joml.Matrix4d;
+import org.joml.Matrix4f;
 
 import com.spaghetti.core.*;
 import com.spaghetti.networking.NetworkBuffer;
@@ -21,7 +21,7 @@ public class Mesh extends GameObject {
 	}
 
 	@Override
-	public void render(Matrix4d projection, double delta) {
+	public void render(Matrix4f projection, float delta) {
 		if (material != null && model != null) {
 			material.use();
 			material.setProjection(projection);

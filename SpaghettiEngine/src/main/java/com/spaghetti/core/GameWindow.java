@@ -113,7 +113,7 @@ public final class GameWindow {
 
 			@Override
 			public void invoke(long window, double xoffset, double yoffset) {
-				inputDispatcher.scroll = yoffset;
+				inputDispatcher.scroll = (float) yoffset;
 			}
 
 		});

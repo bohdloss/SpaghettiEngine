@@ -3,7 +3,6 @@ package com.spaghetti.networking;
 import java.io.IOException;
 import java.net.*;
 import java.util.HashMap;
-
 import com.spaghetti.core.*;
 import com.spaghetti.events.GameEvent;
 import com.spaghetti.interfaces.*;
@@ -51,7 +50,7 @@ public class Client extends CoreComponent {
 	}
 
 	@Override
-	protected void loopEvents(double delta) throws Throwable {
+	protected void loopEvents(float delta) throws Throwable {
 		Utils.sleep(25);
 		if (isConnected()) {
 			try {

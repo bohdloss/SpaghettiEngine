@@ -18,7 +18,7 @@ public class Controller extends GameComponent implements Controllable {
 	}
 
 	@Override
-	public void onMouseScroll(double scroll, int x, int y) {
+	public void onMouseScroll(float scroll, int x, int y) {
 	}
 
 	@Override

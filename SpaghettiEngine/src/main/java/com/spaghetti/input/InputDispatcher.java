@@ -16,7 +16,7 @@ public final class InputDispatcher {
 	}
 
 	private GameWindow window;
-	public double scroll;
+	public float scroll;
 	private int x, y;
 	private boolean[] mouseButtons;
 	private boolean[] keyboardButtons;

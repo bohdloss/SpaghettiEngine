@@ -1,7 +1,7 @@
 package com.spaghetti.physics;
 
-import org.joml.Vector2d;
-import org.joml.Vector3d;
+import org.joml.Vector2f;
+import org.joml.Vector3f;
 
 import com.spaghetti.core.*;
 import com.spaghetti.utils.CMath;
@@ -18,16 +18,16 @@ public class RigidBody extends GameComponent {
 	protected Shape shape;
 
 	// Coordinates
-	protected Vector2d position = new Vector2d();
+	protected Vector2f position = new Vector2f();
 
 	// Velocity
-	protected Vector2d velocity = new Vector2d();
+	protected Vector2f velocity = new Vector2f();
 
 	// Mass
-	protected double mass;
+	protected float mass;
 
 	// Force
-	protected Vector2d force = new Vector2d();
+	protected Vector2f force = new Vector2f();
 
 	// Has gravity?
 	protected boolean gravity = true;
@@ -43,9 +43,9 @@ public class RigidBody extends GameComponent {
 	}
 
 	// Caching data
-	protected Vector3d poscache = new Vector3d();
-	protected Vector3d scalecache = new Vector3d();
-	protected Vector3d rotcache = new Vector3d();
+	protected Vector3f poscache = new Vector3f();
+	protected Vector3f scalecache = new Vector3f();
+	protected Vector3f rotcache = new Vector3f();
 
 	protected void gatherCache() {
 		GameObject owner = getOwner();
@@ -91,27 +91,27 @@ public class RigidBody extends GameComponent {
 			// F = G * ((m1 * m2) / r^2)
 			// G is a constant
 
-			double r = CMath.distance(position.x, position.y, b.position.x, b.position.y);
-			double force_mod = physics.G * ((mass * b.mass) / (r * r));
+			float r = CMath.distance(position.x, position.y, b.position.x, b.position.y);
+			float force_mod = physics.G * ((mass * b.mass) / (r * r));
 
 			// Find the rotated force
 
-			double angle = Math.atan2(b.position.y - position.y, b.position.x - position.x);
+			float angle = (float) Math.atan2(b.position.y - position.y, b.position.x - position.x);
 
-			double force_x = Math.cos(angle) * force_mod;
-			double force_y = Math.sin(angle) * force_mod;
+			float force_x = (float) Math.cos(angle) * force_mod;
+			float force_y = (float) Math.sin(angle) * force_mod;
 
 			applyForce(force_x, force_y);
 
 		}
 
 		// Air friction
-		double friction_x = -velocity.x * physics.AIR_FRICTION;
-		double friction_y = -velocity.y * physics.AIR_FRICTION;
+		float friction_x = -velocity.x * physics.AIR_FRICTION;
+		float friction_y = -velocity.y * physics.AIR_FRICTION;
 		applyForce(friction_x, friction_y);
 	}
 
-	public void solve(double multiplier) {
+	public void solve(float multiplier) {
 		if (ignorePhysics) {
 			return;
 		}
@@ -124,8 +124,8 @@ public class RigidBody extends GameComponent {
 		// Convert force to actual acceleration
 		// a = F / m
 
-		double xaccel = force.x / mass;
-		double yaccel = force.y / mass;
+		float xaccel = force.x / mass;
+		float yaccel = force.y / mass;
 
 		// Apply the force to the velocity
 		// a = (v2 - v1) / delta
@@ -164,23 +164,23 @@ public class RigidBody extends GameComponent {
 		return physics;
 	}
 
-	public void getPosition(Vector2d pointer) {
+	public void getPosition(Vector2f pointer) {
 		pointer.set(position);
 	}
 
-	public void getForce(Vector2d pointer) {
+	public void getForce(Vector2f pointer) {
 		pointer.set(force);
 	}
 
-	public void getAcceleration(Vector2d pointer) {
+	public void getAcceleration(Vector2f pointer) {
 		force.div(mass, pointer);
 	}
 
-	public void getVelocity(Vector2d pointer) {
+	public void getVelocity(Vector2f pointer) {
 		pointer.set(velocity);
 	}
 
-	public double getMass() {
+	public float getMass() {
 		return mass;
 	}
 
@@ -198,39 +198,39 @@ public class RigidBody extends GameComponent {
 
 	// Setters
 
-	public void applyForce(double x, double y) {
+	public void applyForce(float x, float y) {
 		force.add(x, y);
 	}
 
-	public void applyForce(Vector2d vec) {
+	public void applyForce(Vector2f vec) {
 		applyForce(vec.x, vec.y);
 	}
 
-	public void applyAcceleration(double x, double y) {
+	public void applyAcceleration(float x, float y) {
 		force.add(x * mass, y * mass);
 	}
 
-	public void applyAcceleration(Vector2d vec) {
+	public void applyAcceleration(Vector2f vec) {
 		applyAcceleration(vec.x, vec.y);
 	}
 
-	public void applyImpulse(double x, double y) {
+	public void applyImpulse(float x, float y) {
 		velocity.add(x, y);
 	}
 
-	public void applyImpulse(Vector2d vec) {
+	public void applyImpulse(Vector2f vec) {
 		applyImpulse(vec.x, vec.y);
 	}
 
-	public void setPosition(double x, double y) {
+	public void setPosition(float x, float y) {
 		position.set(x, y);
 	}
 
-	public void setPosition(Vector2d vec) {
+	public void setPosition(Vector2f vec) {
 		setPosition(vec.x, vec.y);
 	}
 
-	public void setMass(double mass) {
+	public void setMass(float mass) {
 		this.mass = mass;
 	}
 
@@ -249,7 +249,7 @@ public class RigidBody extends GameComponent {
 	// Interfaces
 
 	@Override
-	public void onBeginPlay() {
+	protected void onBeginPlay() {
 		// We need a physics world!
 		physics = getLevel().getObject(Physics.class);
 		if (physics == null) {
@@ -269,7 +269,7 @@ public class RigidBody extends GameComponent {
 	}
 
 	@Override
-	public void onEndPlay() {
+	protected void onEndPlay() {
 		physics.removeBody(this);
 	}
 

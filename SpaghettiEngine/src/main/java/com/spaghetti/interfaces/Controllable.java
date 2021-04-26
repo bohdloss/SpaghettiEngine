@@ -10,7 +10,7 @@ public interface Controllable {
 	// When the mouse changes its state
 	public void onMouseMove(int x, int y);
 
-	public void onMouseScroll(double scroll, int x, int y);
+	public void onMouseScroll(float scroll, int x, int y);
 
 	public void onMouseButtonPressed(int button, int x, int y);
 

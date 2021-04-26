@@ -1,7 +1,7 @@
 package com.spaghetti.objects;
 
-import org.joml.Matrix4d;
-import org.joml.Vector3d;
+import org.joml.Matrix4f;
+import org.joml.Vector3f;
 
 import com.spaghetti.render.Material;
 import com.spaghetti.render.Model;
@@ -18,13 +18,13 @@ public class SkyboxMesh extends Mesh {
 	}
 
 	@Override
-	public void render(Matrix4d projection, double delta) {
+	public void render(Matrix4f projection, float delta) {
 		if (material != null && model != null) {
 
 			// Simulate camera rendering
 
-			Matrix4d sceneMatrix = new Matrix4d();
-			Vector3d vec3cache = new Vector3d();
+			Matrix4f sceneMatrix = new Matrix4f();
+			Vector3f vec3cache = new Vector3f();
 
 			// Reset matrix
 			sceneMatrix.set(getLevel().getActiveCamera().getUntransformedProjection());

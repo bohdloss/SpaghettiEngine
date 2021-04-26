@@ -98,7 +98,7 @@ public class MyUpdater extends Updater {
   
   // This code will be executed in a loop whenever possible
   // Delta is the time passed since the last call to this method
-  protected void loopEvents(double delta) {
+  protected void loopEvents(float delta) {
     super.loopEvents(delta);
   }
 
@@ -110,7 +110,7 @@ public class MyUpdater extends Updater {
 }
 ```
 - The initialize0() function will be called when the thread starts, which happens to be when begin() is called on a Game object
-- The loopEvents(double delta) function will be called every frame with a delta parameter, indicating the time passed since the last call
+- The loopEvents(float delta) function will be called every frame with a delta parameter, indicating the time passed since the last call
 - The terminate0() function will be called when the game quits to dispose of unused resources
 
 ### How to create a Level and place a rotating Mesh into it
@@ -153,9 +153,9 @@ This will create a Camera to render your scene and a Mesh to be rendered
 To rotate the mesh:
 ```java
 // Store the rotation
-private double i;
+private float i;
 
-public void loopEvents(double delta) {
+public void loopEvents(float delta) {
 	super.loopEvents(delta);
 	
 	// You multiply by the multiplier to be framerate-independent

@@ -7,9 +7,8 @@ import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 
-import org.joml.Matrix4d;
-import org.joml.Vector3d;
-
+import org.joml.Matrix4f;
+import org.joml.Vector3f;
 import com.spaghetti.events.GameEvent;
 import com.spaghetti.interfaces.*;
 import com.spaghetti.networking.NetworkBuffer;
@@ -139,6 +138,12 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		if (isGloballyAttached()) {
 			object.internal_begin();
 		}
+
+		// Send data to remote client in case of multiplayer
+		Game game = Game.getGame();
+		if (game.isMultiplayer() && game.isServer()) {
+			game.getServer().queueObjReparentFunc(object, this);
+		}
 	}
 
 	private final void i_r_upd_lvl(GameObject object) {
@@ -180,6 +185,12 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 			} catch (Throwable t) {
 				Logger.error("Error occurred in component", t);
 			}
+		}
+
+		// Send data to remote client in case of multiplayer
+		Game game = Game.getGame();
+		if (game.isMultiplayer() && game.isServer()) {
+			game.getServer().queueCompReparentFunc(component, this);
 		}
 	}
 
@@ -526,6 +537,12 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		level = null;
 		parent = null;
 		internal_setflag(DESTROYED, true);
+
+		// Send data to remote client in case of multiplayer
+		Game game = Game.getGame();
+		if (game.isMultiplayer() && game.isServer()) {
+			game.getServer().queueObjDestroyFunc(this);
+		}
 	}
 
 	protected final void internal_begin() {
@@ -641,17 +658,17 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 
 	// World interaction
 
-	protected final Vector3d relativePosition = new Vector3d();
-	protected final Vector3d relativeScale = new Vector3d(1, 1, 1);
-	protected final Vector3d relativeRotation = new Vector3d();
+	protected final Vector3f relativePosition = new Vector3f();
+	protected final Vector3f relativeScale = new Vector3f(1, 1, 1);
+	protected final Vector3f relativeRotation = new Vector3f();
 
 	// Position getters
 
-	public final void getRelativePosition(Vector3d pointer) {
+	public final void getRelativePosition(Vector3f pointer) {
 		pointer.set(relativePosition);
 	}
 
-	public final void getWorldPosition(Vector3d pointer) {
+	public final void getWorldPosition(Vector3f pointer) {
 		pointer.zero();
 
 		GameObject last = this;
@@ -661,20 +678,20 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		}
 	}
 
-	public final double getRelativeX() {
+	public final float getRelativeX() {
 		return relativePosition.x;
 	}
 
-	public final double getRelativeY() {
+	public final float getRelativeY() {
 		return relativePosition.y;
 	}
 
-	public final double getRelativeZ() {
+	public final float getRelativeZ() {
 		return relativePosition.z;
 	}
 
-	public final double getWorldX() {
-		double x = 0;
+	public final float getWorldX() {
+		float x = 0;
 
 		GameObject last = this;
 		while (last != null) {
@@ -684,8 +701,8 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		return x;
 	}
 
-	public final double getWorldY() {
-		double y = 0;
+	public final float getWorldY() {
+		float y = 0;
 
 		GameObject last = this;
 		while (last != null) {
@@ -695,8 +712,8 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		return y;
 	}
 
-	public final double getWorldZ() {
-		double z = 0;
+	public final float getWorldZ() {
+		float z = 0;
 
 		GameObject last = this;
 		while (last != null) {
@@ -708,66 +725,66 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 
 	// Position setters
 
-	public final void setRelativePosition(Vector3d vec) {
+	public final void setRelativePosition(Vector3f vec) {
 		setRelativePosition(vec.x, vec.y, vec.z);
 	}
 
-	public final void setRelativePosition(double x, double y, double z) {
+	public final void setRelativePosition(float x, float y, float z) {
 		relativePosition.set(x, y, z);
 	}
 
-	public final void setWorldPosition(Vector3d vec) {
+	public final void setWorldPosition(Vector3f vec) {
 		setWorldPosition(vec.x, vec.y, vec.z);
 	}
 
-	public final void setWorldPosition(double x, double y, double z) {
-		Vector3d vec3 = new Vector3d();
+	public final void setWorldPosition(float x, float y, float z) {
+		Vector3f vec3 = new Vector3f();
 		getWorldPosition(vec3);
 
-		double xdiff = vec3.x - x;
-		double ydiff = vec3.y - y;
-		double zdiff = vec3.z - z;
+		float xdiff = vec3.x - x;
+		float ydiff = vec3.y - y;
+		float zdiff = vec3.z - z;
 
 		setRelativePosition(relativePosition.x - xdiff, relativePosition.y - ydiff, relativePosition.z - zdiff);
 	}
 
-	public final void setRelativeX(double x) {
+	public final void setRelativeX(float x) {
 		setRelativePosition(x, relativePosition.y, relativePosition.z);
 	}
 
-	public final void setRelativeY(double y) {
+	public final void setRelativeY(float y) {
 		setRelativePosition(relativePosition.x, y, relativePosition.z);
 	}
 
-	public final void setRelativeZ(double z) {
+	public final void setRelativeZ(float z) {
 		setRelativePosition(relativePosition.x, relativePosition.y, z);
 	}
 
-	public final void setWorldX(double worldx) {
-		Vector3d vec3 = new Vector3d();
+	public final void setWorldX(float worldx) {
+		Vector3f vec3 = new Vector3f();
 		getWorldPosition(vec3);
 		setWorldPosition(worldx, vec3.y, vec3.z);
 	}
 
-	public final void setWorldY(double worldy) {
-		Vector3d vec3 = new Vector3d();
+	public final void setWorldY(float worldy) {
+		Vector3f vec3 = new Vector3f();
 		getWorldPosition(vec3);
 		setWorldPosition(vec3.x, worldy, vec3.z);
 	}
 
-	public final void setWorldZ(double worldz) {
-		Vector3d vec3 = new Vector3d();
+	public final void setWorldZ(float worldz) {
+		Vector3f vec3 = new Vector3f();
 		getWorldPosition(vec3);
 		setWorldPosition(vec3.x, vec3.y, worldz);
 	}
 
 	// Scale getters
 
-	public final void getRelativeScale(Vector3d pointer) {
+	public final void getRelativeScale(Vector3f pointer) {
 		pointer.set(relativeScale);
 	}
 
-	public final void getWorldScale(Vector3d pointer) {
+	public final void getWorldScale(Vector3f pointer) {
 		pointer.set(1);
 
 		GameObject last = this;
@@ -777,20 +794,20 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		}
 	}
 
-	public final double getXScale() {
+	public final float getXScale() {
 		return relativeScale.x;
 	}
 
-	public final double getYScale() {
+	public final float getYScale() {
 		return relativeScale.y;
 	}
 
-	public final double getZScale() {
+	public final float getZScale() {
 		return relativeScale.z;
 	}
 
-	public final double getWorldXScale() {
-		double x = 0;
+	public final float getWorldXScale() {
+		float x = 0;
 
 		GameObject last = this;
 		while (last != null) {
@@ -800,8 +817,8 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		return x;
 	}
 
-	public final double getWorldYScale() {
-		double y = 0;
+	public final float getWorldYScale() {
+		float y = 0;
 
 		GameObject last = this;
 		while (last != null) {
@@ -811,8 +828,8 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		return y;
 	}
 
-	public final double getWorldZScale() {
-		double z = 0;
+	public final float getWorldZScale() {
+		float z = 0;
 
 		GameObject last = this;
 		while (last != null) {
@@ -824,66 +841,66 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 
 	// Scale setters
 
-	public final void setRelativeScale(Vector3d vec) {
+	public final void setRelativeScale(Vector3f vec) {
 		setRelativeScale(vec.x, vec.y, vec.z);
 	}
 
-	public final void setRelativeScale(double x, double y, double z) {
+	public final void setRelativeScale(float x, float y, float z) {
 		relativeScale.set(x, y, z);
 	}
 
-	public final void setWorldScale(Vector3d vec) {
+	public final void setWorldScale(Vector3f vec) {
 		setWorldScale(vec.x, vec.y, vec.z);
 	}
 
-	public final void setWorldScale(double x, double y, double z) {
-		Vector3d vec3 = new Vector3d();
+	public final void setWorldScale(float x, float y, float z) {
+		Vector3f vec3 = new Vector3f();
 		getWorldScale(vec3);
 
-		double xdiff = vec3.x / x;
-		double ydiff = vec3.y / y;
-		double zdiff = vec3.z / z;
+		float xdiff = vec3.x / x;
+		float ydiff = vec3.y / y;
+		float zdiff = vec3.z / z;
 
 		setRelativeScale(relativeScale.x / xdiff, relativeScale.y / ydiff, relativeScale.z / zdiff);
 	}
 
-	public final void setXScale(double x) {
+	public final void setXScale(float x) {
 		setRelativeScale(x, relativeScale.y, relativeScale.z);
 	}
 
-	public final void setYScale(double y) {
+	public final void setYScale(float y) {
 		setRelativeScale(relativeScale.x, y, relativeScale.z);
 	}
 
-	public final void setZScale(double z) {
+	public final void setZScale(float z) {
 		setRelativeScale(relativeScale.x, relativeScale.y, z);
 	}
 
-	public final void setWorldXScale(double worldx) {
-		Vector3d vec3 = new Vector3d();
+	public final void setWorldXScale(float worldx) {
+		Vector3f vec3 = new Vector3f();
 		getWorldScale(vec3);
 		setWorldScale(worldx, vec3.y, vec3.z);
 	}
 
-	public final void setWorldYScale(double worldy) {
-		Vector3d vec3 = new Vector3d();
+	public final void setWorldYScale(float worldy) {
+		Vector3f vec3 = new Vector3f();
 		getWorldScale(vec3);
 		setWorldScale(vec3.x, worldy, vec3.z);
 	}
 
-	public final void setWorldZScale(double worldz) {
-		Vector3d vec3 = new Vector3d();
+	public final void setWorldZScale(float worldz) {
+		Vector3f vec3 = new Vector3f();
 		getWorldScale(vec3);
 		setWorldScale(vec3.x, vec3.y, worldz);
 	}
 
 	// Rotation getters
 
-	public final void getRelativeRotation(Vector3d pointer) {
+	public final void getRelativeRotation(Vector3f pointer) {
 		pointer.set(relativeRotation);
 	}
 
-	public final void getWorldRotation(Vector3d pointer) {
+	public final void getWorldRotation(Vector3f pointer) {
 		pointer.zero();
 
 		GameObject last = this;
@@ -893,20 +910,20 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		}
 	}
 
-	public final double getYaw() {
+	public final float getYaw() {
 		return relativeRotation.x;
 	}
 
-	public final double getPitch() {
+	public final float getPitch() {
 		return relativeRotation.y;
 	}
 
-	public final double getRoll() {
+	public final float getRoll() {
 		return relativeRotation.z;
 	}
 
-	public final double getWorldYaw() {
-		double yaw = 0;
+	public final float getWorldYaw() {
+		float yaw = 0;
 
 		GameObject last = this;
 		while (last != null) {
@@ -916,8 +933,8 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		return yaw;
 	}
 
-	public final double getWorldPitch() {
-		double pitch = 0;
+	public final float getWorldPitch() {
+		float pitch = 0;
 
 		GameObject last = this;
 		while (last != null) {
@@ -927,8 +944,8 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		return pitch;
 	}
 
-	public final double getWorldRoll() {
-		double roll = 0;
+	public final float getWorldRoll() {
+		float roll = 0;
 
 		GameObject last = this;
 		while (last != null) {
@@ -940,55 +957,55 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 
 	// Rotation setters
 
-	public final void setRelativeRotation(Vector3d vec) {
+	public final void setRelativeRotation(Vector3f vec) {
 		setRelativeRotation(vec.x, vec.y, vec.z);
 	}
 
-	public final void setRelativeRotation(double x, double y, double z) {
+	public final void setRelativeRotation(float x, float y, float z) {
 		relativeRotation.set(x, y, z);
 	}
 
-	public final void setWorldRotation(Vector3d vec) {
+	public final void setWorldRotation(Vector3f vec) {
 		setWorldRotation(vec.x, vec.y, vec.z);
 	}
 
-	public final void setWorldRotation(double x, double y, double z) {
-		Vector3d vec3 = new Vector3d();
+	public final void setWorldRotation(float x, float y, float z) {
+		Vector3f vec3 = new Vector3f();
 		getWorldRotation(vec3);
 
-		double xdiff = vec3.x - x;
-		double ydiff = vec3.y - y;
-		double zdiff = vec3.z - z;
+		float xdiff = vec3.x - x;
+		float ydiff = vec3.y - y;
+		float zdiff = vec3.z - z;
 
 		setRelativeRotation(relativeRotation.x - xdiff, relativeRotation.y - ydiff, relativeRotation.z - zdiff);
 	}
 
-	public final void setYaw(double yaw) {
+	public final void setYaw(float yaw) {
 		setRelativeRotation(yaw, relativeRotation.y, relativeRotation.z);
 	}
 
-	public final void setPitch(double pitch) {
+	public final void setPitch(float pitch) {
 		setRelativeRotation(relativeRotation.x, pitch, relativeRotation.z);
 	}
 
-	public final void setRoll(double roll) {
+	public final void setRoll(float roll) {
 		setRelativeRotation(relativeRotation.x, relativeRotation.y, roll);
 	}
 
-	public final void setWorldYaw(double worldyaw) {
-		Vector3d vec3 = new Vector3d();
+	public final void setWorldYaw(float worldyaw) {
+		Vector3f vec3 = new Vector3f();
 		getWorldRotation(vec3);
 		setWorldRotation(worldyaw, vec3.y, vec3.z);
 	}
 
-	public final void setWorldPitch(double worldpitch) {
-		Vector3d vec3 = new Vector3d();
+	public final void setWorldPitch(float worldpitch) {
+		Vector3f vec3 = new Vector3f();
 		getWorldRotation(vec3);
 		setWorldRotation(vec3.x, worldpitch, vec3.z);
 	}
 
-	public final void setWorldRoll(double worldroll) {
-		Vector3d vec3 = new Vector3d();
+	public final void setWorldRoll(float worldroll) {
+		Vector3f vec3 = new Vector3f();
 		getWorldRotation(vec3);
 		setWorldRotation(vec3.x, vec3.y, worldroll);
 	}
@@ -1005,7 +1022,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 	}
 
 	@Override
-	public final void update(double delta) {
+	public final void update(float delta) {
 		components.forEach((id, component) -> {
 			if (component != null) {
 				component.update(delta);
@@ -1025,7 +1042,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		});
 	}
 
-	protected void serverUpdate(double delta) {
+	protected void serverUpdate(float delta) {
 		// WARNING: NONE of the code in this method
 		// should EVER try to interact with render code
 		// or other objects that require an opngGL context
@@ -1035,21 +1052,21 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		// (Which might even be a dedicated server as a whole)
 	}
 
-	protected void clientUpdate(double delta) {
+	protected void clientUpdate(float delta) {
 		// Here doing such things may still cause
 		// exceptions or weird and hard to debug errors
 		// so by design it is best not to include such
 		// code in update methods
 	}
 
-	protected void commonUpdate(double delta) {
+	protected void commonUpdate(float delta) {
 		// Happens on both server and client regardless
 		// So follow all the warnings reported on the serverUpdate
 		// method plus the ones on clientUpdate
 	}
 
 	@Override
-	public void render(Matrix4d projection, double delta) {
+	public void render(Matrix4f projection, float delta) {
 	}
 
 	@Override
@@ -1058,27 +1075,27 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 			buffer.putBoolean(true);
 		} else {
 			buffer.putBoolean(false);
-			buffer.putDouble(relativePosition.x);
-			buffer.putDouble(relativePosition.y);
-			buffer.putDouble(relativePosition.z);
+			buffer.putFloat(relativePosition.x);
+			buffer.putFloat(relativePosition.y);
+			buffer.putFloat(relativePosition.z);
 		}
 
 		if (relativeScale.x == 0 && relativeScale.y == 0 && relativeScale.z == 0) {
 			buffer.putBoolean(true);
 		} else {
 			buffer.putBoolean(false);
-			buffer.putDouble(relativeScale.x);
-			buffer.putDouble(relativeScale.y);
-			buffer.putDouble(relativeScale.z);
+			buffer.putFloat(relativeScale.x);
+			buffer.putFloat(relativeScale.y);
+			buffer.putFloat(relativeScale.z);
 		}
 
 		if (relativeRotation.x == 0 && relativeRotation.y == 0 && relativeRotation.z == 0) {
 			buffer.putBoolean(true);
 		} else {
 			buffer.putBoolean(false);
-			buffer.putDouble(relativeRotation.x);
-			buffer.putDouble(relativeRotation.y);
-			buffer.putDouble(relativeRotation.z);
+			buffer.putFloat(relativeRotation.x);
+			buffer.putFloat(relativeRotation.y);
+			buffer.putFloat(relativeRotation.z);
 		}
 	}
 
@@ -1097,9 +1114,9 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 			relativePosition.y = 0;
 			relativePosition.z = 0;
 		} else {
-			relativePosition.x = buffer.getDouble();
-			relativePosition.y = buffer.getDouble();
-			relativePosition.z = buffer.getDouble();
+			relativePosition.x = buffer.getFloat();
+			relativePosition.y = buffer.getFloat();
+			relativePosition.z = buffer.getFloat();
 		}
 
 		if (buffer.getBoolean()) {
@@ -1107,9 +1124,9 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 			relativeScale.y = 0;
 			relativeScale.z = 0;
 		} else {
-			relativeScale.x = buffer.getDouble();
-			relativeScale.y = buffer.getDouble();
-			relativeScale.z = buffer.getDouble();
+			relativeScale.x = buffer.getFloat();
+			relativeScale.y = buffer.getFloat();
+			relativeScale.z = buffer.getFloat();
 		}
 
 		if (buffer.getBoolean()) {
@@ -1117,9 +1134,9 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 			relativeRotation.y = 0;
 			relativeRotation.z = 0;
 		} else {
-			relativeRotation.x = buffer.getDouble();
-			relativeRotation.y = buffer.getDouble();
-			relativeRotation.z = buffer.getDouble();
+			relativeRotation.x = buffer.getFloat();
+			relativeRotation.y = buffer.getFloat();
+			relativeRotation.z = buffer.getFloat();
 		}
 	}
 

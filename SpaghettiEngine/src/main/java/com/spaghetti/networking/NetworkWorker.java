@@ -8,7 +8,6 @@ import java.net.InetSocketAddress;
 import java.net.Socket;
 import java.nio.charset.Charset;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.HashMap;
 import java.util.Map.Entry;
 
@@ -567,6 +566,30 @@ public class NetworkWorker {
 			case Opcode.PINGPONG:
 				handlePing();
 				break;
+			case Opcode.OBJFUNC_REPARENT:
+				if (getGame().isServer()) {
+					invalid_privilege(opcode);
+				}
+				readObjReparentFunc(level);
+				break;
+			case Opcode.OBJFUNC_DESTROY:
+				if (getGame().isServer()) {
+					invalid_privilege(opcode);
+				}
+				readObjDestroyFunc(level);
+				break;
+			case Opcode.COMPFUNC_REPARENT:
+				if (getGame().isServer()) {
+					invalid_privilege(opcode);
+				}
+				readCompReparentFunc(level);
+				break;
+			case Opcode.COMPFUNC_DESTROY:
+				if (getGame().isServer()) {
+					invalid_privilege(opcode);
+				}
+				readCompDestroyFunc(level);
+				break;
 			}
 		}
 	}
@@ -655,7 +678,9 @@ public class NetworkWorker {
 
 		// Write metadata
 		w_buffer.putByte(Opcode.LEVEL);
-		level.forEachObject(this::writeChildren);
+		synchronized (level) {
+			level.forEachObject(this::writeChildren);
+		}
 		w_buffer.putByte(Opcode.STOP);
 	}
 
@@ -820,8 +845,6 @@ public class NetworkWorker {
 				readChildren(level, object);
 			}
 		} catch (IllegalAccessException e) {
-			// This should not happen even with errors in the parsing
-			e.printStackTrace();
 		}
 
 	}
@@ -928,8 +951,8 @@ public class NetworkWorker {
 		writeEventCustom(event);
 	}
 
-	public void readGameEvent() throws InstantiationException, IllegalArgumentException, InvocationTargetException,
-			NoSuchMethodException, SecurityException, ClassNotFoundException {
+	public void readGameEvent() throws InstantiationException, InvocationTargetException, NoSuchMethodException,
+			SecurityException, ClassNotFoundException {
 
 		try {
 
@@ -988,26 +1011,92 @@ public class NetworkWorker {
 
 	public void requestPing() {
 		w_buffer.putByte(Opcode.PINGPONG);
-		if (getGame().isClient()) {
-			w_buffer.putBytes(PONG, 0, PONG.length);
-		} else {
-			w_buffer.putBytes(PING, 0, PING.length);
-		}
 	}
 
 	public void handlePing() {
-		if (getGame().isClient()) {
-			r_buffer.getBytes(ping_buf, 0, ping_buf.length);
-			if (!Arrays.equals(ping_buf, PING)) {
-				return;
+		ping = true;
+	}
+
+	public void writeObjReparentFunc(GameObject target, GameObject newparent) {
+		w_buffer.putByte(Opcode.OBJFUNC_REPARENT);
+		w_buffer.putLong(target.getId());
+		w_buffer.putString(true, target.getClass().getName(), NetworkBuffer.UTF_8);
+		w_buffer.putLong(newparent == null ? -1 : newparent.getId());
+	}
+
+	public void readObjReparentFunc(Level level) throws ClassNotFoundException, InstantiationException,
+			IllegalArgumentException, InvocationTargetException, NoSuchMethodException {
+		long target_id = r_buffer.getLong();
+		String target_clazz = r_buffer.getString(true, NetworkBuffer.UTF_8);
+		long newparent_id = r_buffer.getLong();
+
+		GameObject target = level.getObject(target_id);
+		GameObject newparent = newparent_id == -1 ? null : level.getObject(newparent_id);
+		if (target == null) {
+			Class<?> target_class = cls(target_clazz);
+			if (!GameObject.class.isAssignableFrom(target_class)) {
+				throw new IllegalStateException("Illegal object class");
 			}
-			requestPing();
-		} else {
-			r_buffer.getBytes(pong_buf, 0, pong_buf.length);
-			if (!Arrays.equals(pong_buf, PONG)) {
-				ping = false;
+			try {
+				target = (GameObject) o_constr(target_class).newInstance();
+				f_oid.set(target, target_id);
+			} catch (IllegalAccessException e) {
 			}
+
 		}
+		if (newparent == null) {
+			level.addObject(target);
+		} else {
+			newparent.addChild(target);
+		}
+	}
+
+	public void writeObjDestroyFunc(GameObject target) {
+		w_buffer.putByte(Opcode.OBJFUNC_DESTROY);
+		w_buffer.putLong(target.getId());
+	}
+
+	public void readObjDestroyFunc(Level level) {
+		long target_id = r_buffer.getLong();
+
+		GameObject target = level.getObject(target_id);
+		if (target == null) {
+			return;
+		}
+		target.destroy();
+	}
+
+	public void writeCompReparentFunc(GameComponent target, GameObject newparent) {
+		w_buffer.putByte(Opcode.COMPFUNC_REPARENT);
+		w_buffer.putLong(target.getId());
+		w_buffer.putLong(newparent.getId());
+	}
+
+	public void readCompReparentFunc(Level level) {
+		long target_id = r_buffer.getLong();
+		long newparent_id = r_buffer.getLong();
+
+		GameComponent target = level.getComponent(target_id);
+		GameObject newparent = level.getObject(newparent_id);
+		if (target == null || newparent == null) {
+			throw new IllegalStateException("Null target or null parent in component reparent function");
+		}
+		newparent.addComponent(target);
+	}
+
+	public void writeCompDestroyFunc(GameComponent target) {
+		w_buffer.putByte(Opcode.COMPFUNC_DESTROY);
+		w_buffer.putLong(target.getId());
+	}
+
+	public void readCompDestroyFunc(Level level) {
+		long target_id = r_buffer.getLong();
+
+		GameComponent target = level.getComponent(target_id);
+		if (target == null) {
+			throw new IllegalStateException("Null target in component destroy function");
+		}
+		target.destroy();
 	}
 
 	// Utility methods

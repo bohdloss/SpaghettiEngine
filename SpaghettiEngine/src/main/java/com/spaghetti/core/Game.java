@@ -473,7 +473,7 @@ public final class Game {
 		return index;
 	}
 
-	public double getTickMultiplier(double delta) {
+	public float getTickMultiplier(float delta) {
 		return (delta / 1000) / options.getTick();
 	}
 

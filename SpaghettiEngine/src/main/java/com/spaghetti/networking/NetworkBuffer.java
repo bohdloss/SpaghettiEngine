@@ -151,6 +151,7 @@ public final class NetworkBuffer {
 	public void putBytesAt(int index, byte[] buf, int buf_offset, int amount) {
 		int position = buffer.position();
 		try {
+			buffer.position(index);
 			putBytes(buf, buf_offset, amount);
 		} finally {
 			buffer.position(position);
@@ -172,6 +173,7 @@ public final class NetworkBuffer {
 	public void getBytesAt(int index, byte[] buf, int buf_offset, int amount) {
 		int position = buffer.position();
 		try {
+			buffer.position(index);
 			getBytes(buf, buf_offset, amount);
 		} finally {
 			buffer.position(position);
@@ -215,7 +217,7 @@ public final class NetworkBuffer {
 			}
 		}
 		byte[] array = v.getBytes(charset);
-		buffer.putInt(array.length);
+		buffer.putShort((short) array.length);
 		buffer.put(array);
 	}
 
@@ -224,14 +226,13 @@ public final class NetworkBuffer {
 	}
 
 	public void putStringAt(int index, boolean cache, String v, Charset charset) {
-		if (cache) {
-			putShortAt(index, (short) owner.str_cache.size());
-			owner.str_cache.put((short) owner.str_cache.size(), v);
-			index += Short.BYTES;
+		int position = buffer.position();
+		try {
+			buffer.position(index);
+			putString(cache, v, charset);
+		} finally {
+			buffer.position(position);
 		}
-		byte[] array = v.getBytes(charset);
-		buffer.putInt(index, array.length);
-		putBytesAt(index + Integer.BYTES, array);
 	}
 
 	public void putStringAt(int index, String v, Charset charset) {
@@ -250,7 +251,7 @@ public final class NetworkBuffer {
 		if (cache) {
 			short hash = buffer.getShort();
 			if (!owner.str_cache.containsKey(hash)) {
-				int length = buffer.getInt();
+				short length = buffer.getShort();
 				byte[] bytes = new byte[length];
 				buffer.get(bytes, 0, length);
 				String str = new String(bytes, charset);
@@ -260,7 +261,7 @@ public final class NetworkBuffer {
 				return owner.str_cache.get(hash);
 			}
 		}
-		int length = buffer.getInt();
+		short length = buffer.getShort();
 		byte[] bytes = new byte[length];
 		buffer.get(bytes, 0, length);
 		String ret = new String(bytes, charset);
@@ -272,11 +273,13 @@ public final class NetworkBuffer {
 	}
 
 	public String getStringAt(int index, boolean cache, Charset charset) {
-		int length = buffer.getInt(index);
-		byte[] bytes = new byte[length];
-		getBytesAt(index + Integer.BYTES, bytes);
-		String ret = new String(bytes, charset);
-		return ret;
+		int position = buffer.position();
+		try {
+			buffer.position(index);
+			return getString(cache, charset);
+		} finally {
+			buffer.position(position);
+		}
 	}
 
 	public String getStringAt(int index, Charset charset) {

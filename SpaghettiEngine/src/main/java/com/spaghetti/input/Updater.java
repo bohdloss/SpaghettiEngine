@@ -6,7 +6,7 @@ import com.spaghetti.utils.Logger;
 public class Updater extends CoreComponent {
 
 	@Override
-	protected void loopEvents(double delta) throws Throwable {
+	protected void loopEvents(float delta) throws Throwable {
 		try {
 			if (!getGame().isHeadless()) {
 				getGame().getAssetManager().lazyLoad();

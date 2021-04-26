@@ -165,7 +165,7 @@ public class Material extends Asset {
 
 	// Vector 2
 
-	public void setProperty(String name, float x, float y) {
+	public void setProperty(String name, double x, double y) {
 		if (!valid()) {
 			return;
 		}
@@ -179,7 +179,7 @@ public class Material extends Asset {
 		shader.setVec2Uniform(name, property);
 	}
 
-	public void setProperty(String name, double x, double y) {
+	public void setProperty(String name, float x, float y) {
 		if (!valid()) {
 			return;
 		}
@@ -195,7 +195,7 @@ public class Material extends Asset {
 
 	// Vector 3
 
-	public void setProperty(String name, float x, float y, float z) {
+	public void setProperty(String name, double x, double y, double z) {
 		if (!valid()) {
 			return;
 		}
@@ -209,7 +209,7 @@ public class Material extends Asset {
 		shader.setVec3Uniform(name, property);
 	}
 
-	public void setProperty(String name, double x, double y, double z) {
+	public void setProperty(String name, float x, float y, float z) {
 		if (!valid()) {
 			return;
 		}
@@ -225,7 +225,7 @@ public class Material extends Asset {
 
 	// Vector 4
 
-	public void setProperty(String name, float x, float y, float z, float w) {
+	public void setProperty(String name, double x, double y, double z, double w) {
 		if (!valid()) {
 			return;
 		}
@@ -239,7 +239,7 @@ public class Material extends Asset {
 		shader.setVec4Uniform(name, property);
 	}
 
-	public void setProperty(String name, double x, double y, float z, float w) {
+	public void setProperty(String name, float x, float y, float z, float w) {
 		if (!valid()) {
 			return;
 		}

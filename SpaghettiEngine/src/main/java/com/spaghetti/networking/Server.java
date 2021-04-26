@@ -7,6 +7,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Consumer;
 
 import com.spaghetti.core.*;
 import com.spaghetti.events.GameEvent;
@@ -15,15 +16,23 @@ import com.spaghetti.utils.*;
 
 public class Server extends CoreComponent {
 
+	// Queue events
+	protected Object queue_lock = new Object();
 	protected HashMap<GameObject, Object> events = new HashMap<>();
+	protected ArrayList<Consumer<NetworkWorker>> framework_updates = new ArrayList<>();
+
+	// Server data
 	protected AsyncServerSocket server;
 	protected JoinHandler joinHandler;
 	protected ConcurrentHashMap<Long, NetworkWorker> clients = new ConcurrentHashMap<>();
 	protected ArrayList<Long> bans = new ArrayList<>();
 	protected ConcurrentHashMap<Long, Integer> disconnections = new ConcurrentHashMap<>();
+
+	// Server variables
 	protected int maxClients = 1;
 	protected long awaitReconnect = 10000; // 10 secs
 	protected int maxDisconnections = 10;
+	protected boolean justStarted = true;
 
 	public Server() {
 		joinHandler = new DefaultJoinHandler();
@@ -50,7 +59,6 @@ public class Server extends CoreComponent {
 				}
 			}
 		});
-
 		internal_bind(9018);
 	}
 
@@ -64,18 +72,25 @@ public class Server extends CoreComponent {
 	}
 
 	@Override
-	protected void loopEvents(double delta) throws Throwable {
+	protected void loopEvents(float delta) throws Throwable {
+		if (justStarted) {
+			synchronized (queue_lock) {
+				events.clear();
+				framework_updates.clear();
+			}
+			justStarted = false;
+		}
 		Utils.sleep(25);
 		if (getClientsAmount() != 0) {
 
-			for (Entry<Long, NetworkWorker> entry : clients.entrySet()) {
-				try {
-					NetworkWorker client = entry.getValue();
-					if (!client.isConnected()) {
-						continue;
-					}
+			synchronized (queue_lock) {
+				for (Entry<Long, NetworkWorker> entry : clients.entrySet()) {
+					try {
+						NetworkWorker client = entry.getValue();
+						if (!client.isConnected()) {
+							continue;
+						}
 
-					synchronized (events) {
 						events.forEach((issuer, event) -> {
 							if (GameEvent.class.isAssignableFrom(event.getClass())) {
 								GameEvent game_event = (GameEvent) event;
@@ -86,21 +101,21 @@ public class Server extends CoreComponent {
 								client.writeIntention(issuer, (Long) event);
 							}
 						});
+//						framework_updates.forEach(consumer -> consumer.accept(client));
+						client.writeData();
+
+						// Write / read routine, in this order for client synchronization
+						client.writeSocket();
+						client.readSocket();
+
+						client.parseOperations();
+
+					} catch (Throwable t) {
+						internal_clienterror(t, entry.getValue(), entry.getKey());
 					}
-					client.writeData();
-
-					// Write / read routine, in this order for client synchronization
-					client.writeSocket();
-					client.readSocket();
-
-					client.parseOperations();
-
-				} catch (Throwable t) {
-					internal_clienterror(t, entry.getValue(), entry.getKey());
 				}
-			}
-			synchronized (events) {
 				events.clear();
+				framework_updates.clear();
 			}
 
 			for (Iterator<Entry<Long, NetworkWorker>> iterator = clients.entrySet().iterator(); iterator.hasNext();) {
@@ -132,14 +147,58 @@ public class Server extends CoreComponent {
 		if (event == null) {
 			throw new IllegalArgumentException();
 		}
-		synchronized (events) {
+		synchronized (queue_lock) {
 			events.put(issuer, event);
 		}
 	}
 
 	public void queueIntention(GameObject issuer, long intention) {
-		synchronized (events) {
+		synchronized (queue_lock) {
 			events.put(issuer, intention);
+		}
+	}
+
+	public void queueObjReparentFunc(GameObject target, GameObject parent) {
+		if (target == null) {
+			throw new IllegalArgumentException();
+		}
+		synchronized (queue_lock) {
+			framework_updates.add(client -> {
+				client.writeObjReparentFunc(target, parent);
+			});
+		}
+	}
+
+	public void queueObjDestroyFunc(GameObject target) {
+		if (target == null) {
+			throw new IllegalArgumentException();
+		}
+		synchronized (queue_lock) {
+			framework_updates.add(client -> {
+				client.writeObjDestroyFunc(target);
+			});
+		}
+	}
+
+	public void queueCompReparentFunc(GameComponent target, GameObject parent) {
+		if (target == null) {
+			throw new IllegalArgumentException();
+		}
+		synchronized (queue_lock) {
+			framework_updates.add(client -> {
+				client.writeCompReparentFunc(target, parent);
+			});
+		}
+	}
+
+	public void queueCompDestroyFunc(GameComponent target) {
+		if (target == null) {
+			throw new IllegalArgumentException();
+		}
+		synchronized (queue_lock) {
+			framework_updates.add(client -> {
+				client.writeCompDestroyFunc(target);
+			});
 		}
 	}
 

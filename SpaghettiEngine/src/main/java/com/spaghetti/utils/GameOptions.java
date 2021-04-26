@@ -8,7 +8,7 @@ import org.joml.Vector2i;
 
 public final class GameOptions {
 
-	private double tick;
+	private float tick;
 	public static final String PREFIX = "spaghetti.";
 	private HashMap<String, Object> options = new HashMap<>();
 
@@ -66,12 +66,12 @@ public final class GameOptions {
 
 	// Public getters and setters
 
-	public void setTick(double tick) {
+	public void setTick(float tick) {
 		options.put(PREFIX + "tick", tick);
 		this.tick = tick;
 	}
 
-	public double getTick() {
+	public float getTick() {
 		return tick;
 	}
 

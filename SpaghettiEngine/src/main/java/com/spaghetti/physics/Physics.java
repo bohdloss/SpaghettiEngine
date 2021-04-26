@@ -1,18 +1,17 @@
 package com.spaghetti.physics;
 
-import org.joml.Vector2d;
-
+import org.joml.Vector2f;
 import com.spaghetti.core.GameObject;
 import com.spaghetti.interfaces.Replicate;
 
 public final class Physics extends GameObject {
 
 	@Replicate
-	protected double G = 6.67408 * Math.pow(10, -11);
+	protected float G = 6.67408f * (float) Math.pow(10, -11);
 	@Replicate
-	protected double AIR_FRICTION = 18.6;
+	protected float AIR_FRICTION = 18.6f;
 	@Replicate
-	protected Vector2d gravity = new Vector2d(0, -9.81);
+	protected Vector2f gravity = new Vector2f(0, -9.81f);
 
 	public Physics() {
 		body_list = new RigidBody[256];
@@ -29,7 +28,7 @@ public final class Physics extends GameObject {
 		}
 		if (body_count == body_list.length) {
 			RigidBody[] old = body_list;
-			body_list = new RigidBody[old.length * 2]; // Double size when space is over
+			body_list = new RigidBody[old.length * 2]; // float size when space is over
 			System.arraycopy(old, 0, body_list, 0, old.length);
 		}
 		body_list[body_count++] = body;
@@ -61,8 +60,8 @@ public final class Physics extends GameObject {
 
 	// Solve all physics calculations
 
-	public void solve(double delta) {
-		double multiplier = getGame().getTickMultiplier(delta);
+	public void solve(float delta) {
+		float multiplier = getGame().getTickMultiplier(delta);
 		for (int i = 0; i < body_count; i++) {
 			body_list[i].gatherCache();
 		}
@@ -82,40 +81,40 @@ public final class Physics extends GameObject {
 		return body_count;
 	}
 
-	public void getGravity(Vector2d pointer) {
+	public void getGravity(Vector2f pointer) {
 		pointer.set(gravity);
 	}
 
-	public double getGravitationalConstant() {
+	public float getGravitationalConstant() {
 		return G;
 	}
 
-	public double getAirFriction() {
+	public float getAirFriction() {
 		return AIR_FRICTION;
 	}
 
 	// Setters
 
-	public void setGravity(double x, double y) {
+	public void setGravity(float x, float y) {
 		gravity.set(x, y);
 	}
 
-	public void setGravity(Vector2d vec) {
+	public void setGravity(Vector2f vec) {
 		setGravity(vec.x, vec.y);
 	}
 
-	public void setGravitationalConstant(double value) {
+	public void setGravitationalConstant(float value) {
 		G = value;
 	}
 
-	public void setAirFriction(double value) {
+	public void setAirFriction(float value) {
 		AIR_FRICTION = value;
 	}
 
 	// Interfaces
 
 	@Override
-	public void commonUpdate(double delta) {
+	public void commonUpdate(float delta) {
 		solve(delta);
 	}
 

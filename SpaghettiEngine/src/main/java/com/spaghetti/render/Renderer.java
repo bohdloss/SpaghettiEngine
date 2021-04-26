@@ -4,7 +4,7 @@ import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
 
 import org.joml.Matrix4d;
-import org.joml.Vector3d;
+import org.joml.Vector3f;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.opengl.GLCapabilities;
 
@@ -22,7 +22,7 @@ public class Renderer extends CoreComponent {
 
 	protected Matrix4d renderMatrix = new Matrix4d();
 	protected Matrix4d sceneMatrix = new Matrix4d();
-	protected Vector3d vec3cache = new Vector3d();
+	protected Vector3f vec3cache = new Vector3f();
 	protected Model sceneRenderer;
 	protected ShaderProgram defaultShader;
 
@@ -59,7 +59,7 @@ public class Renderer extends CoreComponent {
 	}
 
 	@Override
-	protected void loopEvents(double delta) throws Throwable {
+	protected void loopEvents(float delta) throws Throwable {
 		try {
 			if (window.shouldClose()) {
 				getGame().stopAsync();
@@ -75,7 +75,7 @@ public class Renderer extends CoreComponent {
 				// Reset render matrix
 				renderMatrix.identity();
 				// Calculate the scale
-				double scale = CMath.min(window.getWidth() / camera.getTargetRatio(), window.getHeight());
+				float scale = CMath.min(window.getWidth() / camera.getTargetRatio(), window.getHeight());
 				// Scale the matrix accordingly dividing by window size
 				renderMatrix.scale((scale * camera.getTargetRatio()) / window.getWidth(), -scale / window.getHeight(),
 						1);

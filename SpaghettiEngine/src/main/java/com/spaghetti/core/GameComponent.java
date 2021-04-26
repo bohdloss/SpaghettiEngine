@@ -83,7 +83,7 @@ public abstract class GameComponent implements Updatable, Replicable {
 	// All of the warnings from GameObject's
 	// update methods apply here as well
 	@Override
-	public final void update(double delta) {
+	public final void update(float delta) {
 		commonUpdate(delta);
 
 		if (getGame().isClient()) {
@@ -93,13 +93,13 @@ public abstract class GameComponent implements Updatable, Replicable {
 		}
 	}
 
-	protected void clientUpdate(double delta) {
+	protected void clientUpdate(float delta) {
 	}
 
-	protected void serverUpdate(double delta) {
+	protected void serverUpdate(float delta) {
 	}
 
-	protected void commonUpdate(double delta) {
+	protected void commonUpdate(float delta) {
 	}
 
 	// Hierarchy methods
@@ -118,6 +118,12 @@ public abstract class GameComponent implements Updatable, Replicable {
 		}
 		owner = null;
 		internal_setflag(DESTROYED, true);
+
+		// Send data to remote client in case of multiplayer
+		Game game = Game.getGame();
+		if (game.isMultiplayer() && game.isServer()) {
+			game.getServer().queueCompDestroyFunc(this);
+		}
 	}
 
 	// Getters and setters

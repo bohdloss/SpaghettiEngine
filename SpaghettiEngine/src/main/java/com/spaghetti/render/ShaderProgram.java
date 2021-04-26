@@ -311,12 +311,12 @@ public final class ShaderProgram extends Asset {
 		GL20.glUniform4f(loc, vec.x, vec.y, vec.z, vec.w);
 	}
 
-	public void setVec4Uniform(String name, double x, double y, double z, float w) {
+	public void setVec4Uniform(String name, double x, double y, double z, double w) {
 		if (!valid()) {
 			return;
 		}
 		int loc = getUniformLocation(name);
-		GL20.glUniform4f(loc, (float) x, (float) y, (float) z, w);
+		GL20.glUniform4f(loc, (float) x, (float) y, (float) z, (float) w);
 	}
 
 	public void setVec4Uniform(String name, Vector4d vec) {

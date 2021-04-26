@@ -113,7 +113,7 @@ public abstract class CoreComponent extends Thread {
 					lastTime = current;
 				}
 				long pre = current - lastTime;
-				double delta = pre;
+				float delta = pre;
 				lastTime = current;
 
 				// Compute queued operations
@@ -163,7 +163,7 @@ public abstract class CoreComponent extends Thread {
 		Logger.error("Fatal uncaught error in game " + source.getIndex() + ":", t);
 	}
 
-	protected abstract void loopEvents(double delta) throws Throwable; // Your custom loop code here!
+	protected abstract void loopEvents(float delta) throws Throwable; // Your custom loop code here!
 
 	// Getters
 

@@ -92,6 +92,12 @@ public final class Level implements Updatable {
 		} catch (Throwable t) {
 		}
 		object.internal_begin();
+
+		// Send data to remote client in case of multiplayer
+		Game game = Game.getGame();
+		if (game.isMultiplayer() && game.isServer()) {
+			game.getServer().queueObjReparentFunc(object, null);
+		}
 	}
 
 	private final void i_r_upd_lvl(GameObject object) {
@@ -171,7 +177,7 @@ public final class Level implements Updatable {
 	}
 
 	@Override
-	public void update(double delta) {
+	public void update(float delta) {
 		try {
 			objects.forEach(object -> {
 				if (object != null) {

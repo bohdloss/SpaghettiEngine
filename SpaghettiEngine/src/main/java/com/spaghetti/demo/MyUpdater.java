@@ -9,6 +9,7 @@ import com.spaghetti.objects.Mesh;
 import com.spaghetti.objects.SkyboxMesh;
 import com.spaghetti.physics.Physics;
 import com.spaghetti.render.*;
+import com.spaghetti.utils.Utils;
 
 public class MyUpdater extends Updater {
 
@@ -44,8 +45,14 @@ public class MyUpdater extends Updater {
 	}
 
 	@Override
-	protected void loopEvents(double delta) throws Throwable {
+	protected void loopEvents(float delta) throws Throwable {
 		super.loopEvents(delta);
+		if (getGame().isServer()) {
+			Utils.sleep(10000);
+			Mesh mesh = new Mesh(Model.get("square"), Material.get("defaultMAT"));
+			mesh.setRelativePosition(new Random().nextFloat() * 30, new Random().nextFloat() * 30, 0);
+			level.addObject(mesh);
+		}
 	}
 
 	@Override
@@ -65,16 +72,16 @@ class MovingMesh extends Mesh {
 		super();
 	}
 
-	double random = new Random().nextDouble() * 7;
+	float random = new Random().nextFloat() * 7;
 
-	double i = 0;
+	float i = 0;
 
 	@Override
-	public void serverUpdate(double delta) {
+	public void serverUpdate(float delta) {
 		i += 10 * getGame().getTickMultiplier(delta);
 
-		double mod = Math.sin(i);
-		setRelativePosition(Math.cos(random) * mod, Math.sin(random) * mod, 0);
+		float mod = (float) Math.sin(i);
+		setRelativePosition((float) Math.cos(random) * mod, (float) Math.sin(random) * mod, 0);
 	}
 
 }

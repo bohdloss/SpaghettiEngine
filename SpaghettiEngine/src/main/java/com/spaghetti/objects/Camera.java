@@ -1,8 +1,8 @@
 package com.spaghetti.objects;
 
-import org.joml.Matrix4d;
+import org.joml.Matrix4f;
 import org.joml.Vector2i;
-import org.joml.Vector3d;
+import org.joml.Vector3f;
 import org.lwjgl.opengl.GL11;
 
 import com.spaghetti.core.*;
@@ -14,13 +14,13 @@ public class Camera extends GameObject {
 
 	// Instance fields
 
-	protected double scale;
-	protected double fov = 10;
-	protected double targetRatio = 16 / 9; // 16:9 resolution
+	protected float scale;
+	protected float fov = 10;
+	protected float targetRatio = 16 / 9; // 16:9 resolution
 
-	protected Matrix4d projection = new Matrix4d();
-	protected Matrix4d cache = new Matrix4d();
-	protected Matrix4d view = new Matrix4d();
+	protected Matrix4f projection = new Matrix4f();
+	protected Matrix4f cache = new Matrix4f();
+	protected Matrix4f view = new Matrix4f();
 
 	protected int width, height;
 	protected boolean clearColor = true, clearDepth = true, clearStencil = true;
@@ -33,24 +33,24 @@ public class Camera extends GameObject {
 	}
 
 	public void calcScale() {
-		double usedVal = CMath.min(width / targetRatio, height);
+		float usedVal = CMath.min(width / targetRatio, height);
 		scale = (usedVal / fov) * 2;
 	}
 
-	public double getFov() {
+	public float getFov() {
 		return fov;
 	}
 
-	public void setFov(double fov) {
+	public void setFov(float fov) {
 		this.fov = fov;
 		calcScale();
 	}
 
-	public double getTargetRatio() {
+	public float getTargetRatio() {
 		return targetRatio;
 	}
 
-	public void setTargetRatio(double targetRatio) {
+	public void setTargetRatio(float targetRatio) {
 		this.targetRatio = targetRatio;
 		calcScale();
 	}
@@ -71,8 +71,8 @@ public class Camera extends GameObject {
 		}
 	}
 
-	public Matrix4d getProjection() {
-		Vector3d vecC = new Vector3d();
+	public Matrix4f getProjection() {
+		Vector3f vecC = new Vector3f();
 		getWorldPosition(vecC);
 		cache.set(projection);
 		cache.scale(scale, scale, 1);
@@ -80,7 +80,7 @@ public class Camera extends GameObject {
 		return cache;
 	}
 
-	public Matrix4d getUntransformedProjection() {
+	public Matrix4f getUntransformedProjection() {
 		cache.set(projection);
 		cache.scale(scale, scale, 1);
 		return cache;
@@ -97,7 +97,7 @@ public class Camera extends GameObject {
 	protected void updateValues() {
 		width = renderTarget.getWidth();
 		height = renderTarget.getHeight();
-		targetRatio = ((double) width) / ((double) height);
+		targetRatio = ((float) width) / ((float) height);
 		setProjectionMatrix();
 	}
 
@@ -136,32 +136,32 @@ public class Camera extends GameObject {
 		this.renderTarget = renderTarget;
 	}
 
-	public double getCameraScale() {
+	public float getCameraScale() {
 		return scale;
 	}
 
-	public double getWidth() {
+	public float getWidth() {
 		return width;
 	}
 
-	public double getHeight() {
+	public float getHeight() {
 		return height;
 	}
 
 	@Override
-	public void serverUpdate(double delta) {
+	public void serverUpdate(float delta) {
 
 	}
 
 	@Override
-	public void clientUpdate(double delta) {
+	public void clientUpdate(float delta) {
 
 	}
 
 	@Override
 	public void readDataClient(NetworkBuffer buffer) {
 		super.readDataClient(buffer);
-		fov = buffer.getDouble();
+		fov = buffer.getFloat();
 		clearColor = buffer.getBoolean();
 		clearDepth = buffer.getBoolean();
 		clearStencil = buffer.getBoolean();
@@ -171,14 +171,14 @@ public class Camera extends GameObject {
 	@Override
 	public void writeDataServer(NetworkBuffer buffer) {
 		super.writeDataServer(buffer);
-		buffer.putDouble(fov);
+		buffer.putFloat(fov);
 		buffer.putBoolean(clearColor);
 		buffer.putBoolean(clearDepth);
 		buffer.putBoolean(clearStencil);
 	}
 
 	@Override
-	public void render(Matrix4d projection, double delta) {
+	public void render(Matrix4f projection, float delta) {
 		checkTarget();
 		renderTarget.use();
 		if (getClearColor()) {
@@ -191,8 +191,8 @@ public class Camera extends GameObject {
 			GL11.glClear(GL11.GL_STENCIL_BUFFER_BIT);
 		}
 
-		Matrix4d sceneMatrix = new Matrix4d();
-		Vector3d vec3cache = new Vector3d();
+		Matrix4f sceneMatrix = new Matrix4f();
+		Vector3f vec3cache = new Vector3f();
 		getLevel().forEachActualObject((id, component) -> {
 			if (!Camera.class.isAssignableFrom(component.getClass())) {
 

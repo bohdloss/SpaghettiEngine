@@ -5,13 +5,13 @@ public class Shape {
 	// Shape factory
 
 	public static Shape getSquare() {
-		return new Shape(new double[] { 0.5, -0.5, 0.5, -0.5 }, new double[] { 0.5, 0.5, -0.5, -0.5 });
+		return new Shape(new float[] { 0.5f, -0.5f, 0.5f, -0.5f }, new float[] { 0.5f, 0.5f, -0.5f, -0.5f });
 	}
 
-	protected double[] xcoords, ycoords;
+	protected float[] xcoords, ycoords;
 	protected int point_count;
 
-	public Shape(double[] xcoords, double[] ycoords) {
+	public Shape(float[] xcoords, float[] ycoords) {
 		this.xcoords = xcoords;
 		this.ycoords = ycoords;
 		if (xcoords.length != ycoords.length) {
@@ -27,11 +27,11 @@ public class Shape {
 		return point_count;
 	}
 
-	public double[] getX() {
+	public float[] getX() {
 		return xcoords;
 	}
 
-	public double[] getY() {
+	public float[] getY() {
 		return ycoords;
 	}
 

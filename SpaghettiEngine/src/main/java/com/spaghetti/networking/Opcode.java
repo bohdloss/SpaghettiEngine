@@ -25,4 +25,14 @@ public final class Opcode {
 
 	public static final byte PINGPONG = (byte) 11;
 
+	public static final byte OBJFUNC_REPARENT = (byte) 13;
+	public static final byte OBJFUNC_ORPHAN = (byte) 14;
+	public static final byte OBJFUNC_DESTROY = (byte) 15;
+	public static final byte OBJFUNC_CREATE = (byte) 16;
+
+	public static final byte COMPFUNC_REPARENT = (byte) 17;
+	public static final byte COMPFUNC_ORPHAN = (byte) 18;
+	public static final byte COMPFUNC_DESTROY = (byte) 19;
+	public static final byte COMPFUNC_CREATE = (byte) 20;
+
 }
