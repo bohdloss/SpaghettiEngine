@@ -6,10 +6,12 @@ import org.joml.Vector3f;
 import org.lwjgl.opengl.GL11;
 
 import com.spaghetti.core.*;
+import com.spaghetti.interfaces.ToClient;
 import com.spaghetti.networking.NetworkBuffer;
 import com.spaghetti.render.*;
 import com.spaghetti.utils.*;
 
+@ToClient
 public class Camera extends GameObject {
 
 	// Instance fields

@@ -38,10 +38,11 @@ public final class Level implements Updatable {
 	}
 
 	protected boolean destroyed;
+	protected boolean replicate;
 	protected Game source;
 	protected ArrayList<GameObject> objects = new ArrayList<>();
-	protected ConcurrentHashMap<Long, GameObject> o_ordered = new ConcurrentHashMap<>();
-	protected ConcurrentHashMap<Long, GameComponent> c_ordered = new ConcurrentHashMap<>();
+	protected ConcurrentHashMap<Integer, GameObject> o_ordered = new ConcurrentHashMap<>();
+	protected ConcurrentHashMap<Integer, GameComponent> c_ordered = new ConcurrentHashMap<>();
 	protected Camera activeCamera;
 	protected Controller activeInput;
 
@@ -92,12 +93,6 @@ public final class Level implements Updatable {
 		} catch (Throwable t) {
 		}
 		object.internal_begin();
-
-		// Send data to remote client in case of multiplayer
-		Game game = Game.getGame();
-		if (game.isMultiplayer() && game.isServer()) {
-			game.getServer().queueObjReparentFunc(object, null);
-		}
 	}
 
 	private final void i_r_upd_lvl(GameObject object) {
@@ -114,7 +109,7 @@ public final class Level implements Updatable {
 		});
 	}
 
-	public synchronized GameObject removeObject(long id) {
+	public synchronized GameObject removeObject(int id) {
 		GameObject object = o_ordered.get(id);
 		if (!objects.contains(object)) {
 			return null;
@@ -132,7 +127,7 @@ public final class Level implements Updatable {
 		return object;
 	}
 
-	public synchronized boolean deleteObject(long id) {
+	public synchronized boolean deleteObject(int id) {
 		GameObject get = o_ordered.get(id);
 		if (!objects.contains(get)) {
 			return false;
@@ -144,11 +139,11 @@ public final class Level implements Updatable {
 		return false;
 	}
 
-	public GameObject getObject(long id) {
+	public GameObject getObject(int id) {
 		return o_ordered.get(id);
 	}
 
-	public GameComponent getComponent(long id) {
+	public GameComponent getComponent(int id) {
 		return c_ordered.get(id);
 	}
 
@@ -168,11 +163,11 @@ public final class Level implements Updatable {
 		objects.forEach(consumer);
 	}
 
-	public void forEachActualObject(BiConsumer<Long, GameObject> consumer) {
+	public void forEachActualObject(BiConsumer<Integer, GameObject> consumer) {
 		o_ordered.forEach(consumer);
 	}
 
-	public void forEachComponent(BiConsumer<Long, GameComponent> consumer) {
+	public void forEachComponent(BiConsumer<Integer, GameComponent> consumer) {
 		c_ordered.forEach(consumer);
 	}
 
@@ -262,7 +257,7 @@ public final class Level implements Updatable {
 
 	// Get single object by index
 
-	public GameObject getObject(int index) {
+	public GameObject getObjectAt(int index) {
 		int i = 0;
 		for (GameObject obj : o_ordered.values()) {
 			if (i == index) {
@@ -274,7 +269,7 @@ public final class Level implements Updatable {
 	}
 
 	@SuppressWarnings("unchecked")
-	public <T extends GameObject> T getObject(int index, Class<T> cls) {
+	public <T extends GameObject> T getObjectAt(int index, Class<T> cls) {
 		int i = 0;
 		for (GameObject obj : o_ordered.values()) {
 			if (cls.isAssignableFrom(obj.getClass())) {
@@ -356,7 +351,7 @@ public final class Level implements Updatable {
 
 	// Get single component by index
 
-	public GameComponent getComponent(int index) {
+	public GameComponent getComponentAt(int index) {
 		int i = 0;
 		for (GameComponent comp : c_ordered.values()) {
 			if (i == index) {
@@ -368,7 +363,7 @@ public final class Level implements Updatable {
 	}
 
 	@SuppressWarnings("unchecked")
-	public <T extends GameComponent> T getComponent(int index, Class<T> cls) {
+	public <T extends GameComponent> T getComponentAt(int index, Class<T> cls) {
 		int i = 0;
 		for (GameComponent comp : c_ordered.values()) {
 			if (cls.isAssignableFrom(comp.getClass())) {

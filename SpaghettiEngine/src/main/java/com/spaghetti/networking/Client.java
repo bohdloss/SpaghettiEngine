@@ -28,10 +28,15 @@ public class Client extends CoreComponent {
 				NetworkWorker client = occ.getClient();
 				long clientId = occ.getClientId();
 				try {
+					// Don't write anything, just read incoming packet
 					client.writeSocket();
 					client.readSocket();
 
+					// We are reading the level structure
 					client.parseOperations();
+
+					// Turn on replication flag
+					client.setForceReplication(true);
 					Logger.info("Connection correctly established");
 				} catch (Throwable t) {
 					internal_clienterror(t, client, clientId);
@@ -67,11 +72,15 @@ public class Client extends CoreComponent {
 						}
 					});
 				}
+				// Write data about each object that needs an update
 				worker.writeData();
+				worker.setForceReplication(false);
 
+				// Send packet
 				worker.writeSocket();
 				worker.readSocket();
 
+				// Read incoming packets
 				worker.parseOperations();
 			} catch (Throwable t) {
 				internal_clienterror(t, worker, clientId);

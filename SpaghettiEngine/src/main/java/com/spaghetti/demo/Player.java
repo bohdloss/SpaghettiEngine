@@ -77,4 +77,9 @@ public class Player extends GameObject {
 		}
 	}
 
+	@Override
+	public boolean getReplicateFlag() {
+		return true;
+	}
+
 }

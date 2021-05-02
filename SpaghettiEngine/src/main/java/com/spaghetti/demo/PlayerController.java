@@ -6,9 +6,11 @@ import org.joml.Vector3f;
 import com.spaghetti.core.GameWindow;
 import com.spaghetti.input.Controller;
 import com.spaghetti.input.Keys;
+import com.spaghetti.interfaces.ToClient;
 import com.spaghetti.physics.RigidBody;
 import com.spaghetti.utils.CMath;
 
+@ToClient
 public class PlayerController extends Controller {
 
 	protected Player player;

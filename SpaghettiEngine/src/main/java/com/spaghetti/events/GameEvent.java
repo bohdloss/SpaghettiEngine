@@ -7,15 +7,15 @@ import com.spaghetti.networking.NetworkWorker;
 
 public abstract class GameEvent {
 
-	private static final HashMap<Integer, Long> staticId = new HashMap<>();
+	private static final HashMap<Integer, Integer> staticId = new HashMap<>();
 
-	private static final synchronized long newId() {
+	private static final synchronized int newId() {
 		int index = Game.getGame().getIndex();
-		Long id = staticId.get(index);
+		Integer id = staticId.get(index);
 		if (id == null) {
-			id = 0l;
+			id = 0;
 		}
-		staticId.put(index, id + 1l);
+		staticId.put(index, id + 1);
 		return id;
 	}
 
@@ -23,7 +23,7 @@ public abstract class GameEvent {
 	public static final int NOT_SET = 0;
 	public static final int SERVER = 1;
 
-	private final long id;
+	private final int id;
 	private int from;
 	private boolean cancelled;
 
@@ -43,7 +43,7 @@ public abstract class GameEvent {
 		return from;
 	}
 
-	public final long getId() {
+	public final int getId() {
 		return id;
 	}
 

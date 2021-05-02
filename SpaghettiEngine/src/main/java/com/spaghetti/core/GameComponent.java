@@ -10,16 +10,16 @@ import com.spaghetti.utils.Utils;
 
 public abstract class GameComponent implements Updatable, Replicable {
 
-	private static HashMap<Integer, Long> staticId = new HashMap<>();
+	private static HashMap<Integer, Integer> staticId = new HashMap<>();
 
-	private static final synchronized long newId() {
+	private static final synchronized int newId() {
 		int index = Game.getGame().getIndex();
-		Long id = staticId.get(index);
+		Integer id = staticId.get(index);
 		if (id == null) {
-			id = 0l;
+			id = 0;
 		}
-		staticId.put(index, id + 1l);
-		return new Random().nextLong();
+		staticId.put(index, id + 1);
+		return new Random().nextInt();
 	}
 
 	private final void internal_setflag(int flag, boolean value) {
@@ -46,7 +46,7 @@ public abstract class GameComponent implements Updatable, Replicable {
 	private final Object flags_lock = new Object();
 	private int flags;
 	private GameObject owner;
-	private long id;
+	private int id;
 
 	public GameComponent() {
 		this.id = newId();
@@ -118,12 +118,6 @@ public abstract class GameComponent implements Updatable, Replicable {
 		}
 		owner = null;
 		internal_setflag(DESTROYED, true);
-
-		// Send data to remote client in case of multiplayer
-		Game game = Game.getGame();
-		if (game.isMultiplayer() && game.isServer()) {
-			game.getServer().queueCompDestroyFunc(this);
-		}
 	}
 
 	// Getters and setters
@@ -144,7 +138,7 @@ public abstract class GameComponent implements Updatable, Replicable {
 		return owner == null ? null : owner.getGame();
 	}
 
-	public final long getId() {
+	public final int getId() {
 		return id;
 	}
 
@@ -154,6 +148,15 @@ public abstract class GameComponent implements Updatable, Replicable {
 
 	public final boolean isGloballyAttached() {
 		return owner != null && owner.isGloballyAttached();
+	}
+
+	// Override for more precise control
+	public boolean getReplicateFlag() {
+		return internal_getflag(ATTACHED);
+	}
+
+	protected final void setReplicateFlag(boolean flag) {
+		internal_setflag(ATTACHED, flag);
 	}
 
 }

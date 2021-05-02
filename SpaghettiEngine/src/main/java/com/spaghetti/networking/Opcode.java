@@ -17,22 +17,12 @@ public final class Opcode {
 
 	public static final byte CAMERA = (byte) 7;
 	public static final byte CONTROLLER = (byte) 8;
-	public static final byte PLAYER = (byte) 12;
+	public static final byte PLAYER = (byte) 9;
 
-	public static final byte END = (byte) 9;
+	public static final byte END = (byte) 10;
 
-	public static final byte DATA = (byte) 10;
+	public static final byte DATA = (byte) 11;
 
-	public static final byte PINGPONG = (byte) 11;
-
-	public static final byte OBJFUNC_REPARENT = (byte) 13;
-	public static final byte OBJFUNC_ORPHAN = (byte) 14;
-	public static final byte OBJFUNC_DESTROY = (byte) 15;
-	public static final byte OBJFUNC_CREATE = (byte) 16;
-
-	public static final byte COMPFUNC_REPARENT = (byte) 17;
-	public static final byte COMPFUNC_ORPHAN = (byte) 18;
-	public static final byte COMPFUNC_DESTROY = (byte) 19;
-	public static final byte COMPFUNC_CREATE = (byte) 20;
+	public static final byte PINGPONG = (byte) 12;
 
 }

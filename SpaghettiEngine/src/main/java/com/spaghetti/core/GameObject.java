@@ -15,22 +15,23 @@ import com.spaghetti.networking.NetworkBuffer;
 import com.spaghetti.utils.Logger;
 import com.spaghetti.utils.Utils;
 
+@ToClient
 public abstract class GameObject implements Updatable, Renderable, Replicable {
 
 	// Hierarchy and utility
 
 	private static final Field c_owner;
 	private static final Method c_setflag;
-	private static HashMap<Integer, Long> staticId = new HashMap<>();
+	private static HashMap<Integer, Integer> staticId = new HashMap<>();
 
-	private static final synchronized long newId() {
+	private static final synchronized int newId() {
 		int index = Game.getGame().getIndex();
-		Long id = staticId.get(index);
+		Integer id = staticId.get(index);
 		if (id == null) {
-			id = 0l;
+			id = 0;
 		}
-		staticId.put(index, id + 1l);
-		return new Random().nextLong();
+		staticId.put(index, id + 1);
+		return new Random().nextInt();
 	}
 
 	static {
@@ -62,11 +63,11 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 
 	private final Object flags_lock = new Object();
 	private int flags;
-	private long id; // This uniquely identifies any object
+	private int id; // This uniquely identifies any object
 	private Level level;
 	private GameObject parent;
-	private ConcurrentHashMap<Long, GameObject> children = new ConcurrentHashMap<>();
-	private ConcurrentHashMap<Long, GameComponent> components = new ConcurrentHashMap<>();
+	private ConcurrentHashMap<Integer, GameObject> children = new ConcurrentHashMap<>();
+	private ConcurrentHashMap<Integer, GameComponent> components = new ConcurrentHashMap<>();
 
 	public GameObject() {
 		this.id = newId();
@@ -86,11 +87,11 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		}
 	}
 
-	public final void forEachChild(BiConsumer<Long, GameObject> consumer) {
+	public final void forEachChild(BiConsumer<Integer, GameObject> consumer) {
 		children.forEach(consumer);
 	}
 
-	public final void forEachComponent(BiConsumer<Long, GameComponent> consumer) {
+	public final void forEachComponent(BiConsumer<Integer, GameComponent> consumer) {
 		components.forEach(consumer);
 	}
 
@@ -138,12 +139,6 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		if (isGloballyAttached()) {
 			object.internal_begin();
 		}
-
-		// Send data to remote client in case of multiplayer
-		Game game = Game.getGame();
-		if (game.isMultiplayer() && game.isServer()) {
-			game.getServer().queueObjReparentFunc(object, this);
-		}
 	}
 
 	private final void i_r_upd_lvl(GameObject object) {
@@ -186,12 +181,6 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 				Logger.error("Error occurred in component", t);
 			}
 		}
-
-		// Send data to remote client in case of multiplayer
-		Game game = Game.getGame();
-		if (game.isMultiplayer() && game.isServer()) {
-			game.getServer().queueCompReparentFunc(component, this);
-		}
 	}
 
 	// Getter utility functions
@@ -219,7 +208,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 
 	// Get single child by index
 
-	public final GameObject getChild(int index) {
+	public final GameObject getChildAt(int index) {
 		int i = 0;
 		for (GameObject obj : children.values()) {
 			if (i == index) {
@@ -231,7 +220,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 	}
 
 	@SuppressWarnings("unchecked")
-	public final <T extends GameObject> T getChild(int index, Class<T> cls) {
+	public final <T extends GameObject> T getChildAt(int index, Class<T> cls) {
 		int i = 0;
 		for (GameObject obj : children.values()) {
 			if (cls.isAssignableFrom(obj.getClass())) {
@@ -244,7 +233,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		throw new IndexOutOfBoundsException("" + index);
 	}
 
-	public final GameObject getChild(long id) {
+	public final GameObject getChild(int id) {
 		return children.get(id);
 	}
 
@@ -317,7 +306,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 
 	// Get single component by index
 
-	public final GameComponent getComponent(int index) {
+	public final GameComponent getComponentAt(int index) {
 		int i = 0;
 		for (GameComponent component : components.values()) {
 			if (i == index) {
@@ -329,7 +318,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 	}
 
 	@SuppressWarnings("unchecked")
-	public final <T extends GameComponent> T getComponent(int index, Class<T> cls) {
+	public final <T extends GameComponent> T getComponentAt(int index, Class<T> cls) {
 		int i = 0;
 		for (GameComponent component : components.values()) {
 			if (cls.isAssignableFrom(component.getClass())) {
@@ -342,7 +331,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		throw new IndexOutOfBoundsException("" + index);
 	}
 
-	public final GameComponent getComponent(long id) {
+	public final GameComponent getComponent(int id) {
 		return components.get(id);
 	}
 
@@ -395,7 +384,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 
 	// Remove objects
 
-	public final synchronized GameObject removeChild(long id) {
+	public final synchronized GameObject removeChild(int id) {
 		GameObject object = children.get(id);
 		if (object != null) {
 			if (isGloballyAttached()) {
@@ -428,7 +417,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 
 	// Remove components
 
-	public final synchronized GameComponent removeComponent(long id) {
+	public final synchronized GameComponent removeComponent(int id) {
 		GameComponent component = components.get(id);
 		if (component != null) {
 			if (isGloballyAttached()) {
@@ -470,7 +459,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 
 	// Delete objects
 
-	public final synchronized boolean deleteChild(long id) {
+	public final synchronized boolean deleteChild(int id) {
 		GameObject get = children.get(id);
 		if (get != null) {
 			get.destroy();
@@ -492,7 +481,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 
 	// Delete components
 
-	public final synchronized GameComponent deleteComponent(long id) {
+	public final synchronized GameComponent deleteComponent(int id) {
 		GameComponent component = components.get(id);
 		if (component != null) {
 			component.destroy();
@@ -537,12 +526,6 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		level = null;
 		parent = null;
 		internal_setflag(DESTROYED, true);
-
-		// Send data to remote client in case of multiplayer
-		Game game = Game.getGame();
-		if (game.isMultiplayer() && game.isServer()) {
-			game.getServer().queueObjDestroyFunc(this);
-		}
 	}
 
 	protected final void internal_begin() {
@@ -619,7 +602,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		return level.getGame();
 	}
 
-	public final long getId() {
+	public final int getId() {
 		return id;
 	}
 
@@ -654,6 +637,11 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 			obj = obj.parent;
 		}
 		return true;
+	}
+
+	// Override for more precise control
+	public boolean getReplicateFlag() {
+		return internal_getflag(REPLICATE);
 	}
 
 	// World interaction
@@ -1138,6 +1126,10 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 			relativeRotation.y = buffer.getFloat();
 			relativeRotation.z = buffer.getFloat();
 		}
+	}
+
+	protected final void setReplicateFlag(boolean flag) {
+		internal_setflag(REPLICATE, flag);
 	}
 
 	// Event dispatching

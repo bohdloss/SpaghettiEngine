@@ -9,7 +9,6 @@ import com.spaghetti.objects.Mesh;
 import com.spaghetti.objects.SkyboxMesh;
 import com.spaghetti.physics.Physics;
 import com.spaghetti.render.*;
-import com.spaghetti.utils.Utils;
 
 public class MyUpdater extends Updater {
 
@@ -42,16 +41,20 @@ public class MyUpdater extends Updater {
 		skybox.setRelativeZ(-10);
 		level.addObject(skybox);
 		level.addObject(floor);
+
+		for (int i = 0; i < 100; i++) {
+			level.addObject(new Mesh(Model.get("square"), Material.get("defaultMAT")));
+		}
 	}
 
 	@Override
 	protected void loopEvents(float delta) throws Throwable {
 		super.loopEvents(delta);
 		if (getGame().isServer()) {
-			Utils.sleep(10000);
-			Mesh mesh = new Mesh(Model.get("square"), Material.get("defaultMAT"));
-			mesh.setRelativePosition(new Random().nextFloat() * 30, new Random().nextFloat() * 30, 0);
-			level.addObject(mesh);
+//			Utils.sleep(10000);
+//			Mesh mesh = new Mesh(Model.get("square"), Material.get("defaultMAT"));
+//			mesh.setRelativePosition(new Random().nextFloat() * 30, new Random().nextFloat() * 30, 0);
+//			level.addObject(mesh);
 		}
 	}
 

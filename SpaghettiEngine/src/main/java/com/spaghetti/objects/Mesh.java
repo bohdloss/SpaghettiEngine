@@ -3,9 +3,11 @@ package com.spaghetti.objects;
 import org.joml.Matrix4f;
 
 import com.spaghetti.core.*;
+import com.spaghetti.interfaces.ToClient;
 import com.spaghetti.networking.NetworkBuffer;
 import com.spaghetti.render.*;
 
+@ToClient
 public class Mesh extends GameObject {
 
 	protected Model model;
