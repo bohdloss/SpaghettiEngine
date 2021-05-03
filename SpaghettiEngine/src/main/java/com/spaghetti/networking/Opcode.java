@@ -25,4 +25,8 @@ public final class Opcode {
 
 	public static final byte PINGPONG = (byte) 12;
 
+	public static final byte RPC = (byte) 13;
+	public static final byte RPC_RESPONSE = (byte) 14;
+	public static final byte RPC_ACKNOWLEDGEMENT = (byte) 15;
+
 }

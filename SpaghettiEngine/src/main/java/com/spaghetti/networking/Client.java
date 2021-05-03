@@ -2,6 +2,7 @@ package com.spaghetti.networking;
 
 import java.io.IOException;
 import java.net.*;
+import java.util.ArrayList;
 import java.util.HashMap;
 import com.spaghetti.core.*;
 import com.spaghetti.events.GameEvent;
@@ -10,7 +11,9 @@ import com.spaghetti.utils.*;
 
 public class Client extends CoreComponent {
 
+	protected Object queue_lock = new Object();
 	protected HashMap<GameObject, Object> events = new HashMap<>();
+	protected ArrayList<RPC> rpcs = new ArrayList<>(256);
 	protected NetworkWorker worker;
 	protected JoinHandler joinHandler;
 	protected long clientId;
@@ -44,7 +47,7 @@ public class Client extends CoreComponent {
 			}
 		});
 
-		worker = new NetworkWorker(this);
+		worker = new TCPWorker(this);
 		internal_connect("localhost", 9018);
 	}
 
@@ -56,11 +59,10 @@ public class Client extends CoreComponent {
 
 	@Override
 	protected void loopEvents(float delta) throws Throwable {
-		Utils.sleep(25);
 		if (isConnected()) {
-			try {
-				// Write / read routine, in this order for server synchronization
-				synchronized (events) {
+			synchronized (queue_lock) {
+				try {
+					// Write events in queue
 					events.forEach((issuer, event) -> {
 						if (GameEvent.class.isAssignableFrom(event.getClass())) {
 							GameEvent game_event = (GameEvent) event;
@@ -71,22 +73,29 @@ public class Client extends CoreComponent {
 							worker.writeIntention(issuer, (Long) event);
 						}
 					});
+
+					// Write remote procedure calls
+					rpcs.forEach(rpc -> {
+						if (!rpc.skip(worker, true)) {
+							worker.writeRPC(rpc);
+						}
+					});
+
+					// Write data about each object that needs an update
+					worker.writeData();
+					worker.setForceReplication(false);
+
+					// Send / receive packets
+					worker.writeSocket();
+					worker.readSocket();
+
+					// Read incoming packets
+					worker.parseOperations();
+				} catch (Throwable t) {
+					internal_clienterror(t, worker, clientId);
 				}
-				// Write data about each object that needs an update
-				worker.writeData();
-				worker.setForceReplication(false);
-
-				// Send packet
-				worker.writeSocket();
-				worker.readSocket();
-
-				// Read incoming packets
-				worker.parseOperations();
-			} catch (Throwable t) {
-				internal_clienterror(t, worker, clientId);
-			}
-			synchronized (events) {
 				events.clear();
+				rpcs.clear();
 			}
 		}
 	}
@@ -100,14 +109,20 @@ public class Client extends CoreComponent {
 		if (event == null) {
 			throw new IllegalArgumentException();
 		}
-		synchronized (events) {
+		synchronized (queue_lock) {
 			events.put(issuer, event);
 		}
 	}
 
 	public void queueIntention(GameObject issuer, long intention) {
-		synchronized (events) {
+		synchronized (queue_lock) {
 			events.put(issuer, intention);
+		}
+	}
+
+	public void queueRPC(RPC rpc) {
+		synchronized (queue_lock) {
+			rpcs.add(rpc);
 		}
 	}
 
@@ -157,6 +172,9 @@ public class Client extends CoreComponent {
 		} catch (IOException e) {
 			Logger.warning("I/O error occurred while connecting: " + e.getClass().getName() + ": " + e.getMessage());
 			return false;
+		} catch (Throwable t) {
+			Logger.error("Unknown error occurred while connecting", t);
+			return false;
 		}
 		Logger.info("Connected to " + ip + " at port " + port);
 		return true;
@@ -177,7 +195,7 @@ public class Client extends CoreComponent {
 		return true;
 	}
 
-	protected boolean internal_handshake(NetworkWorker client) throws IOException {
+	protected boolean internal_handshake(NetworkWorker client) throws Throwable {
 		worker.writeAuthentication();
 		worker.writeSocket();
 		worker.readSocket();

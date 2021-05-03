@@ -1,17 +1,21 @@
 package com.spaghetti.interfaces;
 
-import java.lang.reflect.Field;
-
 import com.spaghetti.networking.NetworkBuffer;
 
-public interface ClassInterpreter {
+public interface ClassInterpreter<T> {
 
-	public abstract void writeClass(Field field, Object object, NetworkBuffer buffer) throws IllegalAccessException; // Write
-																														// to
-																														// buffer
+	public abstract void writeClass(T object, NetworkBuffer buffer);
 
-	public abstract void readClass(Field field, Object object, NetworkBuffer buffer) throws IllegalAccessException; // Read
-																													// from
-																													// buffer
+	@SuppressWarnings("unchecked")
+	public default void writeClassGeneric(Object object, NetworkBuffer buffer) {
+		writeClass((T) object, buffer);
+	}
+
+	public abstract T readClass(T original, NetworkBuffer buffer);
+
+	@SuppressWarnings("unchecked")
+	public default Object readClassGeneric(Object original, NetworkBuffer buffer) {
+		return readClass((T) original, buffer);
+	}
 
 }

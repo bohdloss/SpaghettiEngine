@@ -1,11 +1,6 @@
 package com.spaghetti.networking;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.lang.reflect.*;
-import java.net.InetSocketAddress;
-import java.net.Socket;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map.Entry;
@@ -19,9 +14,8 @@ import com.spaghetti.objects.Camera;
 import com.spaghetti.utils.FunctionDispatcher;
 import com.spaghetti.utils.GameOptions;
 import com.spaghetti.utils.Logger;
-import com.spaghetti.utils.Utils;
 
-public class NetworkWorker {
+public abstract class NetworkWorker {
 
 	public static final class Identity {
 		private Identity() {
@@ -29,27 +23,24 @@ public class NetworkWorker {
 	}
 
 	protected static final Identity IDENTITY = new Identity();
-	protected static final byte[] PING = "ping".getBytes(NetworkBuffer.UTF_8);
-	protected static final byte[] PONG = "pong".getBytes(NetworkBuffer.UTF_8);
 
 	// Data
 	protected long lostConnection;
 	protected CoreComponent parent;
 	protected NetworkBuffer w_buffer;
 	protected NetworkBuffer r_buffer;
-	protected Socket socket;
 	protected Authenticator authenticator;
 	protected boolean ping = true;
 	protected boolean await;
 	protected HashMap<Class<?>, ClassReplicationRule> cls_rules;
 	protected HashMap<Field, FieldReplicationRule> field_rules;
 	protected boolean forceReplication;
+	protected boolean reliable;
 
 	// Cache
-	protected final byte[] ping_buf = new byte[PING.length];
-	protected final byte[] pong_buf = new byte[PONG.length];
 	protected final ArrayList<Object> delete_list = new ArrayList<>(256);
 	protected final HashMap<Short, String> str_cache = new HashMap<>(256);
+	protected final HashMap<Integer, RPC> waiting_rpcs = new HashMap<>(256);
 
 	// Player info
 	public GameObject player;
@@ -59,24 +50,26 @@ public class NetworkWorker {
 	protected byte[] length_b = new byte[4];
 
 	// Reflection
-	protected static final Field f_oid, f_cid, f_eid;
+	protected static final Field f_oid, f_cid, f_eid, f_rpcid;
 	protected static final Field f_modifiers;
 	protected static final Method me_osetflag, me_csetflag, me_ogetflag, me_cgetflag;
+	protected static final Field f_rpcready, f_rpcerror;
 
 	protected static final HashMap<String, Class<?>> m_clss = new HashMap<>();
 	protected static final HashMap<Class<?>, Constructor<? extends GameObject>> m_oconstrs = new HashMap<>();
 	protected static final HashMap<Class<?>, Constructor<? extends GameComponent>> m_cconstrs = new HashMap<>();
 	protected static final HashMap<Class<?>, Constructor<? extends GameEvent>> m_econstrs = new HashMap<>();
+	protected static final HashMap<Class<?>, Constructor<? extends RPC>> m_rpcconstrs = new HashMap<>();
 	protected static final HashMap<Class<?>, Field[]> m_fields = new HashMap<>();
 	protected static final HashMap<Class<?>, Boolean> m_noreplicate = new HashMap<>();
-	protected static final HashMap<Field, Boolean> m_toserver = new HashMap<>();
-	protected static final HashMap<Class<?>, Boolean> m_toservercls = new HashMap<>();
+	protected static final HashMap<Class<?>, Boolean> m_reliable = new HashMap<>();
 
 	// If only java let me define 'friend class NetworkWorker' in GameObject...
 	static {
 		Field oid = null;
 		Field cid = null;
 		Field eid = null;
+		Field rpcid = null;
 
 		Method osetflag = null;
 		Method csetflag = null;
@@ -85,6 +78,9 @@ public class NetworkWorker {
 
 		Field modifiers = null;
 
+		Field rpcready = null;
+		Field rpcerror = null;
+
 		try {
 			oid = GameObject.class.getDeclaredField("id");
 			oid.setAccessible(true);
@@ -92,6 +88,8 @@ public class NetworkWorker {
 			cid.setAccessible(true);
 			eid = GameEvent.class.getDeclaredField("id");
 			eid.setAccessible(true);
+			rpcid = RPC.class.getDeclaredField("id");
+			rpcid.setAccessible(true);
 
 			osetflag = GameObject.class.getDeclaredMethod("internal_setflag", int.class, boolean.class);
 			osetflag.setAccessible(true);
@@ -104,12 +102,18 @@ public class NetworkWorker {
 
 			modifiers = Field.class.getDeclaredField("modifiers");
 			modifiers.setAccessible(true);
+
+			rpcready = RPC.class.getDeclaredField("ready");
+			rpcready.setAccessible(true);
+			rpcerror = RPC.class.getDeclaredField("error");
+			rpcerror.setAccessible(true);
 		} catch (Throwable e) {
 		}
 
 		f_oid = oid;
 		f_cid = cid;
 		f_eid = eid;
+		f_rpcid = rpcid;
 
 		me_osetflag = osetflag;
 		me_csetflag = csetflag;
@@ -117,9 +121,12 @@ public class NetworkWorker {
 		me_cgetflag = cgetflag;
 
 		f_modifiers = modifiers;
+
+		f_rpcready = rpcready;
+		f_rpcerror = rpcerror;
 	}
 
-	protected final HashMap<String, ClassInterpreter> interpreters = new HashMap<>();
+	protected final HashMap<String, ClassInterpreter<?>> interpreters = new HashMap<>();
 
 	public NetworkWorker(CoreComponent parent) {
 		this.parent = parent;
@@ -149,8 +156,6 @@ public class NetworkWorker {
 		interpreters.putAll(DefaultInterpreters.interpreters);
 	}
 
-	// Utility methods
-
 	public void destroy() {
 		try {
 			if (player != null) {
@@ -179,56 +184,19 @@ public class NetworkWorker {
 		resetSocket();
 	}
 
-	public void provideSocket(Socket socket) {
-		if (socket.isClosed() || socket == null) {
-			throw new IllegalArgumentException("Invalid socket provided");
-		}
-		this.socket = socket;
-		ping = true;
-		str_cache.clear();
-	}
-
 	public void provideAuthenticator(Authenticator authenticator) {
 		this.authenticator = authenticator;
 	}
 
-	public void resetSocket() {
-		if (socket != null) {
-			Socket s = this.socket;
-			this.socket = null;
-			Utils.socketClose(s);
-			str_cache.clear();
-		}
-	}
+	// Socket related
 
-	public void writeSocket() throws IOException {
-		w_buffer.putByte(Opcode.END);
+	public abstract void provideSocket(Object socket);
 
-		OutputStream os = socket.getOutputStream();
-		int length = w_buffer.getPosition();
+	public abstract void resetSocket();
 
-		length_b[0] = (byte) ((length >> 24) & 0xff);
-		length_b[1] = (byte) ((length >> 16) & 0xff);
-		length_b[2] = (byte) ((length >> 8) & 0xff);
-		length_b[3] = (byte) (length & 0xff);
+	public abstract void writeSocket() throws Throwable;
 
-		os.write(length_b);
-		os.write(w_buffer.asArray(), 0, length);
-		os.flush();
-
-		w_buffer.clear();
-	}
-
-	public void readSocket() throws IOException {
-		InputStream is = socket.getInputStream();
-		Utils.effectiveRead(is, length_b, 0, 4);
-		int length = length_b[3] & 0xFF | (length_b[2] & 0xFF) << 8 | (length_b[1] & 0xFF) << 16
-				| (length_b[0] & 0xFF) << 24;
-
-		Utils.effectiveRead(is, r_buffer.asArray(), 0, length);
-		r_buffer.setPosition(0);
-		r_buffer.setLimit(length);
-	}
+	public abstract void readSocket() throws Throwable;
 
 	// Reflection caching
 
@@ -302,6 +270,24 @@ public class NetworkWorker {
 		return constructor;
 	}
 
+	@SuppressWarnings("unchecked")
+	protected static Constructor<?> rpc_constr(Class<?> cls) throws NoSuchMethodException {
+		Constructor<?> constructor = m_rpcconstrs.get(cls);
+		if (constructor == null) {
+			synchronized (m_rpcconstrs) {
+				try {
+					constructor = cls.getConstructor();
+					constructor.setAccessible(true);
+					m_rpcconstrs.put(cls, (Constructor<? extends RPC>) constructor);
+				} catch (NoSuchMethodException e) {
+					Logger.error("Class " + cls.getName() + " must provide a default RPC constructor");
+					throw e;
+				}
+			}
+		}
+		return constructor;
+	}
+
 	protected static boolean noReplicate(Class<?> cls) {
 		Boolean value = m_noreplicate.get(cls);
 		if (value == null) {
@@ -366,6 +352,17 @@ public class NetworkWorker {
 		return rule.testRead();
 	}
 
+	protected static boolean reliableCls(Class<?> cls) {
+		Boolean res = m_reliable.get(cls);
+		if (res == null) {
+			synchronized (m_reliable) {
+				res = cls.getAnnotation(Reliable.class) != null;
+				m_reliable.put(cls, res);
+			}
+		}
+		return res;
+	}
+
 	protected static Field[] gatherReplicable(Class<?> cls) {
 		ArrayList<Field> list = null;
 		try {
@@ -413,15 +410,16 @@ public class NetworkWorker {
 	protected void writeField(Field field, Object obj) {
 		try {
 			Class<?> type = field.getType();
-			ClassInterpreter interpreter = interpreters.get(type.getName());
+			Object read_object = field.get(obj);
+			ClassInterpreter<?> interpreter = interpreters.get(type.getName());
 			if (interpreter != null) {
-				interpreter.writeClass(field, obj, w_buffer);
+				interpreter.writeClassGeneric(read_object, w_buffer);
 			} else {
-				for (Entry<String, ClassInterpreter> entry : interpreters.entrySet()) {
+				for (Entry<String, ClassInterpreter<?>> entry : interpreters.entrySet()) {
 					try {
 						Class<?> cls = Class.forName(entry.getKey());
 						if (cls.isAssignableFrom(type)) {
-							entry.getValue().writeClass(field, obj, w_buffer);
+							entry.getValue().writeClassGeneric(read_object, w_buffer);
 							break;
 						}
 					} catch (ClassNotFoundException e) {
@@ -435,21 +433,24 @@ public class NetworkWorker {
 	protected void readField(Field field, Object obj) {
 		try {
 			Class<?> type = field.getType();
-			ClassInterpreter interpreter = interpreters.get(type.getName());
+			Object read_object = field.get(obj);
+			Object write_object = null;
+			ClassInterpreter<?> interpreter = interpreters.get(type.getName());
 			if (interpreter != null) {
-				interpreter.readClass(field, obj, r_buffer);
+				write_object = interpreter.readClassGeneric(read_object, r_buffer);
 			} else {
-				for (Entry<String, ClassInterpreter> entry : interpreters.entrySet()) {
+				for (Entry<String, ClassInterpreter<?>> entry : interpreters.entrySet()) {
 					try {
 						Class<?> cls = Class.forName(entry.getKey());
 						if (cls.isAssignableFrom(type)) {
-							entry.getValue().readClass(field, obj, r_buffer);
+							write_object = entry.getValue().readClassGeneric(read_object, r_buffer);
 							break;
 						}
 					} catch (ClassNotFoundException e) {
 					}
 				}
 			}
+			field.set(obj, write_object);
 		} catch (IllegalAccessException e) {
 		}
 	}
@@ -575,6 +576,15 @@ public class NetworkWorker {
 				break;
 			case Opcode.PINGPONG:
 				handlePing();
+				break;
+			case Opcode.RPC:
+				readRPC();
+				break;
+			case Opcode.RPC_RESPONSE:
+				readRPCResponse();
+				break;
+			case Opcode.RPC_ACKNOWLEDGEMENT:
+				readRPCAcknowledgement();
 				break;
 			}
 		}
@@ -917,6 +927,10 @@ public class NetworkWorker {
 	}
 
 	public void writeGameEvent(GameObject issuer, GameEvent event) {
+		if (!test_writeClass(event)) {
+			// Sending this event is not allowed in this context!
+			return;
+		}
 		w_buffer.putByte(Opcode.GAMEEVENT);
 		w_buffer.putInt(issuer == null ? -1 : issuer.getId());
 
@@ -927,7 +941,6 @@ public class NetworkWorker {
 
 	public void readGameEvent() throws InstantiationException, InvocationTargetException, NoSuchMethodException,
 			SecurityException, ClassNotFoundException {
-
 		try {
 
 			int issuer_id = r_buffer.getInt();
@@ -941,6 +954,10 @@ public class NetworkWorker {
 				throw new IllegalStateException("Invalid event class");
 			}
 			GameEvent event = (GameEvent) e_constr(eventclass).newInstance();
+			if (!test_readClass(event)) {
+				// Receiving this event is not allowed in this context!
+				return;
+			}
 			f_eid.set(event, event_id);
 			EventDispatcher event_dispatcher = getGame().getEventDispatcher();
 			FunctionDispatcher func_dispatcher = getGame().getUpdaterDispatcher();
@@ -953,8 +970,6 @@ public class NetworkWorker {
 			}, true);
 
 		} catch (IllegalAccessException e) {
-			// This should not happen even with errors while parsing
-			e.printStackTrace();
 		}
 
 	}
@@ -981,6 +996,78 @@ public class NetworkWorker {
 			authenticator.r_server_auth(this, r_buffer);
 		}
 		return true;
+	}
+
+	public void writeRPC(RPC rpc) {
+		if (!test_writeClass(rpc)) {
+			return;
+		}
+		if (reliableCls(rpc.getClass())) {
+			reliable = true;
+		}
+		waiting_rpcs.put(rpc.getId(), rpc);
+
+		w_buffer.putByte(Opcode.RPC);
+		w_buffer.putInt(rpc.getId());
+		w_buffer.putString(true, rpc.getClass().getName(), NetworkBuffer.UTF_8);
+		rpc.writeArgs(w_buffer);
+	}
+
+	public void readRPC() throws ClassNotFoundException, InstantiationException, IllegalArgumentException,
+			InvocationTargetException, NoSuchMethodException {
+		try {
+			int id = r_buffer.getInt();
+			String clazz = r_buffer.getString(true, NetworkBuffer.UTF_8);
+			Class<?> cls = cls(clazz);
+			if (!RPC.class.isAssignableFrom(cls)) {
+				throw new IllegalStateException("Invalid RPC class");
+			}
+			RPC rpc = (RPC) rpc_constr(cls).newInstance();
+			rpc.readArgs(r_buffer);
+			f_rpcid.set(rpc, id);
+			if (!test_readClass(rpc)) {
+				return;
+			}
+			getGame().getUpdaterDispatcher().quickQueue(() -> {
+				rpc.execute(this);
+				return null;
+			});
+			writeRPCResponse(rpc);
+		} catch (IllegalAccessException e) {
+		}
+	}
+
+	public void writeRPCResponse(RPC rpc) {
+		if (rpc.hasReturnValue()) {
+			w_buffer.putByte(Opcode.RPC_RESPONSE);
+			w_buffer.putInt(rpc.getId());
+			rpc.writeReturn(w_buffer);
+		} else {
+			w_buffer.putByte(Opcode.RPC_ACKNOWLEDGEMENT);
+			w_buffer.putInt(rpc.getId());
+			w_buffer.putBoolean(rpc.isError());
+		}
+	}
+
+	public void readRPCResponse() throws Throwable {
+		int id = r_buffer.getInt();
+		RPC rpc = waiting_rpcs.get(id);
+
+		if (!rpc.hasReturnValue()) {
+			throw new IllegalStateException("RPC " + rpc.getClass().getName() + " sent a return value instead of void");
+		}
+		rpc.readReturn(r_buffer);
+		f_rpcready.set(rpc, true);
+		getGame().getUpdaterDispatcher().queue(() -> rpc.executeReturnCallback());
+	}
+
+	public void readRPCAcknowledgement() throws Throwable {
+		int id = r_buffer.getInt();
+		RPC rpc = waiting_rpcs.get(id);
+		boolean error = r_buffer.getBoolean();
+		f_rpcerror.set(rpc, error);
+		f_rpcready.set(rpc, true);
+		getGame().getUpdaterDispatcher().queue(() -> rpc.executeAckCallback());
 	}
 
 	public void requestPing() {
@@ -1093,13 +1180,15 @@ public class NetworkWorker {
 		return getGame().getActiveLevel();
 	}
 
-	public Socket getSocket() {
-		return socket;
-	}
+	public abstract boolean isConnected();
 
-	public boolean isConnected() {
-		return socket != null && !socket.isClosed() && ping;
-	}
+	public abstract String getRemoteIp();
+
+	public abstract int getRemotePort();
+
+	public abstract String getLocalIp();
+
+	public abstract int getLocalPort();
 
 	public NetworkBuffer getWriteBuffer() {
 		return w_buffer;
@@ -1111,26 +1200,6 @@ public class NetworkWorker {
 
 	public Authenticator getAuthenticator() {
 		return authenticator;
-	}
-
-	public String getRemoteIp() {
-		InetSocketAddress address = (InetSocketAddress) socket.getRemoteSocketAddress();
-		return address.getAddress().getHostAddress();
-	}
-
-	public int getRemotePort() {
-		InetSocketAddress address = (InetSocketAddress) socket.getRemoteSocketAddress();
-		return address.getPort();
-	}
-
-	public String getLocalIp() {
-		InetSocketAddress address = (InetSocketAddress) socket.getLocalSocketAddress();
-		return address.getAddress().getHostAddress();
-	}
-
-	public int getLocalPort() {
-		InetSocketAddress address = (InetSocketAddress) socket.getLocalSocketAddress();
-		return address.getPort();
 	}
 
 	public long getLostConnectionTime() {
@@ -1159,6 +1228,14 @@ public class NetworkWorker {
 
 	public void setForceReplication(boolean val) {
 		forceReplication = val;
+	}
+
+	public boolean isReliablePacket() {
+		return reliable;
+	}
+
+	public void setReliable(boolean val) {
+		reliable = val;
 	}
 
 }

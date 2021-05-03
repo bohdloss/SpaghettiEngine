@@ -43,19 +43,15 @@ public class MyUpdater extends Updater {
 		level.addObject(floor);
 
 		for (int i = 0; i < 100; i++) {
-			level.addObject(new Mesh(Model.get("square"), Material.get("defaultMAT")));
+//			level.addObject(new Mesh(Model.get("square"), Material.get("defaultMAT")));
 		}
 	}
+
+	boolean done = false;
 
 	@Override
 	protected void loopEvents(float delta) throws Throwable {
 		super.loopEvents(delta);
-		if (getGame().isServer()) {
-//			Utils.sleep(10000);
-//			Mesh mesh = new Mesh(Model.get("square"), Material.get("defaultMAT"));
-//			mesh.setRelativePosition(new Random().nextFloat() * 30, new Random().nextFloat() * 30, 0);
-//			level.addObject(mesh);
-		}
 	}
 
 	@Override

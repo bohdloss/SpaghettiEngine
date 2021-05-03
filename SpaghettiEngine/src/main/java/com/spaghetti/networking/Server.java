@@ -17,6 +17,7 @@ public class Server extends CoreComponent {
 	// Queue events
 	protected Object queue_lock = new Object();
 	protected HashMap<GameObject, Object> events = new HashMap<>();
+	protected ArrayList<RPC> rpcs = new ArrayList<>(256);
 
 	// Server data
 	protected AsyncServerSocket server;
@@ -36,32 +37,6 @@ public class Server extends CoreComponent {
 
 	@Override
 	protected void initialize0() throws Throwable {
-		getGame().getEventDispatcher().registerEventHandler((isClient, issuer, event) -> {
-			if (event instanceof OnClientConnect) {
-				OnClientConnect occ = (OnClientConnect) event;
-				NetworkWorker client = occ.getClient();
-				long clientId = occ.getClientId();
-				try {
-					// Write level structure
-					client.writeLevel();
-
-					// Write some info about the owned player
-					client.writeActivePlayer();
-					client.writeActiveCamera();
-					client.writeActiveController();
-
-					// Flush the packet
-					client.writeSocket();
-					client.readSocket();
-
-					// Turn on force replication flag
-					client.setForceReplication(true);
-					Logger.info("Connection correctly establised with client " + clientId);
-				} catch (Throwable t) {
-					internal_clienterror(t, client, clientId);
-				}
-			}
-		});
 		internal_bind(9018);
 	}
 
@@ -76,7 +51,6 @@ public class Server extends CoreComponent {
 
 	@Override
 	protected void loopEvents(float delta) throws Throwable {
-		Utils.sleep(25);
 		if (getClientsAmount() != 0) {
 
 			synchronized (queue_lock) {
@@ -87,6 +61,7 @@ public class Server extends CoreComponent {
 							continue;
 						}
 
+						// Write events in queue
 						events.forEach((issuer, event) -> {
 							if (GameEvent.class.isAssignableFrom(event.getClass())) {
 								GameEvent game_event = (GameEvent) event;
@@ -97,6 +72,14 @@ public class Server extends CoreComponent {
 								client.writeIntention(issuer, (Long) event);
 							}
 						});
+
+						// Write remote procedure calls
+						rpcs.forEach(rpc -> {
+							if (!rpc.skip(client, false)) {
+								client.writeRPC(rpc);
+							}
+						});
+
 						// Write data about every object that needs to be updated
 						client.writeData();
 						client.setForceReplication(false);
@@ -113,6 +96,7 @@ public class Server extends CoreComponent {
 					}
 				}
 				events.clear();
+				rpcs.clear();
 			}
 
 			for (Iterator<Entry<Long, NetworkWorker>> iterator = clients.entrySet().iterator(); iterator.hasNext();) {
@@ -152,6 +136,12 @@ public class Server extends CoreComponent {
 	public void queueIntention(GameObject issuer, long intention) {
 		synchronized (queue_lock) {
 			events.put(issuer, intention);
+		}
+	}
+
+	public void queueRPC(RPC rpc) {
+		synchronized (queue_lock) {
+			rpcs.add(rpc);
 		}
 	}
 
@@ -257,7 +247,7 @@ public class Server extends CoreComponent {
 		return size > 0;
 	}
 
-	protected boolean internal_accept() throws IOException {
+	protected boolean internal_accept() throws Throwable {
 		// Accept connection
 		Socket socket = server.accept();
 		if (socket == null) {
@@ -266,7 +256,8 @@ public class Server extends CoreComponent {
 
 		// Hash remote ip address
 		String ip = ((InetSocketAddress) socket.getRemoteSocketAddress()).getAddress().getHostAddress();
-		long hash = Utils.longHash(ip);
+		int port = socket.getPort();
+		long hash = Utils.longHash(ip + ":" + port);
 
 		// Check if client is banned
 		Long clientId = new Long(hash);
@@ -276,7 +267,7 @@ public class Server extends CoreComponent {
 			if (!clients.containsKey(clientId)) {
 
 				// New connection, initialize it
-				NetworkWorker client = new NetworkWorker(this);
+				NetworkWorker client = new TCPWorker(this);
 				client.provideSocket(socket);
 				clients.put(clientId, client);
 
@@ -287,11 +278,37 @@ public class Server extends CoreComponent {
 				} else {
 					// Perform additional initialization on new connection
 					joinHandler.handleJoin(false, client);
-					getGame().getEventDispatcher().raiseEvent(null, new OnClientConnect(client, clientId));
 
-					// Success, return true
-					Logger.info("ACCEPTED connection from " + ip + " (" + clientId + ")");
-					return true;
+					// Send whole level structure
+					boolean error = false;
+					try {
+						// Write level structure
+						client.writeLevel();
+
+						// Write some info about the owned player
+						client.writeActivePlayer();
+						client.writeActiveCamera();
+						client.writeActiveController();
+
+						// Flush the packet
+						client.setReliable(true);
+						client.writeSocket();
+						client.readSocket();
+
+						// Turn on force replication flag
+						client.setForceReplication(true);
+						client.setReliable(true);
+						Logger.info("Connection correctly establised with client " + clientId);
+					} catch (Throwable t) {
+						internal_clienterror(t, client, clientId);
+						error = true;
+					}
+
+					if (!error) {
+						// Success, return true
+						Logger.info("ACCEPTED connection from " + ip + " (" + clientId + ")");
+						return true;
+					}
 				}
 
 			} else {
@@ -368,7 +385,7 @@ public class Server extends CoreComponent {
 		return true;
 	}
 
-	protected boolean internal_handshake(NetworkWorker client) throws IOException {
+	protected boolean internal_handshake(NetworkWorker client) throws Throwable {
 		client.readSocket();
 		client.readAuthentication();
 		boolean ret = client.writeAuthentication();
