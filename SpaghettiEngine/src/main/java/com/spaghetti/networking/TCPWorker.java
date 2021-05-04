@@ -55,6 +55,7 @@ public class TCPWorker extends NetworkWorker {
 
 		w_buffer.clear();
 		reliable = false;
+		forceReplication = false;
 	}
 
 	@Override

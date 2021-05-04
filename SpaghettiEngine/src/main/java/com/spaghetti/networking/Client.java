@@ -11,12 +11,18 @@ import com.spaghetti.utils.*;
 
 public class Client extends CoreComponent {
 
+	// Queue events
 	protected Object queue_lock = new Object();
 	protected HashMap<GameObject, Object> events = new HashMap<>();
 	protected ArrayList<RPC> rpcs = new ArrayList<>(256);
+	protected ArrayList<NetworkFunction> functions = new ArrayList<>(256);
+
+	// Client data
 	protected NetworkWorker worker;
 	protected JoinHandler joinHandler;
 	protected long clientId;
+
+	// Client variables
 	protected int reconnectAttempts = 10;
 
 	public Client() {
@@ -25,28 +31,6 @@ public class Client extends CoreComponent {
 
 	@Override
 	protected void initialize0() throws Throwable {
-		getGame().getEventDispatcher().registerEventHandler((isClient, issuer, event) -> {
-			if (event instanceof OnClientConnect) {
-				OnClientConnect occ = (OnClientConnect) event;
-				NetworkWorker client = occ.getClient();
-				long clientId = occ.getClientId();
-				try {
-					// Don't write anything, just read incoming packet
-					client.writeSocket();
-					client.readSocket();
-
-					// We are reading the level structure
-					client.parseOperations();
-
-					// Turn on replication flag
-					client.setForceReplication(true);
-					Logger.info("Connection correctly established");
-				} catch (Throwable t) {
-					internal_clienterror(t, client, clientId);
-				}
-			}
-		});
-
 		worker = new TCPWorker(this);
 		internal_connect("localhost", 9018);
 	}
@@ -81,9 +65,11 @@ public class Client extends CoreComponent {
 						}
 					});
 
+					// Write queued special functions
+					functions.forEach(func -> func.execute(worker));
+
 					// Write data about each object that needs an update
 					worker.writeData();
-					worker.setForceReplication(false);
 
 					// Send / receive packets
 					worker.writeSocket();
@@ -96,6 +82,7 @@ public class Client extends CoreComponent {
 				}
 				events.clear();
 				rpcs.clear();
+				functions.clear();
 			}
 		}
 	}
@@ -104,6 +91,8 @@ public class Client extends CoreComponent {
 	protected final CoreComponent provideSelf() {
 		return getGame().getClient();
 	}
+
+	// Client interface
 
 	public void queueEvent(GameObject issuer, GameEvent event) {
 		if (event == null) {
@@ -125,6 +114,26 @@ public class Client extends CoreComponent {
 			rpcs.add(rpc);
 		}
 	}
+
+	public void queueWriteData() {
+		synchronized (queue_lock) {
+			functions.add(NetworkWorker::writeData);
+		}
+	}
+
+	public void queueWriteObject(GameObject obj) {
+		synchronized (queue_lock) {
+			functions.add(client -> client.writeObject(obj));
+		}
+	}
+
+	public void queueWriteComponent(GameComponent comp) {
+		synchronized (queue_lock) {
+			functions.add(client -> client.writeComponent(comp));
+		}
+	}
+
+	// Internal functions
 
 	protected void internal_clienterror(Throwable t, NetworkWorker client, long clientId) {
 		// Socket error, just reconnect
@@ -164,6 +173,20 @@ public class Client extends CoreComponent {
 				internal_disconnect();
 				return false;
 			} else {
+				try {
+					// Don't write anything, just read incoming packet
+					worker.writeSocket();
+					worker.readSocket();
+
+					// We are reading the level structure
+					worker.parseOperations();
+
+					// Turn on replication flag
+					worker.setForceReplication(true);
+					Logger.info("Connection correctly established");
+				} catch (Throwable t) {
+					internal_clienterror(t, worker, clientId);
+				}
 				getGame().getEventDispatcher().raiseEvent(null, new OnClientConnect(worker, clientId));
 			}
 		} catch (UnknownHostException e) {
@@ -191,6 +214,7 @@ public class Client extends CoreComponent {
 		String remoteIp = getRemoteIp();
 		int remotePort = getRemotePort();
 		worker.resetSocket(); // Reset worker socket
+		getGame().getEventDispatcher().raiseEvent(null, new OnClientDisconnect(worker, clientId));
 		Logger.info("Disconnected from " + remoteIp + " from port " + remotePort);
 		return true;
 	}

@@ -10,14 +10,16 @@ import java.util.concurrent.ConcurrentHashMap;
 import com.spaghetti.core.*;
 import com.spaghetti.events.GameEvent;
 import com.spaghetti.interfaces.JoinHandler;
+import com.spaghetti.interfaces.NetworkFunction;
 import com.spaghetti.utils.*;
 
 public class Server extends CoreComponent {
 
 	// Queue events
 	protected Object queue_lock = new Object();
-	protected HashMap<GameObject, Object> events = new HashMap<>();
+	protected HashMap<GameObject, Object> events = new HashMap<>(256);
 	protected ArrayList<RPC> rpcs = new ArrayList<>(256);
+	protected ArrayList<NetworkFunction> functions = new ArrayList<>(256);
 
 	// Server data
 	protected AsyncServerSocket server;
@@ -37,6 +39,17 @@ public class Server extends CoreComponent {
 
 	@Override
 	protected void initialize0() throws Throwable {
+		getGame().getEventDispatcher().registerEventHandler((isClient, object, event) -> {
+			if (event instanceof OnClientConnect) {
+				OnClientConnect occ = (OnClientConnect) event;
+				queueWriteObjectTree(occ.getClient().player);
+			}
+			if (event instanceof OnClientDisconnect) {
+				OnClientDisconnect ocd = (OnClientDisconnect) event;
+				queueWriteObjectDestruction(ocd.getClient().player);
+			}
+		});
+
 		internal_bind(9018);
 	}
 
@@ -80,6 +93,9 @@ public class Server extends CoreComponent {
 							}
 						});
 
+						// Execute any queued special function
+						functions.forEach(func -> func.execute(client));
+
 						// Write data about every object that needs to be updated
 						client.writeData();
 						client.setForceReplication(false);
@@ -97,6 +113,7 @@ public class Server extends CoreComponent {
 				}
 				events.clear();
 				rpcs.clear();
+				functions.clear();
 			}
 
 			for (Iterator<Entry<Long, NetworkWorker>> iterator = clients.entrySet().iterator(); iterator.hasNext();) {
@@ -118,6 +135,8 @@ public class Server extends CoreComponent {
 			internal_accept();
 		}
 	}
+
+	// Server interface
 
 	@Override
 	protected final CoreComponent provideSelf() {
@@ -144,6 +163,68 @@ public class Server extends CoreComponent {
 			rpcs.add(rpc);
 		}
 	}
+
+	public void queueWriteLevel() {
+		synchronized (queue_lock) {
+			functions.add(NetworkWorker::writeLevel);
+		}
+	}
+
+	public void queueWriteData() {
+		synchronized (queue_lock) {
+			functions.add(NetworkWorker::writeData);
+		}
+	}
+
+	public void queueWriteObjectTree(GameObject obj) {
+		synchronized (queue_lock) {
+			functions.add(client -> client.writeObjectTree(obj));
+		}
+	}
+
+	public void queueWriteObjectDestruction(GameObject obj) {
+		synchronized (queue_lock) {
+			functions.add(client -> client.writeObjectDestruction(obj));
+		}
+	}
+
+	public void queueWriteComponentDestruction(GameComponent comp) {
+		synchronized (queue_lock) {
+			functions.add(client -> client.writeComponentDestruction(comp));
+		}
+	}
+
+	public void queueWriteActiveCamera() {
+		synchronized (queue_lock) {
+			functions.add(NetworkWorker::writeActiveCamera);
+		}
+	}
+
+	public void queueWriteActiveController() {
+		synchronized (queue_lock) {
+			functions.add(NetworkWorker::writeActiveController);
+		}
+	}
+
+	public void queueWriteActivePlayer() {
+		synchronized (queue_lock) {
+			functions.add(NetworkWorker::writeActivePlayer);
+		}
+	}
+
+	public void queueWriteObject(GameObject obj) {
+		synchronized (queue_lock) {
+			functions.add(client -> client.writeObject(obj));
+		}
+	}
+
+	public void queueWriteComponent(GameComponent comp) {
+		synchronized (queue_lock) {
+			functions.add(client -> client.writeComponent(comp));
+		}
+	}
+
+	// Internal functions
 
 	protected void internal_clienterror(Throwable error, NetworkWorker client, long clientId) {
 		Logger.error("Exception occurred in client " + clientId, error);
@@ -176,6 +257,7 @@ public class Server extends CoreComponent {
 			return false;
 		}
 		worker.destroy();
+		getGame().getEventDispatcher().raiseEvent(null, new OnClientDisconnect(worker, id));
 		Logger.info("Kicked client " + id);
 		return true;
 	}
@@ -194,6 +276,7 @@ public class Server extends CoreComponent {
 			Logger.warning("Client " + id + " already banned");
 		} else {
 			bans.add(id);
+			getGame().getEventDispatcher().raiseEvent(null, new OnClientBanned(worker, id));
 			Logger.info("Banned client " + id);
 		}
 		return true;
@@ -206,6 +289,7 @@ public class Server extends CoreComponent {
 	protected boolean internal_pardon(long id) {
 		boolean unbanned = bans.remove(id);
 		if (unbanned) {
+			getGame().getEventDispatcher().raiseEvent(null, new OnClientUnbanned(clients.get(id), id));
 			Logger.info("Unbanned client " + id);
 		} else {
 			Logger.warning("Client " + id + " was not banned");
@@ -303,6 +387,7 @@ public class Server extends CoreComponent {
 						internal_clienterror(t, client, clientId);
 						error = true;
 					}
+					getGame().getEventDispatcher().raiseEvent(null, new OnClientConnect(client, clientId));
 
 					if (!error) {
 						// Success, return true

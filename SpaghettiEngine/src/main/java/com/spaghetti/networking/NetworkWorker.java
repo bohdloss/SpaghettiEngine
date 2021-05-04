@@ -586,6 +586,18 @@ public abstract class NetworkWorker {
 			case Opcode.RPC_ACKNOWLEDGEMENT:
 				readRPCAcknowledgement();
 				break;
+			case Opcode.OBJECTTREE:
+				if (getGame().isServer()) {
+					invalid_privilege(opcode);
+				}
+				readObjectTree(level);
+				break;
+			case Opcode.OBJECTDESTROY:
+				if (getGame().isServer()) {
+					invalid_privilege(opcode);
+				}
+				readObjectDestruction(level);
+				break;
 			}
 		}
 	}
@@ -674,7 +686,7 @@ public abstract class NetworkWorker {
 		// First flag all objects as deletable
 		// this will be reverted by readChildren
 		// but only on objects that actually exist
-		level.forEachObject(this::recursive_flag);
+		level.forEachObject(object -> recursive_flag(object, false));
 
 		// Check for item flag
 		while (r_buffer.getByte() == Opcode.ITEM) {
@@ -686,6 +698,132 @@ public abstract class NetworkWorker {
 		// be deleted
 		level.forEachObject(this::recursive_delete);
 		perform_delete();
+	}
+
+	protected void writeChildren(GameObject obj) {
+		if (noReplicate(obj.getClass())) {
+			return;
+		}
+		forceReplication = true;
+
+		w_buffer.putByte(Opcode.ITEM); // Put item flag
+
+		w_buffer.putInt(obj.getId()); // Put id of the object
+		w_buffer.putString(true, obj.getClass().getName(), NetworkBuffer.UTF_8); // Put class of the object
+
+		obj.forEachComponent((id, component) -> {
+			if (!noReplicate(component.getClass())) {
+				w_buffer.putByte(Opcode.ITEM); // Put item flag
+
+				w_buffer.putInt(component.getId()); // Put id of component
+				w_buffer.putString(true, component.getClass().getName(), NetworkBuffer.UTF_8); // Put class of component
+			}
+		});
+		w_buffer.putByte(Opcode.STOP); // Put stop flag
+
+		obj.forEachChild((id, child) -> writeChildren(child));
+		w_buffer.putByte(Opcode.STOP); // Put stop flag on children
+	}
+
+	protected void readChildren(Level level, GameObject parent) throws Throwable {
+		int id = r_buffer.getInt(); // Get id of object
+		String clazz = r_buffer.getString(true, NetworkBuffer.UTF_8); // Get class of object
+
+		GameObject object = level.getObject(id);
+		if (object == null) {
+			// Build and add the object if not present
+			Class<?> objclass = cls(clazz);
+			if (!GameObject.class.isAssignableFrom(objclass)) {
+				throw new IllegalStateException("Invalid object class");
+			}
+			object = (GameObject) o_constr(objclass).newInstance();
+			f_oid.set(object, id);
+			if (parent == null) {
+				level.addObject(object);
+			} else {
+				parent.addChild(object);
+			}
+		}
+		me_osetflag.invoke(object, GameObject.DELETE, false);
+
+		// Check for item flag
+		while (r_buffer.getByte() == Opcode.ITEM) {
+			int comp_id = r_buffer.getInt(); // Get id of component
+			String comp_clazz = r_buffer.getString(true, NetworkBuffer.UTF_8); // Get class of component
+
+			GameComponent component = object.getComponent(comp_id);
+			if (component == null) {
+				// Build and add the component if not present
+				Class<?> compclass = cls(comp_clazz);
+				if (!GameComponent.class.isAssignableFrom(compclass)) {
+					throw new IllegalStateException("Invalid component class");
+				}
+				component = (GameComponent) c_constr(compclass).newInstance();
+				f_cid.set(component, comp_id);
+				object.addComponent(component);
+			}
+			me_csetflag.invoke(component, GameComponent.DELETE, false);
+		}
+
+		// Check for item flag on children
+		while (r_buffer.getByte() == Opcode.ITEM) {
+			readChildren(level, object);
+		}
+	}
+
+	public void writeObjectTree(GameObject object) {
+		w_buffer.putByte(Opcode.OBJECTTREE);
+		w_buffer.putInt(object.getParent() == null ? -1 : object.getParent().getId());
+		writeChildren(object);
+	}
+
+	public void readObjectTree(Level level) throws Throwable {
+		int parent_id = r_buffer.getInt();
+		GameObject parent = parent_id == -1 ? null : level.getObject(parent_id);
+		r_buffer.skip(1);
+
+		// First flag all objects as deletable
+		// this will be reverted by readChildren
+		// but only on objects that actually exist
+		recursive_flag(parent, true);
+
+		readChildren(level, parent);
+
+		// If the objects are still flagged, it means
+		// they no longer exist, therefore they will
+		// be deleted
+		level.forEachObject(this::recursive_delete);
+		perform_delete();
+	}
+
+	public void writeObjectDestruction(GameObject object) {
+		if (noReplicate(object.getClass())) {
+			return;
+		}
+		w_buffer.putByte(Opcode.OBJECTDESTROY);
+		w_buffer.putBoolean(false); // Component flag
+		w_buffer.putInt(object.getId());
+	}
+
+	public void writeComponentDestruction(GameComponent component) {
+		if (noReplicate(component.getClass())) {
+			return;
+		}
+		w_buffer.putByte(Opcode.OBJECTDESTROY);
+		w_buffer.putBoolean(true); // Component flag
+		w_buffer.putInt(component.getId());
+	}
+
+	public void readObjectDestruction(Level level) {
+		boolean isComp = r_buffer.getBoolean();
+		int id = r_buffer.getInt();
+		if (isComp) {
+			GameComponent component = level.getComponent(id);
+			component.destroy();
+		} else {
+			GameObject object = level.getObject(id);
+			object.destroy();
+		}
 	}
 
 	public void writeActiveCamera() {
@@ -756,81 +894,6 @@ public abstract class NetworkWorker {
 		} else {
 			player = null;
 		}
-	}
-
-	public void writeChildren(GameObject obj) {
-		if (noReplicate(obj.getClass())) {
-			return;
-		}
-		w_buffer.putByte(Opcode.ITEM); // Put item flag
-
-		w_buffer.putInt(obj.getId()); // Put id of the object
-		w_buffer.putString(true, obj.getClass().getName(), NetworkBuffer.UTF_8); // Put class of the object
-
-		obj.forEachComponent((id, component) -> {
-			if (!noReplicate(component.getClass())) {
-				w_buffer.putByte(Opcode.ITEM); // Put item flag
-
-				w_buffer.putInt(component.getId()); // Put id of component
-				w_buffer.putString(true, component.getClass().getName(), NetworkBuffer.UTF_8); // Put class of component
-			}
-		});
-		w_buffer.putByte(Opcode.STOP); // Put stop flag
-
-		obj.forEachChild((id, child) -> writeChildren(child));
-		w_buffer.putByte(Opcode.STOP); // Put stop flag on children
-	}
-
-	public void readChildren(Level level, GameObject parent)
-			throws InstantiationException, InvocationTargetException, NoSuchMethodException, ClassNotFoundException {
-
-		try {
-			int id = r_buffer.getInt(); // Get id of object
-			String clazz = r_buffer.getString(true, NetworkBuffer.UTF_8); // Get class of object
-
-			GameObject object = level.getObject(id);
-			if (object == null) {
-				// Build and add the object if not present
-				Class<?> objclass = cls(clazz);
-				if (!GameObject.class.isAssignableFrom(objclass)) {
-					throw new IllegalStateException("Invalid object class");
-				}
-				object = (GameObject) o_constr(objclass).newInstance();
-				f_oid.set(object, id);
-				if (parent == null) {
-					level.addObject(object);
-				} else {
-					parent.addChild(object);
-				}
-			}
-			me_osetflag.invoke(object, GameObject.DELETE, false);
-
-			// Check for item flag
-			while (r_buffer.getByte() == Opcode.ITEM) {
-				int comp_id = r_buffer.getInt(); // Get id of component
-				String comp_clazz = r_buffer.getString(true, NetworkBuffer.UTF_8); // Get class of component
-
-				GameComponent component = object.getComponent(comp_id);
-				if (component == null) {
-					// Build and add the component if not present
-					Class<?> compclass = cls(comp_clazz);
-					if (!GameComponent.class.isAssignableFrom(compclass)) {
-						throw new IllegalStateException("Invalid component class");
-					}
-					component = (GameComponent) c_constr(compclass).newInstance();
-					f_cid.set(component, comp_id);
-					object.addComponent(component);
-				}
-				me_csetflag.invoke(component, GameComponent.DELETE, false);
-			}
-
-			// Check for item flag on children
-			while (r_buffer.getByte() == Opcode.ITEM) {
-				readChildren(level, object);
-			}
-		} catch (IllegalAccessException e) {
-		}
-
 	}
 
 	public void writeObject(GameObject obj) {
@@ -1109,24 +1172,29 @@ public abstract class NetworkWorker {
 		Logger.error(dump);
 	}
 
-	protected void recursive_flag(GameObject obj) {
-		// Flag this object as deletable
-		try {
-			me_osetflag.invoke(obj, GameObject.DELETE, true);
-		} catch (Throwable t) {
+	protected void recursive_flag(GameObject obj, boolean exclusive) {
+		if (obj == null) {
+			return;
 		}
-
-		// Flag components
-		obj.forEachComponent((id, component) -> {
+		if (!exclusive) {
+			// Flag this object as deletable
 			try {
-				me_csetflag.invoke(component, GameComponent.DELETE, true);
+				me_osetflag.invoke(obj, GameObject.DELETE, true);
 			} catch (Throwable t) {
 			}
-		});
+
+			// Flag components
+			obj.forEachComponent((id, component) -> {
+				try {
+					me_csetflag.invoke(component, GameComponent.DELETE, true);
+				} catch (Throwable t) {
+				}
+			});
+		}
 
 		// Flag children
 		obj.forEachChild((id, child) -> {
-			recursive_flag(child);
+			recursive_flag(child, false);
 		});
 	}
 

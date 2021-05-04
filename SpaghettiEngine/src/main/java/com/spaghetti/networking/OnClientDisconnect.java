@@ -4,12 +4,12 @@ import com.spaghetti.events.GameEvent;
 import com.spaghetti.interfaces.NoReplicate;
 
 @NoReplicate
-public class OnClientConnect extends GameEvent {
+public class OnClientDisconnect extends GameEvent {
 
 	protected NetworkWorker client;
 	protected long clientId;
 
-	public OnClientConnect(NetworkWorker client, long clientId) {
+	public OnClientDisconnect(NetworkWorker client, long clientId) {
 		this.client = client;
 		this.clientId = clientId;
 	}

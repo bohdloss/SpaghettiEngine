@@ -29,4 +29,7 @@ public final class Opcode {
 	public static final byte RPC_RESPONSE = (byte) 14;
 	public static final byte RPC_ACKNOWLEDGEMENT = (byte) 15;
 
+	public static final byte OBJECTTREE = (byte) 16;
+	public static final byte OBJECTDESTROY = (byte) 17;
+
 }

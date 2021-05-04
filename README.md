@@ -14,8 +14,9 @@ Every dependency is included in the pom.xml file
 
 Spaghetti engine features:
 - Asset import system (models, textures, shaders, and custom asset types too)
-- Multi-threaded asset manager
-- Levels, game components and game objects framework: no need to worry about weird openGL stuff
+- Thread-safe asset manager
+- Levels, game components and game objects framework
+- Highly customizable and easy to use networking support
 
 And you can do the following with it
 - Render 3d models with materials

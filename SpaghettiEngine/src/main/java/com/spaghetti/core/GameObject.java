@@ -71,6 +71,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 
 	public GameObject() {
 		this.id = newId();
+		internal_setflag(REPLICATE, true);
 	}
 
 	// Utility
