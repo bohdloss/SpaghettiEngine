@@ -8,7 +8,6 @@ import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.glfw.GLFWWindowSizeCallback;
 import org.lwjgl.opengl.GL11;
 
-import com.spaghetti.input.InputDispatcher;
 import com.spaghetti.objects.Camera;
 import com.spaghetti.utils.*;
 
@@ -37,7 +36,7 @@ public final class GameWindow {
 	protected int iwidth, iheight;
 	protected int width, height;
 	protected Game source;
-	protected InputDispatcher inputDispatcher;
+	protected boolean async;
 
 	// Cache
 	private int[] intx = new int[1];
@@ -46,21 +45,8 @@ public final class GameWindow {
 	private double[] doubley = new double[1];
 	private GLFWImage.Buffer iconBuf = GLFWImage.malloc(2);
 
-	public GameWindow(String title, Game source) {
-		quickQueue(() -> {
-			winInit(title, source);
-			return null;
-		});
-	}
-
-	private void winInit(String title, Game source) {
-		this.source = source;
-		this.inputDispatcher = new InputDispatcher(this);
-		// Cannot be instantiated outside of a game's context
-		if (source == null || source.getRenderer() == null || source.getWindow() != null) {
-			throw new UnsupportedOperationException();
-		}
-		this.title = title;
+	public GameWindow(String title) {
+		this.title = title == null ? "Spaghetti game" : title;
 		this.fullscreen = defaultFullscreen;
 		this.minWidth = defaultMinimumWidth;
 		this.minHeight = defaultMinimumHeight;
@@ -70,61 +56,72 @@ public final class GameWindow {
 		this.height = defaultHeight;
 		this.iwidth = width;
 		this.iheight = height;
-
-		// GLFW native window initialization
-
-		id = GLFW.glfwCreateWindow(width, height, title, 0, 0);
-		if (id == 0) {
-			// In case the window does not initialize properly
-			throw new IllegalStateException("GLFW window initialization failed");
-		}
-
-		GameWindow self = this;
-
-		GLFW.glfwSetWindowSizeCallback(id, new GLFWWindowSizeCallback() {
-			@Override
-			public void invoke(long window, int width, int height) {
-				self.width = width;
-				self.height = height;
-				if (!fullscreen) {
-					self.iwidth = width;
-					self.iheight = iheight;
-				}
-
-				Level l = source.getActiveLevel();
-				if (l != null) {
-					Camera c = l.activeCamera;
-					if (c != null) {
-						c.calcScale();
-					}
-				}
-
-				Function queue = () -> {
-					GL11.glViewport(0, 0, self.width, self.height);
-					GL11.glOrtho(-self.width / 2, self.width / 2, -self.height / 2, self.height / 2, -1, 1);
-					return null;
-				};
-
-				source.getRendererDispatcher().queue(queue);
-
-			}
-		});
-		GLFW.glfwSetScrollCallback(id, new GLFWScrollCallback() {
-
-			@Override
-			public void invoke(long window, double xoffset, double yoffset) {
-				inputDispatcher.scroll = (float) yoffset;
-			}
-
-		});
-		gatherSize();
-		center();
-		GLFW.glfwSetWindowSizeLimits(id, minWidth, minHeight, maxWidth, maxHeight);
-		setFullscreen(fullscreen);
 	}
 
-	public GameWindow(Game source) {
-		this("Spaghetti game", source);
+	public GameWindow() {
+		this(null);
+	}
+
+	public void winInit(Game game) {
+		quickQueue(() -> {
+			// Cannot be instantiated outside of a game's context
+			this.source = game;
+			if (source == null || source.getRenderer() == null) {
+				throw new UnsupportedOperationException();
+			}
+
+			// GLFW native window initialization
+
+			id = GLFW.glfwCreateWindow(width, height, title, 0, 0);
+			if (id == 0) {
+				// In case the window does not initialize properly
+				throw new IllegalStateException("GLFW window initialization failed");
+			}
+
+			GameWindow self = this;
+
+			GLFW.glfwSetWindowSizeCallback(id, new GLFWWindowSizeCallback() {
+				@Override
+				public void invoke(long window, int width, int height) {
+					self.width = width;
+					self.height = height;
+					if (!fullscreen) {
+						self.iwidth = width;
+						self.iheight = iheight;
+					}
+
+					Level l = source.getActiveLevel();
+					if (l != null) {
+						Camera c = l.activeCamera;
+						if (c != null) {
+							c.calcScale();
+						}
+					}
+
+					Function queue = () -> {
+						GL11.glViewport(0, 0, self.width, self.height);
+						GL11.glOrtho(-self.width / 2, self.width / 2, -self.height / 2, self.height / 2, -1, 1);
+						return null;
+					};
+
+					source.getRendererDispatcher().queue(queue);
+
+				}
+			});
+			GLFW.glfwSetScrollCallback(id, new GLFWScrollCallback() {
+
+				@Override
+				public void invoke(long window, double xoffset, double yoffset) {
+					source.getInputDispatcher().scroll = (float) yoffset;
+				}
+
+			});
+			gatherSize();
+			center();
+			GLFW.glfwSetWindowSizeLimits(id, minWidth, minHeight, maxWidth, maxHeight);
+			setFullscreen(fullscreen);
+			return null;
+		});
 	}
 
 	// Gather new size
@@ -375,18 +372,22 @@ public final class GameWindow {
 		return fullscreen;
 	}
 
-	public InputDispatcher getInputDispatcher() {
-		return inputDispatcher;
-	}
-
 	private Object quickQueue(Function action) {
 		try {
 			long funcId = Game.handler.dispatcher.queue(action);
-			return Game.handler.dispatcher.waitReturnValue(funcId);
+			return async ? null : Game.handler.dispatcher.waitReturnValue(funcId);
 		} catch (Throwable t) {
 			t.printStackTrace();
 		}
 		return null;
+	}
+
+	public boolean isAsync() {
+		return async;
+	}
+
+	public void setAsync(boolean async) {
+		this.async = async;
 	}
 
 }

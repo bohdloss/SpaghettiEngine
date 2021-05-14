@@ -9,16 +9,17 @@ import com.spaghetti.assets.Asset;
 import com.spaghetti.core.Game;
 import com.spaghetti.core.GameWindow;
 import com.spaghetti.utils.Logger;
+import com.spaghetti.utils.Utils;
 
 public class FrameBuffer extends Asset {
 
 	protected int id;
-	protected Asset color, depth, stencil;
+	protected Asset color, depth;
 	protected int width, height;
 
 	public FrameBuffer(int width, int height) {
 		setData(new Texture((ByteBuffer) null, width, height, Texture.COLOR),
-				new Texture((ByteBuffer) null, width, height, Texture.DEPTH), null);
+				new Texture((ByteBuffer) null, width, height, Texture.DEPTH));
 		load();
 	}
 
@@ -33,7 +34,6 @@ public class FrameBuffer extends Asset {
 
 		this.color = (Asset) objects[0];
 		this.depth = (Asset) objects[1];
-		this.stencil = (Asset) objects[2];
 
 		if (Texture.class.isAssignableFrom(color.getClass())) {
 			Texture cast = (Texture) color;
@@ -49,7 +49,7 @@ public class FrameBuffer extends Asset {
 
 	@Override
 	public boolean isFilled() {
-		return (color != null || depth != null || stencil != null) && height > 0 && width > 0;
+		return (color != null || depth != null) && height > 0 && width > 0;
 	}
 
 	@Override
@@ -57,15 +57,13 @@ public class FrameBuffer extends Asset {
 
 		// Create frame buffer
 		id = GL30.glGenFramebuffers();
+		Utils.glError();
 
 		// Attach color
 		attachColor(color);
 
 		// Attach depth
 		attachDepth(depth);
-
-		// Attach stencil
-		attachStencil(stencil);
 
 		// Check for validity
 		checkValid();
@@ -90,6 +88,7 @@ public class FrameBuffer extends Asset {
 			}
 			GL30.glFramebufferTexture2D(GL30.GL_DRAW_FRAMEBUFFER, GL30.GL_COLOR_ATTACHMENT0, GL11.GL_TEXTURE_2D,
 					cast.getId(), 0);
+			Utils.glError();
 
 		} else if (RenderBuffer.class.isAssignableFrom(object.getClass())) {
 
@@ -100,6 +99,7 @@ public class FrameBuffer extends Asset {
 			}
 			GL30.glFramebufferRenderbuffer(GL30.GL_DRAW_FRAMEBUFFER, GL30.GL_COLOR_ATTACHMENT0, GL30.GL_RENDERBUFFER,
 					cast.getId());
+			Utils.glError();
 
 		}
 		internal_stop();
@@ -121,6 +121,7 @@ public class FrameBuffer extends Asset {
 			}
 			GL30.glFramebufferTexture2D(GL30.GL_DRAW_FRAMEBUFFER, GL30.GL_DEPTH_ATTACHMENT, GL11.GL_TEXTURE_2D,
 					cast.getId(), 0);
+			Utils.glError();
 
 		} else if (RenderBuffer.class.isAssignableFrom(object.getClass())) {
 
@@ -131,37 +132,8 @@ public class FrameBuffer extends Asset {
 			}
 			GL30.glFramebufferRenderbuffer(GL30.GL_DRAW_FRAMEBUFFER, GL30.GL_DEPTH_ATTACHMENT, GL30.GL_RENDERBUFFER,
 					cast.getId());
+			Utils.glError();
 
-		}
-		internal_stop();
-
-	}
-
-	protected void attachStencil(Asset object) {
-		if (object == null) {
-			return;
-		}
-
-		internal_use();
-		if (Texture.class.isAssignableFrom(object.getClass())) {
-
-			Texture cast = (Texture) object;
-			if (cast.getType() != Texture.STENCIL) {
-				wrongFormat();
-				return;
-			}
-			GL30.glFramebufferTexture2D(GL30.GL_DRAW_FRAMEBUFFER, GL30.GL_STENCIL_ATTACHMENT, GL11.GL_TEXTURE_2D,
-					cast.getId(), 0);
-
-		} else if (RenderBuffer.class.isAssignableFrom(object.getClass())) {
-
-			RenderBuffer cast = (RenderBuffer) object;
-			if (cast.getType() != RenderBuffer.STENCIL) {
-				wrongFormat();
-				return;
-			}
-			GL30.glFramebufferRenderbuffer(GL30.GL_DRAW_FRAMEBUFFER, GL30.GL_STENCIL_ATTACHMENT, GL30.GL_RENDERBUFFER,
-					cast.getId());
 		}
 		internal_stop();
 
@@ -189,6 +161,7 @@ public class FrameBuffer extends Asset {
 	@Override
 	protected void delete0() {
 		GL30.glDeleteFramebuffers(id);
+		Utils.glError();
 	}
 
 	protected void internal_use() {
@@ -254,14 +227,6 @@ public class FrameBuffer extends Asset {
 
 	public RenderBuffer getDepthBuffer() {
 		return (RenderBuffer) depth;
-	}
-
-	public Texture getStencilTexture() {
-		return (Texture) stencil;
-	}
-
-	public RenderBuffer getStencilBuffer() {
-		return (RenderBuffer) stencil;
 	}
 
 	public int getWidth() {

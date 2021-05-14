@@ -32,6 +32,10 @@ public class Client extends CoreComponent {
 	@Override
 	protected void initialize0() throws Throwable {
 		worker = new TCPWorker(this);
+	}
+
+	@Override
+	protected void postInitialize() throws Throwable {
 		internal_connect("localhost", 9018);
 	}
 

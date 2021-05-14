@@ -3,6 +3,8 @@ package com.spaghetti.demo;
 import org.joml.Vector2f;
 import org.joml.Vector3f;
 
+import com.spaghetti.audio.SoundBuffer;
+import com.spaghetti.audio.SoundSource;
 import com.spaghetti.core.GameWindow;
 import com.spaghetti.input.Controller;
 import com.spaghetti.input.Keys;
@@ -63,9 +65,20 @@ public class PlayerController extends Controller {
 
 	@Override
 	public void onKeyPressed(int key, int x, int y) {
-		if (key == Keys.F11) {
+		switch (key) {
+		case Keys.F11:
 			GameWindow window = getGame().getWindow();
 			window.toggleFullscreen();
+			break;
+		case Keys.O:
+			SoundSource source = new SoundSource(SoundBuffer.get("sb_bruh2"));
+			source.setDestroyOnStop(true);
+			getLevel().addObject(source);
+			source.play();
+			break;
+		case Keys.P:
+			getLevel().getObject(SoundSource.class).destroy();
+			break;
 		}
 	}
 

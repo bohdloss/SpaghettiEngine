@@ -600,7 +600,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 	}
 
 	public final Game getGame() {
-		return level.getGame();
+		return level == null ? Game.getGame() : level.getGame();
 	}
 
 	public final int getId() {

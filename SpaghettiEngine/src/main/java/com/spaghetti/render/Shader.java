@@ -7,6 +7,7 @@ import org.lwjgl.opengl.GL40;
 
 import com.spaghetti.assets.Asset;
 import com.spaghetti.core.Game;
+import com.spaghetti.utils.Utils;
 
 public final class Shader extends Asset {
 
@@ -65,11 +66,14 @@ public final class Shader extends Asset {
 
 		// Create usable shader id
 		id = GL20.glCreateShader(type);
+		Utils.glError();
 
 		try {
 
 			GL20.glShaderSource(id, source);
+			Utils.glError();
 			GL20.glCompileShader(id);
+			Utils.glError();
 
 			if (GL20.glGetShaderi(id, GL20.GL_COMPILE_STATUS) == GL11.GL_FALSE) {
 				throw new IllegalArgumentException("Compiler error: " + GL20.glGetShaderInfoLog(id));
@@ -89,6 +93,7 @@ public final class Shader extends Asset {
 	@Override
 	protected void delete0() {
 		GL20.glDeleteShader(id);
+		Utils.glError();
 	}
 
 	public int getId() {

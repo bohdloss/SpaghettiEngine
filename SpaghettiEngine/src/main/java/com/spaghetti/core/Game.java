@@ -5,6 +5,7 @@ import java.util.*;
 import com.spaghetti.assets.AssetManager;
 import com.spaghetti.events.EventDispatcher;
 import com.spaghetti.events.Signals;
+import com.spaghetti.input.InputDispatcher;
 import com.spaghetti.input.Updater;
 import com.spaghetti.networking.Client;
 import com.spaghetti.networking.Server;
@@ -86,9 +87,11 @@ public final class Game {
 	}
 
 	// Instance globals
-	private volatile GameWindow window;
 	private volatile AssetManager assetManager;
 	private volatile EventDispatcher eventDispatcher;
+	private volatile Level activeLevel;
+	private volatile GameOptions options;
+	private volatile InputDispatcher inputDispatcher;
 
 	private final ArrayList<CoreComponent> components = new ArrayList<>(4);
 	private volatile Updater updater;
@@ -114,9 +117,6 @@ public final class Game {
 	private volatile boolean isMultiplayer;
 	private volatile boolean hasAutority;
 
-	private volatile Level activeLevel;
-	private volatile GameOptions options;
-
 	// Constructors using custom classes
 	public Game(Updater updater, Renderer renderer, Client client, Server server) throws Throwable {
 
@@ -134,9 +134,9 @@ public final class Game {
 		}
 
 		this.eventDispatcher = new EventDispatcher(this);
-
 		this.options = new GameOptions();
 		this.assetManager = new AssetManager(this);
+		this.inputDispatcher = new InputDispatcher(renderer == null ? null : renderer.getWindow());
 
 		games.add(this);
 		this.index = games.indexOf(this);
@@ -152,7 +152,6 @@ public final class Game {
 			this.components.add(renderer);
 			this.renderer.setName("RENDERER");
 			registerThread(this.renderer);
-			window = new GameWindow(this);
 		}
 		if (client != null) {
 			this.client = client;
@@ -167,7 +166,7 @@ public final class Game {
 			registerThread(this.server);
 		}
 
-		this.isHeadless = window == null || renderer == null;
+		this.isHeadless = renderer == null;
 		this.isMultiplayer = client != null || server != null;
 		this.isClient = (client != null || server == null) || !isMultiplayer;
 		this.isServer = (client == null || server != null) && isMultiplayer;
@@ -357,12 +356,6 @@ public final class Game {
 			server.waitTerminate();
 		}
 
-		// Destroy the window if it's there
-
-		if (window != null) {
-			window.destroy();
-		}
-
 		internal_finishstop();
 	}
 
@@ -403,7 +396,7 @@ public final class Game {
 	}
 
 	public GameWindow getWindow() {
-		return window;
+		return renderer.getWindow();
 	}
 
 	public EventDispatcher getEventDispatcher() {
@@ -527,6 +520,10 @@ public final class Game {
 
 	public GameOptions getOptions() {
 		return options;
+	}
+
+	public InputDispatcher getInputDispatcher() {
+		return inputDispatcher;
 	}
 
 	public void detachLevel() {

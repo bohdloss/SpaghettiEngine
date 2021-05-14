@@ -14,7 +14,7 @@ public class Player extends GameObject {
 
 	public Player() {
 		if (Game.getGame().hasAuthority()) {
-			addChild(new Mesh(Model.get("square"), Material.get("defaultMAT")));
+			addChild(new Mesh(Model.get("apple_model"), Material.get("apple_mat")));
 			addChild(new Camera());
 			getChild(Camera.class).setFov(20);
 			addComponent(new PlayerController());

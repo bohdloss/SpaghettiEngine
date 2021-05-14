@@ -135,7 +135,7 @@ public abstract class GameComponent implements Updatable, Replicable {
 	}
 
 	public final Game getGame() {
-		return owner == null ? null : owner.getGame();
+		return owner == null ? Game.getGame() : owner.getGame();
 	}
 
 	public final int getId() {

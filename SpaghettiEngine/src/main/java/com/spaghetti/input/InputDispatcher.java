@@ -43,18 +43,19 @@ public final class InputDispatcher {
 		if (pointer.x != x || pointer.y != y) {
 			// If the cursor is outside the bounds
 			// of the window, ignore the event
-			if (CMath.inrange(pointer.x, 0, window.getWidth()) && CMath.inrange(pointer.y, 0, window.getHeight())) {
-				fireMouseEvent(MouseEvent.MOVE, 0, false);
-			}
 			x = pointer.x;
 			y = pointer.y;
+			if (CMath.inrange(pointer.x, 0, window.getWidth()) && CMath.inrange(pointer.y, 0, window.getHeight())) {
+				fireMouseEvent(MouseEvent.MOVE, 0, false, 0, x, y);
+			}
 		}
 
 		// Fire mouse scroll events
 		// the scroll variable is set by the window itself
 		if (scroll != 0) {
-			fireMouseEvent(MouseEvent.SCROLL, 0, false);
+			float s = scroll;
 			scroll = 0;
+			fireMouseEvent(MouseEvent.SCROLL, 0, false, s, x, y);
 		}
 
 		for (int i = 0; i < mouseButtons.length; i++) {
@@ -64,7 +65,7 @@ public final class InputDispatcher {
 				boolean current = window.mouseDown(i);
 
 				if (current != mouseButtons[i]) {
-					fireMouseEvent(MouseEvent.BUTTONCHANGE, i, current);
+					fireMouseEvent(MouseEvent.BUTTONCHANGE, i, current, 0, x, y);
 				}
 
 				mouseButtons[i] = current;
@@ -90,29 +91,65 @@ public final class InputDispatcher {
 
 	// Fire events to listeners
 
-	private void fireMouseEvent(MouseEvent event, int button, boolean pressed) {
+	private void fireMouseEvent(MouseEvent event, int button, boolean pressed, float scroll, int x, int y) {
 		switch (event) {
 		case BUTTONCHANGE:
 			if (pressed) {
-				listeners.forEach(listener -> listener.onMouseButtonPressed(button, x, y));
+				listeners.forEach(listener -> {
+					try {
+						listener.onMouseButtonPressed(button, x, y);
+					} catch (Throwable t) {
+						Logger.error("Error dispatching input event", t);
+					}
+				});
 			} else {
-				listeners.forEach(listener -> listener.onMouseButtonReleased(button, x, y));
+				listeners.forEach(listener -> {
+					try {
+						listener.onMouseButtonReleased(button, x, y);
+					} catch (Throwable t) {
+						Logger.error("Error dispatching input event", t);
+					}
+				});
 			}
 			break;
 		case MOVE:
-			listeners.forEach(listener -> listener.onMouseMove(x, y));
+			listeners.forEach(listener -> {
+				try {
+					listener.onMouseMove(x, y);
+				} catch (Throwable t) {
+					Logger.error("Error dispatching input event", t);
+				}
+			});
 			break;
 		case SCROLL:
-			listeners.forEach(listener -> listener.onMouseScroll(scroll, x, y));
+			listeners.forEach(listener -> {
+				try {
+					listener.onMouseScroll(scroll, x, y);
+				} catch (Throwable t) {
+					Logger.error("Error dispatching input event", t);
+				}
+			});
 			break;
 		}
 	}
 
 	private void fireKeyEvent(int key, boolean pressed) {
 		if (pressed) {
-			listeners.forEach(listener -> listener.onKeyPressed(key, x, y));
+			listeners.forEach(listener -> {
+				try {
+					listener.onKeyPressed(key, x, y);
+				} catch (Throwable t) {
+					Logger.error("Error dispatching input event", t);
+				}
+			});
 		} else {
-			listeners.forEach(listener -> listener.onKeyReleased(key, x, y));
+			listeners.forEach(listener -> {
+				try {
+					listener.onKeyReleased(key, x, y);
+				} catch (Throwable t) {
+					Logger.error("Error dispatching input event", t);
+				}
+			});
 		}
 	}
 

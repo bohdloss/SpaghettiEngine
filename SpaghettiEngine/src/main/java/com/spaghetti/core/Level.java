@@ -50,7 +50,7 @@ public final class Level implements Updatable {
 	}
 
 	public Game getGame() {
-		return source;
+		return source == null ? Game.getGame() : source;
 	}
 
 	public void destroy() {
@@ -195,7 +195,7 @@ public final class Level implements Updatable {
 	}
 
 	public void attachCamera(Camera camera) {
-		if (camera == null || source.isHeadless() || activeCamera == camera) {
+		if (camera == null || getGame().isHeadless() || activeCamera == camera) {
 			return;
 		}
 		if (activeCamera != null) {
@@ -213,18 +213,18 @@ public final class Level implements Updatable {
 		if (activeInput == null) {
 			return;
 		}
-		source.getWindow().getInputDispatcher().unregisterListener(activeInput);
+		getGame().getInputDispatcher().unregisterListener(activeInput);
 		activeInput = null;
 	}
 
 	public void attachController(Controller controller) {
-		if (controller == null || source.isHeadless() || activeInput == controller) {
+		if (controller == null || getGame().isHeadless() || activeInput == controller) {
 			return;
 		}
 		if (activeInput != null) {
 			detachController();
 		}
-		source.getWindow().getInputDispatcher().registerListener(controller);
+		getGame().getInputDispatcher().registerListener(controller);
 		this.activeInput = controller;
 	}
 

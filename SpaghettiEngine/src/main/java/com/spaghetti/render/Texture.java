@@ -23,7 +23,6 @@ public class Texture extends Asset {
 
 	public static final int COLOR = GL30.GL_RGBA;
 	public static final int DEPTH = GL30.GL_DEPTH_COMPONENT;
-	public static final int STENCIL = GL30.GL_STENCIL_INDEX8;
 
 	public static final int LINEAR = GL11.GL_LINEAR;
 	public static final int NEAREST = GL11.GL_NEAREST;
@@ -37,11 +36,15 @@ public class Texture extends Asset {
 	// process
 	protected void setParameters(ByteBuffer buffer, int width, int height, int type, int mode) {
 		GL11.glBindTexture(GL11.GL_TEXTURE_2D, id);
+		Utils.glError();
 
 		GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, mode);
+		Utils.glError();
 		GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, mode);
+		Utils.glError();
 
 		GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, type, width, height, 0, type, GL11.GL_UNSIGNED_BYTE, buffer);
+		Utils.glError();
 
 	}
 
@@ -84,14 +87,14 @@ public class Texture extends Asset {
 
 	@Override
 	public boolean isFilled() {
-		return width > 0 && height > 0 && (type == COLOR || type == DEPTH || type == STENCIL)
-				&& (mode == LINEAR || mode == NEAREST);
+		return width > 0 && height > 0 && (type == COLOR || type == DEPTH) && (mode == LINEAR || mode == NEAREST);
 	}
 
 	@Override
 	protected void load0() {
 		// Generate a valid id for this texture
 		id = GL11.glGenTextures();
+		Utils.glError();
 
 		try {
 
@@ -124,6 +127,7 @@ public class Texture extends Asset {
 	@Override
 	protected void delete0() {
 		GL11.glDeleteTextures(id);
+		Utils.glError();
 	}
 
 	public int getId() {

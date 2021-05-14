@@ -10,7 +10,7 @@ public class Updater extends CoreComponent {
 		try {
 			if (!getGame().isHeadless()) {
 				getGame().getAssetManager().lazyLoad();
-				getGame().getWindow().getInputDispatcher().update();
+				getGame().getInputDispatcher().update();
 			}
 
 			if (getLevel() != null) {
@@ -27,10 +27,15 @@ public class Updater extends CoreComponent {
 	}
 
 	@Override
-	protected void terminate0() throws Throwable {
+	protected void preTerminate() throws Throwable {
 		if (getGame().getActiveLevel() != null) {
 			getGame().getActiveLevel().destroy();
 		}
+	}
+
+	@Override
+	protected void terminate0() throws Throwable {
+
 	}
 
 	@Override

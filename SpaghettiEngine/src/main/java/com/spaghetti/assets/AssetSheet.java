@@ -4,11 +4,7 @@ import static com.spaghetti.assets.AssetType.*;
 
 import java.util.HashMap;
 
-import com.spaghetti.render.Material;
-import com.spaghetti.render.Model;
 import com.spaghetti.render.Shader;
-import com.spaghetti.render.ShaderProgram;
-import com.spaghetti.render.Texture;
 import com.spaghetti.utils.Logger;
 
 public final class AssetSheet {
@@ -24,7 +20,7 @@ public final class AssetSheet {
 	private static final String append = "" + "shader defaultVS /internal/default.vs vertex\n"
 			+ "shader defaultFS /internal/default.fs fragment\n" + "shaderprogram defaultSP defaultVS defaultFS\n"
 			+ "shader rendererVS /internal/renderer.vs vertex\n" + "shader rendererFS /internal/renderer.fs fragment\n"
-			+ "shaderprogram rendererSP rendererVS rendererFS\n" + "model square /internal/square.obj\n"
+			+ "shaderprogram rendererSP rendererVS rendererFS\n" + "model square /internal/square.obj find square\n"
 			+ "texture defaultTXT /internal/default.png\n" + "material defaultMAT defaultTXT defaultSP";
 
 	public void clear() {
@@ -87,7 +83,11 @@ public final class AssetSheet {
 				// Model location
 
 				entry.location = args[0];
-				entry.customType = _PREFIX + _MODEL;
+				entry.args = new String[args.length - 1];
+				for (int i = 0; i < entry.args.length; i++) {
+					entry.args[i] = args[i + 1];
+				}
+				entry.customType = "com.spaghetti.render.Model";
 
 				break;
 			case SHADER:
@@ -117,7 +117,7 @@ public final class AssetSheet {
 					throw new IllegalArgumentException("Invalid shader type");
 				}
 
-				entry.customType = _PREFIX + _SHADER;
+				entry.customType = "com.spaghetti.render.Shader";
 
 				break;
 			case SHADERPROGRAM:
@@ -125,7 +125,7 @@ public final class AssetSheet {
 				// List of names of shader objects
 
 				entry.args = args;
-				entry.customType = _PREFIX + _SHADERPROGRAM;
+				entry.customType = "com.spaghetti.render.ShaderProgram";
 
 				break;
 			case TEXTURE:
@@ -133,7 +133,7 @@ public final class AssetSheet {
 				// Texture location
 
 				entry.location = args[0];
-				entry.customType = _PREFIX + _TEXTURE;
+				entry.customType = "com.spaghetti.render.Texture";
 
 				break;
 			case MATERIAL:
@@ -141,7 +141,15 @@ public final class AssetSheet {
 				// Texture name and shader program name
 
 				entry.args = args;
-				entry.customType = _PREFIX + _MATERIAL;
+				entry.customType = "com.spaghetti.render.Material";
+
+				break;
+			case SOUNDBUFFER:
+
+				// Sound format and location
+
+				entry.location = args[0];
+				entry.customType = "com.spaghetti.audio.SoundBuffer";
 
 				break;
 			default:
@@ -153,23 +161,7 @@ public final class AssetSheet {
 				entry.isCustom = true;
 				entry.customType = ctype.getName();
 
-				boolean valid = false;
-
-				if (Model.class.isAssignableFrom(ctype)) {
-					valid = true;
-				} else if (Shader.class.isAssignableFrom(ctype)) {
-					valid = true;
-				} else if (ShaderProgram.class.isAssignableFrom(ctype)) {
-					valid = true;
-				} else if (Texture.class.isAssignableFrom(ctype)) {
-					valid = true;
-				} else if (Material.class.isAssignableFrom(ctype)) {
-					valid = true;
-				} else if (Asset.class.isAssignableFrom(ctype)) {
-					valid = true;
-				}
-
-				if (!valid) {
+				if (!Asset.class.isAssignableFrom(ctype)) {
 					throw new IllegalArgumentException("Invalid custom type");
 				}
 

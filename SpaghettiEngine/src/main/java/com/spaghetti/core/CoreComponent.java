@@ -30,6 +30,9 @@ public abstract class CoreComponent extends Thread {
 
 	protected abstract void initialize0() throws Throwable; // Your custom initialization code here!
 
+	protected void postInitialize() throws Throwable {
+	}
+
 	public final void terminate() {
 		if (!validStopping()) {
 			throw new IllegalStateException("Error: attempted to stop core thread outside the context of a game");
@@ -38,6 +41,9 @@ public abstract class CoreComponent extends Thread {
 	}
 
 	protected abstract void terminate0() throws Throwable; // Your custom finalization code here!
+
+	protected void preTerminate() throws Throwable {
+	}
 
 	public final void waitInit() {
 		while (!initialized()) {
@@ -106,6 +112,7 @@ public abstract class CoreComponent extends Thread {
 				functionDispatcher.computeEvents();
 				Utils.sleep(1);
 			}
+			postInitialize();
 			while (!stop) {
 				// Calculate delta
 				long current = System.currentTimeMillis();
@@ -119,19 +126,19 @@ public abstract class CoreComponent extends Thread {
 				// Compute queued operations
 				functionDispatcher.computeEvents();
 				loopEvents(delta);
+				Utils.sleep(1);
 			}
 		} catch (Throwable t) {
 			_uncaught(t);
 		} finally {
 			stop = true;
 			source.stopAsync();
-			// This means that not only this component has received the shutdown signal
-			// but has already exited out of the loop
-			executionEnd = true;
 		}
 
 		// Termination try catch
 		try {
+			preTerminate();
+			executionEnd = true;
 			while (!allowStop) {
 				Utils.sleep(1);
 				functionDispatcher.computeEvents();

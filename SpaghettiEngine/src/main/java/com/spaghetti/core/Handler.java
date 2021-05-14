@@ -1,5 +1,7 @@
 package com.spaghetti.core;
 
+import java.awt.GraphicsEnvironment;
+
 import org.lwjgl.glfw.GLFW;
 import com.spaghetti.utils.FunctionDispatcher;
 import com.spaghetti.utils.Utils;
@@ -16,7 +18,9 @@ public final class Handler extends Thread {
 
 	@Override
 	public void run() {
-		GLFW.glfwInit();
+		if (!GraphicsEnvironment.isHeadless()) {
+			GLFW.glfwInit();
+		}
 		dispatcher = new FunctionDispatcher();
 		while (!stop) {
 			try {
@@ -56,6 +60,9 @@ public final class Handler extends Thread {
 			} catch (Throwable t) {
 				// Catch anything because we can't have this thread die
 			}
+		}
+		if (!GraphicsEnvironment.isHeadless()) {
+			GLFW.glfwTerminate();
 		}
 	}
 

@@ -26,7 +26,8 @@ And you can do the following with it
 - (SOON) Switch between TCP and UDP protocols without changing a line of code
 - Run servers
 - (WIP) Physics
-- (WIP) Play sounds and music
+- Play sounds and music
+- (WIP) Microphone input
 
 ### How to set it up
 
@@ -183,7 +184,7 @@ Each line in the file indicates a different asset
 Lines that start with // will be ignored
 
 Each word in a line, separated by 1 space, indicates the following:
-- First word: asset type (choose between - shader / shaderprogram / material / texture / model - or the full class name of your custom asset type)
+- First word: asset type (choose between - shader / shaderprogram / material / texture / model / soundbuffer - or the full class name of your custom asset type)
 - Second word: asset name
 - All the other words are arguments
 
@@ -204,7 +205,10 @@ Here is the full documentation for the arguments that are needed for each asset 
   - Texture location
   
 5) Model
-  - Model location (currently only .obj supported, use triangulate modifier on the model before exporting it in your model editor)
+  - Model location
+
+6) SoundBuffer
+  - Sound location
   
 This ```.txt``` file type may be referred to Asset Sheet later in the documentation
 

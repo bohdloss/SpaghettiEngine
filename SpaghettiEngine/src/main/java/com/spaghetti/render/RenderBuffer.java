@@ -3,12 +3,12 @@ package com.spaghetti.render;
 import org.lwjgl.opengl.GL30;
 
 import com.spaghetti.assets.Asset;
+import com.spaghetti.utils.Utils;
 
 public class RenderBuffer extends Asset {
 
 	public static final int COLOR = GL30.GL_RGBA;
 	public static final int DEPTH = GL30.GL_DEPTH_COMPONENT;
-	public static final int STENCIL = GL30.GL_STENCIL_INDEX8;
 
 	protected int id;
 	protected int width, height;
@@ -35,7 +35,7 @@ public class RenderBuffer extends Asset {
 
 	@Override
 	public boolean isFilled() {
-		return (type == COLOR || type == DEPTH || type == STENCIL) && height > 0 && width > 0;
+		return (type == COLOR || type == DEPTH) && height > 0 && width > 0;
 	}
 
 	protected void _use() {
@@ -48,6 +48,7 @@ public class RenderBuffer extends Asset {
 		// Generate valid id
 
 		id = GL30.glGenRenderbuffers();
+		Utils.glError();
 
 		// Bind w_buffer
 
@@ -56,6 +57,7 @@ public class RenderBuffer extends Asset {
 		// Allocate w_buffer storage
 
 		GL30.glRenderbufferStorage(GL30.GL_RENDERBUFFER, type, width, height);
+		Utils.glError();
 
 	}
 
@@ -78,6 +80,7 @@ public class RenderBuffer extends Asset {
 	@Override
 	protected void delete0() {
 		GL30.glDeleteRenderbuffers(id);
+		Utils.glError();
 	}
 
 	@Override

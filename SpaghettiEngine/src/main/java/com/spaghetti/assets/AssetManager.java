@@ -5,6 +5,7 @@ import static com.spaghetti.assets.AssetType.*;
 import java.lang.reflect.Constructor;
 import java.util.HashMap;
 
+import com.spaghetti.audio.SoundBuffer;
 import com.spaghetti.core.Game;
 import com.spaghetti.events.Signals;
 import com.spaghetti.render.*;
@@ -134,7 +135,7 @@ public final class AssetManager {
 			// Save metadata
 			cache.put(cls.name, asset);
 			String pkg = customClass.getPackage().getName();
-			boolean isCustom = !pkg.endsWith("render");
+			boolean isCustom = !(pkg.equals("com.spaghetti.render") || pkg.equals("com.spaghetti.audio"));
 			flags.put(cls.name, new AssetFlag(isCustom ? AssetType.CUSTOM : customClass.getSimpleName().toLowerCase()));
 		} catch (Throwable t) {
 			Logger.error(source, "Could not instantiate asset:" + "\nname=" + cls.name + "\nlocation=" + cls.location
@@ -157,7 +158,7 @@ public final class AssetManager {
 		ready = true;
 	}
 
-	public void loadAssetSheet(String sheetLocation) throws Throwable {
+	public void loadAssetSheet(String sheetLocation) {
 
 		try {
 
@@ -169,7 +170,6 @@ public final class AssetManager {
 		} catch (Throwable t) {
 
 			Logger.error(source, "Could not load asset sheet " + sheetLocation, t);
-			throw t;
 
 		}
 
@@ -244,6 +244,10 @@ public final class AssetManager {
 		case MATERIAL:
 			Material material = material(name);
 			AssetLoader.loadMaterial(this, material, info);
+			break;
+		case SOUNDBUFFER:
+			SoundBuffer soundBuffer = soundBuffer(name);
+			AssetLoader.loadSoundBuffer(soundBuffer, info);
 			break;
 		case CUSTOM:
 			Asset custom = custom(name);
@@ -359,6 +363,15 @@ public final class AssetManager {
 		return ret;
 	}
 
+	public SoundBuffer soundBuffer(String name) {
+		if (!check(name)) {
+			return null;
+		}
+		SoundBuffer ret = (SoundBuffer) cache.get(name);
+		flagAsset(name);
+		return ret;
+	}
+
 	// Instant-loading getters
 
 	public Asset requireCustom(String name) {
@@ -421,6 +434,17 @@ public final class AssetManager {
 			return null;
 		}
 		Material ret = material(name);
+		if (!ret.valid()) {
+			loadAsset(name, false);
+		}
+		return ret;
+	}
+
+	public SoundBuffer requireSoundBuffer(String name) {
+		if (!check(name)) {
+			return null;
+		}
+		SoundBuffer ret = soundBuffer(name);
 		if (!ret.valid()) {
 			loadAsset(name, false);
 		}

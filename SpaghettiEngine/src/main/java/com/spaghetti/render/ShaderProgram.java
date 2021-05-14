@@ -11,6 +11,7 @@ import org.lwjgl.opengl.GL20;
 
 import com.spaghetti.assets.Asset;
 import com.spaghetti.core.Game;
+import com.spaghetti.utils.Utils;
 
 public final class ShaderProgram extends Asset {
 
@@ -73,6 +74,7 @@ public final class ShaderProgram extends Asset {
 	protected void load0() {
 		// Get a usable id for this s-program
 		this.id = GL20.glCreateProgram();
+		Utils.glError();
 
 		try {
 
@@ -82,14 +84,19 @@ public final class ShaderProgram extends Asset {
 					throw new IllegalArgumentException("Invalid shader");
 				}
 				GL20.glAttachShader(id, shader.getId());
+				Utils.glError();
 			}
 			// Bind attributes
 			GL20.glBindAttribLocation(id, 0, "vertices");
+			Utils.glError();
 			GL20.glBindAttribLocation(id, 1, "textures");
+			Utils.glError();
 			GL20.glBindAttribLocation(id, 2, "normals");
+			Utils.glError();
 
 			// Perform linking and check if it worked
 			GL20.glLinkProgram(id);
+			Utils.glError();
 
 			if (GL20.glGetProgrami(id, GL20.GL_LINK_STATUS) == GL11.GL_FALSE) {
 				throw new IllegalArgumentException("Linker error: " + GL20.glGetProgramInfoLog(id));
@@ -97,6 +104,7 @@ public final class ShaderProgram extends Asset {
 
 			// Perform validation and check if it worked
 			GL20.glValidateProgram(id);
+			Utils.glError();
 
 			if (GL20.glGetProgrami(id, GL20.GL_VALIDATE_STATUS) == GL11.GL_FALSE) {
 				throw new IllegalArgumentException("Validator error: " + GL20.glGetProgramInfoLog(id));
@@ -115,6 +123,7 @@ public final class ShaderProgram extends Asset {
 			// Whatever happens, shaders should be detached
 			for (Shader shader : shaders) {
 				GL20.glDetachShader(id, shader.getId());
+				Utils.glError();
 			}
 
 		}
@@ -130,6 +139,7 @@ public final class ShaderProgram extends Asset {
 	@Override
 	protected void delete0() {
 		GL20.glDeleteProgram(id);
+		Utils.glError();
 		locations.clear();
 	}
 
@@ -146,6 +156,7 @@ public final class ShaderProgram extends Asset {
 		} else {
 			// Find the location and cache it
 			int loc = GL20.glGetUniformLocation(id, name);
+			Utils.glError();
 			if (loc == -1) {
 				throw new IllegalArgumentException("Invalid uniform name: " + name);
 			}

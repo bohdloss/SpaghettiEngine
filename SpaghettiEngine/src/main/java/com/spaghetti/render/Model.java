@@ -10,6 +10,7 @@ import org.lwjgl.opengl.GL20;
 
 import com.spaghetti.assets.Asset;
 import com.spaghetti.core.Game;
+import com.spaghetti.utils.Utils;
 
 public class Model extends Asset {
 
@@ -60,20 +61,34 @@ public class Model extends Asset {
 
 		draw_count = indices.length;
 		v_id = GL15.glGenBuffers();
+		Utils.glError();
 		GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, v_id);
+		Utils.glError();
 		GL15.glBufferData(GL15.GL_ARRAY_BUFFER, createFloatBuffer(vertices), GL15.GL_STATIC_DRAW);
+		Utils.glError();
 		t_id = GL15.glGenBuffers();
+		Utils.glError();
 		GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, t_id);
+		Utils.glError();
 		GL15.glBufferData(GL15.GL_ARRAY_BUFFER, createFloatBuffer(tex_coords), GL15.GL_STATIC_DRAW);
+		Utils.glError();
 		n_id = GL15.glGenBuffers();
+		Utils.glError();
 		GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, n_id);
+		Utils.glError();
 		GL15.glBufferData(GL15.GL_ARRAY_BUFFER, createFloatBuffer(normals), GL15.GL_STATIC_DRAW);
+		Utils.glError();
 		i_id = GL15.glGenBuffers();
+		Utils.glError();
 		GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, i_id);
+		Utils.glError();
 		GL15.glBufferData(GL15.GL_ARRAY_BUFFER, createIntBuffer(indices), GL15.GL_STATIC_DRAW);
+		Utils.glError();
 
 		GL15.glBindBuffer(GL15.GL_ELEMENT_ARRAY_BUFFER, 0);
+		Utils.glError();
 		GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
+		Utils.glError();
 
 	}
 
@@ -123,9 +138,13 @@ public class Model extends Asset {
 	@Override
 	protected void delete0() {
 		GL15.glDeleteBuffers(v_id);
+		Utils.glError();
 		GL15.glDeleteBuffers(t_id);
+		Utils.glError();
 		GL15.glDeleteBuffers(n_id);
+		Utils.glError();
 		GL15.glDeleteBuffers(i_id);
+		Utils.glError();
 	}
 
 	private FloatBuffer createFloatBuffer(float[] data) {
