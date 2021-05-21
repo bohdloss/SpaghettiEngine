@@ -34,7 +34,7 @@ public class PlayerController extends Controller {
 
 	@Override
 	protected void commonUpdate(float delta) {
-		if (getLevel().getActiveController() != this) {
+		if (getGame().getActiveController() != this) {
 			return;
 		}
 
@@ -71,13 +71,10 @@ public class PlayerController extends Controller {
 			window.toggleFullscreen();
 			break;
 		case Keys.O:
-			SoundSource source = new SoundSource(SoundBuffer.get("sb_bruh2"));
+			SoundSource source = new SoundSource(SoundBuffer.get("sb_bruh"));
 			source.setDestroyOnStop(true);
-			getLevel().addObject(source);
+			player.addChild(source);
 			source.play();
-			break;
-		case Keys.P:
-			getLevel().getObject(SoundSource.class).destroy();
 			break;
 		}
 	}

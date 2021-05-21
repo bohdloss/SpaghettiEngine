@@ -1,9 +1,9 @@
 package com.spaghetti.interfaces;
 
-import org.joml.Matrix4f;
+import com.spaghetti.objects.Camera;
 
 public interface Renderable {
 
-	public abstract void render(Matrix4f projection, float delta);
+	public abstract void render(Camera renderer, float delta);
 
 }

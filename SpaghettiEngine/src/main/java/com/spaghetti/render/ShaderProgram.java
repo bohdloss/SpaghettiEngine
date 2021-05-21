@@ -113,7 +113,7 @@ public final class ShaderProgram extends Asset {
 		} catch (Throwable t) {
 
 			// In case an error occurs, avoid leaking memory
-			delete();
+			unload();
 
 			// Pass the throwable back up the stack
 			throw t;
@@ -137,7 +137,7 @@ public final class ShaderProgram extends Asset {
 	}
 
 	@Override
-	protected void delete0() {
+	protected void unload0() {
 		GL20.glDeleteProgram(id);
 		Utils.glError();
 		locations.clear();

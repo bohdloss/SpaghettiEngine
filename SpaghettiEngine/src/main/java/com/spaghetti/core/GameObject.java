@@ -7,11 +7,11 @@ import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 
-import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import com.spaghetti.events.GameEvent;
 import com.spaghetti.interfaces.*;
 import com.spaghetti.networking.NetworkBuffer;
+import com.spaghetti.objects.Camera;
 import com.spaghetti.utils.Logger;
 import com.spaghetti.utils.Utils;
 
@@ -1055,7 +1055,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 	}
 
 	@Override
-	public void render(Matrix4f projection, float delta) {
+	public void render(Camera renderer, float delta) {
 	}
 
 	@Override

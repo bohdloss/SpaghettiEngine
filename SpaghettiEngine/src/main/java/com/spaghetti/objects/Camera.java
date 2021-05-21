@@ -14,19 +14,19 @@ import com.spaghetti.utils.*;
 @ToClient
 public class Camera extends GameObject {
 
-	// Instance fields
-
+	// Variables
 	protected float scale;
 	protected float fov = 10;
 	protected float targetRatio = 16 / 9; // 16:9 resolution
 
+	// Cache
 	protected Matrix4f projection = new Matrix4f();
 	protected Matrix4f cache = new Matrix4f();
 	protected Matrix4f view = new Matrix4f();
 
+	// OpenGL data
 	protected int width, height;
 	protected boolean clearColor = true, clearDepth = true, clearStencil = true;
-
 	protected FrameBuffer renderTarget;
 
 	protected void setProjectionMatrix() {
@@ -59,15 +59,15 @@ public class Camera extends GameObject {
 
 	@Override
 	public void onDestroy() {
-		if (getLevel().getActiveCamera() == this) {
-			getLevel().detachCamera();
+		if (getGame().getActiveCamera() == this) {
+			getGame().detachCamera();
 		}
 		if (!getGame().isHeadless()) {
 			if (!getGame().getRenderer().isAlive()) {
 				throw new IllegalStateException("Can't delete framebuffer: RENDERER died");
 			}
 			getGame().getRendererDispatcher().quickQueue(() -> {
-				renderTarget.delete();
+				renderTarget.unload();
 				return null;
 			});
 		}
@@ -180,7 +180,8 @@ public class Camera extends GameObject {
 	}
 
 	@Override
-	public void render(Matrix4f projection, float delta) {
+	public void render(Camera renderer, float delta) {
+		// Prepare buffer
 		checkTarget();
 		renderTarget.use();
 		if (getClearColor()) {
@@ -193,27 +194,10 @@ public class Camera extends GameObject {
 			GL11.glClear(GL11.GL_STENCIL_BUFFER_BIT);
 		}
 
-		Matrix4f sceneMatrix = new Matrix4f();
-		Vector3f vec3cache = new Vector3f();
+		// Render
 		getLevel().forEachActualObject((id, component) -> {
 			if (!Camera.class.isAssignableFrom(component.getClass())) {
-
-				// Reset matrix
-				sceneMatrix.set(getProjection());
-
-				// Get world position
-				component.getWorldPosition(vec3cache);
-				sceneMatrix.translate(vec3cache);
-
-				// Get world rotation
-				component.getWorldRotation(vec3cache);
-				sceneMatrix.rotateXYZ(vec3cache);
-
-				// Get world scale
-				component.getWorldScale(vec3cache);
-				sceneMatrix.scale(vec3cache.x, vec3cache.y, 1);
-
-				component.render(sceneMatrix, delta);
+				component.render(this, delta);
 			}
 		});
 		renderTarget.stop();

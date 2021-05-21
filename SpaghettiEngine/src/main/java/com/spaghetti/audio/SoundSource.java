@@ -1,11 +1,11 @@
 package com.spaghetti.audio;
 
-import org.joml.Matrix4f;
 import org.joml.Vector3f;
 import org.lwjgl.openal.AL10;
 import com.spaghetti.core.GameObject;
 import com.spaghetti.interfaces.ToClient;
 import com.spaghetti.networking.NetworkBuffer;
+import com.spaghetti.objects.Camera;
 import com.spaghetti.utils.Utils;
 
 @ToClient
@@ -18,6 +18,7 @@ public class SoundSource extends GameObject {
 	protected SoundBuffer soundBuffer;
 	protected int status;
 	protected Vector3f lastpos = new Vector3f();
+	protected Vector3f lastcamera = new Vector3f();
 	protected boolean destroyOnStop;
 
 	// Variables
@@ -97,13 +98,28 @@ public class SoundSource extends GameObject {
 	}
 
 	@Override
-	public void render(Matrix4f projection, float delta) {
+	public void render(Camera renderer, float delta) {
 		if (id == 0) {
 			id = AL10.alGenSources();
 			Utils.alError();
 			return;
 		}
-		// Update position and velocity
+		// Update listener position and velocity
+		Camera camera = getGame().getActiveCamera();
+		Vector3f camerapos = new Vector3f();
+		camera.getWorldPosition(camerapos);
+		Vector3f cameravel = new Vector3f();
+		camerapos.sub(lastcamera, cameravel);
+		if (delta == 0) {
+			cameravel.set(0);
+		} else {
+			cameravel.div(delta / 1000);
+		}
+		AL10.alListener3f(AL10.AL_POSITION, camerapos.x, camerapos.y, camerapos.z);
+		AL10.alListener3f(AL10.AL_VELOCITY, cameravel.x, cameravel.y, cameravel.z);
+		lastcamera.set(camerapos);
+
+		// Update source position and velocity
 		Vector3f currentpos = new Vector3f();
 		getWorldPosition(currentpos);
 		Vector3f currentvel = new Vector3f();

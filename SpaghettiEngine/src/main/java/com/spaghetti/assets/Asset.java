@@ -1,6 +1,7 @@
 package com.spaghetti.assets;
 
 import com.spaghetti.core.Game;
+import com.spaghetti.utils.Logger;
 
 public abstract class Asset {
 
@@ -16,18 +17,27 @@ public abstract class Asset {
 	private boolean init, deleted;
 
 	public final void load() {
-		if (!init && isFilled()) {
-			load0();
-			deleted = false;
-			init = true;
+		try {
+			if (!init && isFilled()) {
+				load0();
+				deleted = false;
+				init = true;
+			}
+		} catch (Throwable t) {
+			Logger.error("Error loading asset " + name, t);
 		}
 	}
 
 	protected abstract void load0();
 
-	public final void delete() {
-		if (valid()) {
-			delete0();
+	public final void unload() {
+		try {
+			if (valid()) {
+				unload0();
+			}
+		} catch (Throwable t) {
+			Logger.error("Error unloading asset " + name, t);
+		} finally {
 			deleted = true;
 			init = false;
 		}
@@ -35,18 +45,18 @@ public abstract class Asset {
 
 	public abstract void setData(Object... objects);
 
-	protected abstract void delete0();
+	protected abstract void unload0();
 
-	public final boolean isInitialized() {
+	public final boolean isLoaded() {
 		return init;
 	}
 
-	public final boolean isDeleted() {
+	public final boolean isUnloaded() {
 		return deleted;
 	}
 
 	public final void reload() {
-		delete();
+		unload();
 		load();
 	}
 
@@ -57,8 +67,12 @@ public abstract class Asset {
 	public abstract boolean isFilled();
 
 	public final void reset() {
-		delete();
-		reset0();
+		try {
+			unload();
+			reset0();
+		} catch (Throwable t) {
+			Logger.error("Error resetting asset " + name, t);
+		}
 	}
 
 	// Revert the effects of setData()

@@ -1,6 +1,7 @@
 package com.spaghetti.objects;
 
 import org.joml.Matrix4f;
+import org.joml.Vector3f;
 
 import com.spaghetti.core.*;
 import com.spaghetti.interfaces.ToClient;
@@ -23,10 +24,26 @@ public class Mesh extends GameObject {
 	}
 
 	@Override
-	public void render(Matrix4f projection, float delta) {
+	public void render(Camera renderer, float delta) {
 		if (material != null && model != null) {
+
+			// Gather transform data
+			Vector3f position = new Vector3f();
+			Vector3f rotation = new Vector3f();
+			Vector3f scale = new Vector3f();
+			getWorldPosition(position);
+			getWorldRotation(rotation);
+			getWorldScale(scale);
+
+			// Transform matrix
+			Matrix4f matrix = renderer.getProjection();
+			matrix.translate(position);
+			matrix.rotateXYZ(rotation);
+			matrix.scale(scale);
+
+			// Render
 			material.use();
-			material.setProjection(projection);
+			material.setProjection(matrix);
 			model.render();
 		}
 	}

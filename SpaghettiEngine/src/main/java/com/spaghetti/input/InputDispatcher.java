@@ -9,21 +9,24 @@ import com.spaghetti.core.*;
 import com.spaghetti.interfaces.*;
 import com.spaghetti.utils.*;
 
-public final class InputDispatcher {
+public class InputDispatcher {
 
-	private static enum MouseEvent {
+	protected static enum MouseEvent {
 		BUTTONCHANGE, MOVE, SCROLL
 	}
 
-	private GameWindow window;
-	public float scroll;
-	private int x, y;
-	private boolean[] mouseButtons;
-	private boolean[] keyboardButtons;
-	private ArrayList<Controllable> listeners;
+	protected final Game game;
 
-	public InputDispatcher(GameWindow window) {
-		this.window = window;
+	protected GameWindow window;
+	public float scroll;
+	protected int x, y;
+	protected boolean[] mouseButtons;
+	protected boolean[] keyboardButtons;
+	protected ArrayList<Controllable> listeners;
+
+	public InputDispatcher(Game game) {
+		this.game = game;
+		this.window = game.getRenderer() == null ? null : game.getWindow();
 
 		// Initialize variables
 		scroll = 0;
@@ -91,7 +94,7 @@ public final class InputDispatcher {
 
 	// Fire events to listeners
 
-	private void fireMouseEvent(MouseEvent event, int button, boolean pressed, float scroll, int x, int y) {
+	protected void fireMouseEvent(MouseEvent event, int button, boolean pressed, float scroll, int x, int y) {
 		switch (event) {
 		case BUTTONCHANGE:
 			if (pressed) {
@@ -133,7 +136,7 @@ public final class InputDispatcher {
 		}
 	}
 
-	private void fireKeyEvent(int key, boolean pressed) {
+	protected void fireKeyEvent(int key, boolean pressed) {
 		if (pressed) {
 			listeners.forEach(listener -> {
 				try {

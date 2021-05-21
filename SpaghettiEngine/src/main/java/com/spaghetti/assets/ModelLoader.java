@@ -1,40 +1,40 @@
 package com.spaghetti.assets;
 
-import java.awt.image.BufferedImage;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.util.ArrayList;
-
-import javax.sound.sampled.AudioFormat;
-import javax.sound.sampled.AudioInputStream;
-import javax.sound.sampled.AudioSystem;
 
 import org.lwjgl.BufferUtils;
 import org.lwjgl.assimp.*;
-import org.lwjgl.openal.AL10;
-import com.spaghetti.audio.SoundBuffer;
-import com.spaghetti.render.*;
-import com.spaghetti.utils.ResourceLoader;
-import com.spaghetti.utils.Utils;
 
-public final class AssetLoader {
+import com.spaghetti.interfaces.AssetLoader;
+import com.spaghetti.render.Model;
+import com.spaghetti.utils.*;
 
-	private AssetLoader() {
+public class ModelLoader implements AssetLoader {
+
+	@Override
+	public void initializeAsset(SheetEntry asset) {
+		asset.asset = new Model();
 	}
 
-	// Model loaders
+	@Override
+	public String[] provideDependencies(SheetEntry asset) {
+		return null;
 
-	public static void loadModel(Model model, SheetEntry data) throws Throwable {
+	}
+
+	@Override
+	public Object[] loadAsset(SheetEntry asset) throws Throwable {
 		// Load raw data into direct byte buffer
-		InputStream data_stream = ResourceLoader.getStream(data.location());
+		InputStream data_stream = ResourceLoader.getStream(asset.args[0]);
 		int available = data_stream.available();
 		ByteBuffer data_buffer = BufferUtils.createByteBuffer(available);
 		ResourceLoader.loadBinaryToBuffer(data_stream, data_buffer);
 		data_buffer.clear();
 
-//		// Import
-		AIScene scene = Assimp.aiImportFileEx(data.location(),
+		// Import
+		AIScene scene = Assimp.aiImportFileEx(asset.args[0],
 				Assimp.aiProcess_JoinIdenticalVertices | Assimp.aiProcess_Triangulate | Assimp.aiProcess_GenUVCoords
 						| Assimp.aiProcess_TransformUVCoords | Assimp.aiProcess_FindDegenerates
 						| Assimp.aiProcess_FindInvalidData | Assimp.aiProcess_FixInfacingNormals
@@ -80,11 +80,11 @@ public final class AssetLoader {
 		ArrayList<AIVector3D> _normals = new ArrayList<>();
 
 		// Iterate over meshes
-		if (data.args[0].equals("find")) {
+		if (asset.args[1].equals("find")) {
 			boolean found = false;
 
 			for (AIMesh mesh : meshes) {
-				if (Utils.getAssimpString(mesh.mName()).equals(data.args[1])) {
+				if (Utils.getAssimpString(mesh.mName()).equals(asset.args[2])) {
 					// We found the mesh we care about, parse it
 					found = true;
 					internal_parsemesh(mesh, _indices, _vertices, _tex_coords, _normals);
@@ -92,9 +92,9 @@ public final class AssetLoader {
 				} // End of name condition
 			} // End of meshes loop
 			if (!found) {
-				throw new IllegalArgumentException("Couldn't find mesh " + data.args[1]);
+				throw new IllegalArgumentException("Couldn't find mesh " + asset.args[2]);
 			}
-		} else if (data.args[0].equals("unify")) {
+		} else if (asset.args[1].equals("unify")) {
 			for (AIMesh element : meshes) {
 				internal_parsemesh(element, _indices, _vertices, _tex_coords, _normals);
 			}
@@ -141,10 +141,7 @@ public final class AssetLoader {
 			__indices[i] = index;
 
 		}
-
-		// Apply data to Model
-		model.setData(new Object[] { __vertices, __tex_coords, __normals, __indices });
-
+		return new Object[] { __vertices, __tex_coords, __normals, __indices };
 	}
 
 	private static void internal_parsemesh(AIMesh mesh, ArrayList<Integer> _indices, ArrayList<AIVector3D> _vertices,
@@ -162,6 +159,7 @@ public final class AssetLoader {
 
 		int num_faces = mesh.mNumFaces();
 
+		// Add to lists
 		for (int j = 0; j < num_vertices; j++) {
 			_vertices.add(mesh.mVertices().get(j));
 		}
@@ -174,6 +172,7 @@ public final class AssetLoader {
 			_normals.add(mesh.mNormals().get(j));
 		}
 
+		// Add indices
 		for (int i = 0; i < num_faces; i++) {
 			_indices.add(mesh.mFaces().get(i).mIndices().get(0) + _vertices_size);
 			_indices.add(mesh.mFaces().get(i).mIndices().get(1) + _tex_coords_size);
@@ -181,95 +180,10 @@ public final class AssetLoader {
 		}
 	}
 
-	// Shader loaders
-
-	public static void loadShader(Shader shader, SheetEntry data) throws Throwable {
-		String location = data.location();
-		String source = ResourceLoader.loadText(location);
-		shader.setData(source, Integer.parseInt(data.args[0]));
-	}
-
-	// Shader program loaders
-
-	public static void loadShaderProgram(AssetManager manager, ShaderProgram shaderProgram, SheetEntry data)
-			throws Throwable {
-		Object[] shaders = new Object[data.args.length];
-		for (int i = 0; i < data.args.length; i++) {
-			shaders[i] = manager.requireShader(data.args[i]);
-		}
-		shaderProgram.setData(shaders);
-	}
-
-	// Texture loaders
-
-	public static void loadTexture(Texture texture, SheetEntry data) throws Throwable {
-		BufferedImage img = ResourceLoader.loadImage(data.location());
-		texture.setData(Utils.parseImage(img), img.getWidth(), img.getHeight(), Texture.COLOR, Texture.NEAREST);
-	}
-
-	// Material loaders
-
-	public static void loadMaterial(AssetManager manager, Material material, SheetEntry data) throws Throwable {
-		material.setData(manager.requireTexture(data.args[0]), manager.requireShaderProgram(data.args[1]));
-	}
-
-	// Sound loaders
-
-	public static void loadSoundBuffer(SoundBuffer buffer, SheetEntry data) throws Throwable {
-		AudioInputStream audio_stream = AudioSystem.getAudioInputStream(ResourceLoader.getStream(data.location()));
-		AudioFormat audio_format = audio_stream.getFormat();
-
-		// Read metadata
-		int channels = audio_format.getChannels();
-		int bps = audio_format.getSampleSizeInBits();
-		int samplerate = (int) audio_format.getSampleRate();
-
-		int format = 0;
-		if (channels == 1) {
-			if (bps == 8) {
-				format = AL10.AL_FORMAT_MONO8;
-			} else if (bps == 16) {
-				format = AL10.AL_FORMAT_MONO16;
-			}
-		} else if (channels == 2) {
-			if (bps == 8) {
-				format = AL10.AL_FORMAT_STEREO8;
-			} else if (bps == 16) {
-				format = AL10.AL_FORMAT_STEREO16;
-			}
-		}
-
-		// Read audio data
-		byte[] audio_data = new byte[audio_stream.available()];
-		Utils.effectiveRead(audio_stream, audio_data, 0, audio_data.length);
-		ByteBuffer raw_data = ByteBuffer.wrap(audio_data);
-		raw_data.order(ByteOrder.LITTLE_ENDIAN);
-		ByteBuffer dest_data = BufferUtils.createByteBuffer(audio_data.length);
-		dest_data.order(ByteOrder.nativeOrder());
-
-		// Reorder bytes
-		int bytes = bps / 8;
-		while (raw_data.hasRemaining()) {
-			int pos = raw_data.position();
-			for (int i = 0; i < bytes; i++) {
-				dest_data.put(
-						dest_data.order() == raw_data.order() ? raw_data.get(pos + i) : raw_data.get(pos + bytes - i));
-			}
-			raw_data.position(pos + bytes);
-		}
-		dest_data.clear();
-
-		buffer.setData(format, dest_data, samplerate);
-	}
-
-	// Custom loaders
-
-	public static void loadCustom(Asset ro, SheetEntry data) throws Throwable {
-		Object[] strings = new Object[data.args.length];
-		for (int i = 0; i < strings.length; i++) {
-			strings[i] = data.args[i];
-		}
-		ro.setData(strings);
+	@Override
+	public Object[] provideDefault(SheetEntry asset) {
+		// TODO Auto-generated method stub
+		return null;
 	}
 
 }

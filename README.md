@@ -14,7 +14,7 @@ Every dependency is included in the pom.xml file
 
 Spaghetti engine features:
 - Asset import system (models, textures, shaders, and custom asset types too)
-- Thread-safe asset manager
+- Multithread asset manager and loader
 - Levels, game components and game objects framework
 - Highly customizable and easy to use networking support
 
@@ -25,7 +25,7 @@ And you can do the following with it
 - Easily manage networking for multiplayer
 - (SOON) Switch between TCP and UDP protocols without changing a line of code
 - Run servers
-- (WIP) Physics
+- (SOON) Physics
 - Play sounds and music
 - (WIP) Microphone input
 
@@ -177,14 +177,14 @@ To understand how to actually import your assets read the next example
 
 Spaghetti engine offers a dynamic asset import system: all you have to do is specify the assets to import in a ```.txt``` file!
 
-By default, a file called ```main.txt``` will be searched for asset import
+By default, the file ```/res/main.txt``` will be searched for asset import
 
 Each line in the file indicates a different asset
 
 Lines that start with // will be ignored
 
 Each word in a line, separated by 1 space, indicates the following:
-- First word: asset type (choose between - shader / shaderprogram / material / texture / model / soundbuffer - or the full class name of your custom asset type)
+- First word: asset type (choose between - shader / shaderprogram / material / texture / model / soundbuffer)
 - Second word: asset name
 - All the other words are arguments
 
@@ -203,6 +203,7 @@ Here is the full documentation for the arguments that are needed for each asset 
   
 4) Texture
   - Texture location
+  - (Optional) Texture filtering mode (linear / nearest)
   
 5) Model
   - Model location

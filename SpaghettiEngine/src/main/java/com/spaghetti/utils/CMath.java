@@ -7,7 +7,6 @@ import org.joml.Vector2i;
 
 import com.spaghetti.core.Game;
 import com.spaghetti.core.GameWindow;
-import com.spaghetti.core.Level;
 import com.spaghetti.objects.Camera;
 
 public final class CMath {
@@ -157,8 +156,7 @@ public final class CMath {
 	public static void mGLCoord(Vector2i pointer) {
 		Game game = Game.getGame();
 		GameWindow win = game.getWindow();
-		Level level = game.getActiveLevel();
-		Camera cam = level.getActiveCamera();
+		Camera cam = game.getActiveCamera();
 		win.getMousePosition(pointer);
 		toGLCoord(pointer.x, pointer.y, cam.getCameraScale(), win.getWidth(), win.getHeight(), new Vector2f(pointer));
 	}

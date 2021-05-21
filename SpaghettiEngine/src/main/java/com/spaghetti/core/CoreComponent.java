@@ -1,5 +1,6 @@
 package com.spaghetti.core;
 
+import com.spaghetti.input.Controller;
 import com.spaghetti.objects.Camera;
 import com.spaghetti.utils.*;
 
@@ -207,7 +208,11 @@ public abstract class CoreComponent extends Thread {
 	}
 
 	public final Camera getCamera() {
-		return getLevel() == null ? null : getLevel().getActiveCamera();
+		return getGame().getActiveCamera();
+	}
+
+	public final Controller getController() {
+		return getGame().getActiveController();
 	}
 
 	public final FunctionDispatcher getDispatcher() {

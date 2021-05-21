@@ -10,11 +10,8 @@ import org.joml.Matrix4d;
 import org.joml.Vector3f;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.openal.AL;
-import org.lwjgl.openal.AL10;
-import org.lwjgl.openal.AL11;
 import org.lwjgl.openal.ALC;
 import org.lwjgl.openal.ALC10;
-import org.lwjgl.openal.ALC11;
 import org.lwjgl.openal.ALCCapabilities;
 import org.lwjgl.openal.ALCapabilities;
 import org.lwjgl.opengl.GLCapabilities;
@@ -33,20 +30,10 @@ public class Renderer extends CoreComponent {
 	protected ALCapabilities alCapabilities;
 	protected long alOutputDevice;
 	protected long alContext;
-	protected long alInputDevice;
 	protected AssetManager assetManager;
 
 	// Options
-	protected boolean openal_output = true;
-	protected boolean openal_input = false;
-	protected int openal_input_samplerate = 8000;
-	protected int openal_input_format = MONO_16;
-	protected int openal_input_buffersize = 800;
-
-	public static final int MONO_8 = AL11.AL_FORMAT_MONO8;
-	public static final int MONO_16 = AL11.AL_FORMAT_MONO16;
-	public static final int STEREO_8 = AL11.AL_FORMAT_STEREO8;
-	public static final int STEREO_16 = AL11.AL_FORMAT_STEREO16;
+	protected boolean openal = true;
 
 	// Cache
 	protected Matrix4d renderMatrix = new Matrix4d();
@@ -89,7 +76,7 @@ public class Renderer extends CoreComponent {
 
 		defaultShader = ShaderProgram.require("rendererSP");
 
-		if (openal_output) {
+		if (openal) {
 			// Initializes OpenAL output
 			alOutputDevice = ALC10.alcOpenDevice((ByteBuffer) null);
 			ALCCapabilities alcCapabilities = ALC.createCapabilities(alOutputDevice);
@@ -99,21 +86,11 @@ public class Renderer extends CoreComponent {
 			ALC10.alcProcessContext(alContext);
 			alCapabilities = AL.createCapabilities(alcCapabilities);
 		}
-		if (openal_input) {
-			// Initializes OpenAL input
-			alInputDevice = ALC11.alcCaptureOpenDevice((ByteBuffer) null, openal_input_samplerate, openal_input_format,
-					openal_input_buffersize);
-		}
 	}
 
 	@Override
 	protected void terminate0() throws Throwable {
-		if (openal_input) {
-			// Terminates OpenAL input
-			ALC11.alcCaptureStop(alInputDevice);
-			ALC11.alcCaptureCloseDevice(alInputDevice);
-		}
-		if (openal_output) {
+		if (openal) {
 			// Terminates OpenAL
 			ALC10.alcMakeContextCurrent(0);
 			ALC10.alcDestroyContext(alContext);
@@ -135,21 +112,6 @@ public class Renderer extends CoreComponent {
 			}
 			Camera camera = getCamera();
 			if (camera != null) {
-				if (openal_output) {
-					// Set position and velocity of OpenAL listener to match the active camera
-					camera.getWorldPosition(camerapos);
-					// This computes the velocity of the camera since last frame
-					camerapos.sub(camerapos_old, cameravel);
-					if (delta == 0) {
-						cameravel.set(0);
-					} else {
-						cameravel.div(delta / 1000);
-					}
-					AL10.alListener3f(AL10.AL_POSITION, camerapos.x, camerapos.y, camerapos.z);
-					AL10.alListener3f(AL10.AL_VELOCITY, cameravel.x, cameravel.y, cameravel.z);
-					camerapos_old.set(camerapos);
-				}
-
 				// Draw level to camera frame buffer
 				camera.render(null, delta);
 
@@ -197,44 +159,12 @@ public class Renderer extends CoreComponent {
 		return window;
 	}
 
-	public boolean isOpenALOutputEnabled() {
-		return openal_output;
+	public boolean isOpenALEnabled() {
+		return openal;
 	}
 
-	public void setOpenALOutputEnabled(boolean value) {
-		this.openal_output = value;
-	}
-
-	public boolean isOpenALInputEnabled() {
-		return openal_input;
-	}
-
-	public void setOpenALInputEnabled(boolean value) {
-		this.openal_input = value;
-	}
-
-	public int getOpenalInputSamplerate() {
-		return openal_input_samplerate;
-	}
-
-	public void setOpenalInputSamplerate(int openal_input_samplerate) {
-		this.openal_input_samplerate = openal_input_samplerate;
-	}
-
-	public int getOpenalInputFormat() {
-		return openal_input_format;
-	}
-
-	public void setOpenalInputFormat(int openal_input_format) {
-		this.openal_input_format = openal_input_format;
-	}
-
-	public int getOpenalInputBuffersize() {
-		return openal_input_buffersize;
-	}
-
-	public void setOpenalInputBuffersize(int openal_input_buffersize) {
-		this.openal_input_buffersize = openal_input_buffersize;
+	public void setOpenALEnabled(boolean value) {
+		this.openal = value;
 	}
 
 }

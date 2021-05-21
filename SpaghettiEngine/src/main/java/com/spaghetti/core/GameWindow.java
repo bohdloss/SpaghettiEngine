@@ -89,13 +89,9 @@ public final class GameWindow {
 						self.iwidth = width;
 						self.iheight = iheight;
 					}
-
-					Level l = source.getActiveLevel();
-					if (l != null) {
-						Camera c = l.activeCamera;
-						if (c != null) {
-							c.calcScale();
-						}
+					Camera c = source.getActiveCamera();
+					if (c != null) {
+						c.calcScale();
 					}
 
 					Function queue = () -> {
@@ -298,6 +294,7 @@ public final class GameWindow {
 	public void destroy() {
 		quickQueue(() -> {
 			GLFW.glfwDestroyWindow(id);
+			iconBuf.free();
 			return null;
 		});
 	}

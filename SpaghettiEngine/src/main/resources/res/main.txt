@@ -10,5 +10,3 @@ texture t_skybox /res/skybox/skybox.png
 material m_skybox t_skybox defaultSP
 // sound
 soundbuffer sb_bruh /res/bruh.wav
-soundbuffer sb_wind /res/wind.wav
-soundbuffer sb_bruh2 /res/bruh2.wav

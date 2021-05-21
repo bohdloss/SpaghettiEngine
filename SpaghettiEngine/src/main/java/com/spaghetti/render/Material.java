@@ -28,15 +28,8 @@ public class Material extends Asset {
 		return Game.getGame().getAssetManager().requireMaterial(name);
 	}
 
-	/*
-	 * This class is not abstract because it has enough functionality to work by
-	 * itself, but inheritance is encouraged
-	 */
-
 	protected ShaderProgram shader;
 	protected Texture texture;
-
-	// TODO add default render types
 
 	public Material() {
 
@@ -313,7 +306,7 @@ public class Material extends Asset {
 	}
 
 	@Override
-	protected void delete0() {
+	protected void unload0() {
 	}
 
 	@Override

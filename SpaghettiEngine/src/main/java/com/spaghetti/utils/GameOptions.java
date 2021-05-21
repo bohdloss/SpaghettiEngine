@@ -6,24 +6,25 @@ import java.util.HashMap;
 
 import org.joml.Vector2i;
 
-public final class GameOptions {
+import com.spaghetti.core.Game;
 
-	private float tick;
+public class GameOptions {
+
+	protected final Game game;
+
 	public static final String PREFIX = "spaghetti.";
-	private HashMap<String, Object> options = new HashMap<>();
+	protected HashMap<String, Object> options = new HashMap<>();
 
-	public GameOptions() {
+	public GameOptions(Game game) {
+		this.game = game;
 
 		findResolution();
-		findTick();
 		findStopTimeout();
 		findAssetSheetLocation();
 		findNetworkBufferSize();
-		findPlayerClass();
-
 	}
 
-	private void findResolution() {
+	protected void findResolution() {
 		Vector2i resolution = new Vector2i();
 
 		if ("true".equals(System.getProperty("java.awt.headless"))) {
@@ -43,37 +44,19 @@ public final class GameOptions {
 
 	}
 
-	private void findTick() {
-		options.put(PREFIX + "tick", 1);
-		tick = 1;
-	}
-
-	private void findStopTimeout() {
+	protected void findStopTimeout() {
 		options.put(PREFIX + "stoptimeout", 10000l); // 10 s
 	}
 
-	private void findAssetSheetLocation() {
+	protected void findAssetSheetLocation() {
 		options.put(PREFIX + "assetsheet", "/res/main.txt");
 	}
 
-	private void findNetworkBufferSize() {
+	protected void findNetworkBufferSize() {
 		options.put(PREFIX + "networkbuffer", 1000 * 1000 * 10); // B * KB * MB = 10 MB
 	}
 
-	private void findPlayerClass() {
-		options.put(PREFIX + "playerclass", "com.spaghetti.objects.Player");
-	}
-
 	// Public getters and setters
-
-	public void setTick(float tick) {
-		options.put(PREFIX + "tick", tick);
-		this.tick = tick;
-	}
-
-	public float getTick() {
-		return tick;
-	}
 
 	public void setOption(String name, Object value) {
 		if (name.startsWith(PREFIX) && !options.containsKey(name)) {

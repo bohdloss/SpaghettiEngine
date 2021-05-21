@@ -7,9 +7,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-import com.spaghetti.input.Controller;
 import com.spaghetti.interfaces.Updatable;
-import com.spaghetti.objects.Camera;
 
 public final class Level implements Updatable {
 
@@ -43,8 +41,6 @@ public final class Level implements Updatable {
 	protected ArrayList<GameObject> objects = new ArrayList<>();
 	protected ConcurrentHashMap<Integer, GameObject> o_ordered = new ConcurrentHashMap<>();
 	protected ConcurrentHashMap<Integer, GameComponent> c_ordered = new ConcurrentHashMap<>();
-	protected Camera activeCamera;
-	protected Controller activeInput;
 
 	public Level() {
 	}
@@ -181,51 +177,6 @@ public final class Level implements Updatable {
 			});
 		} catch (ConcurrentModificationException e) {
 		}
-	}
-
-	public Camera getActiveCamera() {
-		return activeCamera;
-	}
-
-	public void detachCamera() {
-		if (activeCamera == null) {
-			return;
-		}
-		activeCamera = null;
-	}
-
-	public void attachCamera(Camera camera) {
-		if (camera == null || getGame().isHeadless() || activeCamera == camera) {
-			return;
-		}
-		if (activeCamera != null) {
-			detachCamera();
-		}
-		camera.calcScale();
-		activeCamera = camera;
-	}
-
-	public Controller getActiveController() {
-		return activeInput;
-	}
-
-	public void detachController() {
-		if (activeInput == null) {
-			return;
-		}
-		getGame().getInputDispatcher().unregisterListener(activeInput);
-		activeInput = null;
-	}
-
-	public void attachController(Controller controller) {
-		if (controller == null || getGame().isHeadless() || activeInput == controller) {
-			return;
-		}
-		if (activeInput != null) {
-			detachController();
-		}
-		getGame().getInputDispatcher().registerListener(controller);
-		this.activeInput = controller;
 	}
 
 	public boolean isDestroyed() {

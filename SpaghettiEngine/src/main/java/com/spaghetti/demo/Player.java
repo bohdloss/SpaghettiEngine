@@ -24,8 +24,8 @@ public class Player extends GameObject {
 	@Override
 	protected void onBeginPlay() {
 		if (!getGame().isMultiplayer()) {
-			getLevel().attachCamera(getChild(Camera.class));
-			getLevel().attachController(getComponent(Controller.class));
+			getGame().attachCamera(getChild(Camera.class));
+			getGame().attachController(getComponent(Controller.class));
 		}
 	}
 

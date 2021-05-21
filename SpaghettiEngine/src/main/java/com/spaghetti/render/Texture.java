@@ -97,17 +97,12 @@ public class Texture extends Asset {
 		Utils.glError();
 
 		try {
-
 			setParameters(buffer, width, height, type, mode);
-
 		} catch (Throwable t) {
-
 			// Clean up before throwing any error
-			delete();
-
+			unload();
 			// Re-throw the exception
 			throw t;
-
 		} finally {
 			// It's not needed, let's hope GC picks it up...
 			buffer = null;
@@ -125,7 +120,7 @@ public class Texture extends Asset {
 	}
 
 	@Override
-	protected void delete0() {
+	protected void unload0() {
 		GL11.glDeleteTextures(id);
 		Utils.glError();
 	}

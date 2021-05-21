@@ -82,7 +82,7 @@ public final class Shader extends Asset {
 		} catch (Throwable t) {
 
 			// Clean up first
-			delete();
+			unload();
 
 			// Then throw
 			throw t;
@@ -91,13 +91,13 @@ public final class Shader extends Asset {
 	}
 
 	@Override
-	protected void delete0() {
+	protected void unload0() {
 		GL20.glDeleteShader(id);
 		Utils.glError();
 	}
 
 	public int getId() {
-		return isDeleted() ? 0 : id;
+		return isUnloaded() ? 0 : id;
 	}
 
 	public String getSource() {

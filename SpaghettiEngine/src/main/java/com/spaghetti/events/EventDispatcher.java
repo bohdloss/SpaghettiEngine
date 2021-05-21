@@ -7,13 +7,13 @@ import com.spaghetti.interfaces.*;
 import com.spaghetti.networking.*;
 import com.spaghetti.utils.*;
 
-public final class EventDispatcher {
+public class EventDispatcher {
 
-	private final Game game;
+	protected final Game game;
 
-	private ArrayList<SignalHandler> sig_ghandles = new ArrayList<>();
-	private ArrayList<EventHandler> evnt_ghandles = new ArrayList<>();
-	private ArrayList<IntentionHandler> int_ghandles = new ArrayList<>();
+	protected ArrayList<SignalHandler> sig_ghandles = new ArrayList<>();
+	protected ArrayList<EventHandler> evnt_ghandles = new ArrayList<>();
+	protected ArrayList<IntentionHandler> int_ghandles = new ArrayList<>();
 
 	public EventDispatcher(Game game) {
 		this.game = game;
@@ -26,7 +26,7 @@ public final class EventDispatcher {
 	}
 
 	// Immediately dispatch signals because they are not transmitted over network
-	private void dispatchSignal(GameObject issuer, long signal) {
+	protected void dispatchSignal(GameObject issuer, long signal) {
 		if (sig_ghandles.size() == 0) {
 			Logger.info(game, "Signal (" + signal + ") received but no handler registered");
 		} else {
@@ -61,7 +61,7 @@ public final class EventDispatcher {
 
 	// Dispatch events before sending them over network and when they are received
 	// from network
-	private void dispatchEvent(GameObject issuer, GameEvent event) {
+	protected void dispatchEvent(GameObject issuer, GameEvent event) {
 		event.setFrom(game.isClient() ? GameEvent.SERVER : GameEvent.CLIENT);
 
 		if (evnt_ghandles.size() == 0) {
@@ -101,7 +101,7 @@ public final class EventDispatcher {
 	}
 
 	// Dispatch intentions only when received
-	private void dispatchIntention(GameObject issuer, long intention) {
+	protected void dispatchIntention(GameObject issuer, long intention) {
 		if (int_ghandles.size() == 0) {
 			Logger.warning(game, "Intention (" + intention + ") received but no handler is registered");
 		} else {

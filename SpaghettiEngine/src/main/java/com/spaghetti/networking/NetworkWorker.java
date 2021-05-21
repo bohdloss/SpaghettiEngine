@@ -842,11 +842,11 @@ public abstract class NetworkWorker {
 			if (level_camera != player_camera) {
 				// Apply changes
 				player_camera = level_camera;
-				level.attachCamera(level_camera);
+				parent.getGame().attachCamera(level_camera);
 			}
 		} else {
 			player_camera = null;
-			level.detachCamera();
+			parent.getGame().detachCamera();
 		}
 	}
 
@@ -866,11 +866,11 @@ public abstract class NetworkWorker {
 			if (level_controller != player_controller) {
 				// Apply changes
 				player_controller = level_controller;
-				level.attachController(level_controller);
+				parent.getGame().attachController(level_controller);
 			}
 		} else {
 			player_controller = null;
-			level.detachController();
+			parent.getGame().detachController();
 		}
 	}
 

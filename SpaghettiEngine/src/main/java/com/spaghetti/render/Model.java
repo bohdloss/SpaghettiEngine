@@ -136,7 +136,7 @@ public class Model extends Asset {
 	}
 
 	@Override
-	protected void delete0() {
+	protected void unload0() {
 		GL15.glDeleteBuffers(v_id);
 		Utils.glError();
 		GL15.glDeleteBuffers(t_id);

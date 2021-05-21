@@ -41,7 +41,7 @@ public class SoundBuffer extends Asset {
 	}
 
 	@Override
-	protected void delete0() {
+	protected void unload0() {
 		AL10.alDeleteBuffers(id);
 		Utils.alError();
 	}

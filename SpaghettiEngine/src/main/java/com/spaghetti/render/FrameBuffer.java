@@ -159,7 +159,7 @@ public class FrameBuffer extends Asset {
 	}
 
 	@Override
-	protected void delete0() {
+	protected void unload0() {
 		GL30.glDeleteFramebuffers(id);
 		Utils.glError();
 	}

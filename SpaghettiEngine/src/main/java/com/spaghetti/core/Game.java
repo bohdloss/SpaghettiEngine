@@ -5,10 +5,12 @@ import java.util.*;
 import com.spaghetti.assets.AssetManager;
 import com.spaghetti.events.EventDispatcher;
 import com.spaghetti.events.Signals;
+import com.spaghetti.input.Controller;
 import com.spaghetti.input.InputDispatcher;
 import com.spaghetti.input.Updater;
 import com.spaghetti.networking.Client;
 import com.spaghetti.networking.Server;
+import com.spaghetti.objects.Camera;
 import com.spaghetti.render.Renderer;
 import com.spaghetti.utils.FunctionDispatcher;
 import com.spaghetti.utils.GameOptions;
@@ -86,45 +88,49 @@ public final class Game {
 		return null;
 	}
 
-	// Instance globals
+	// Global variables
 	private volatile AssetManager assetManager;
 	private volatile EventDispatcher eventDispatcher;
-	private volatile Level activeLevel;
+	private volatile ClientState clientState;
 	private volatile GameOptions options;
 	private volatile InputDispatcher inputDispatcher;
 
+	// Components
 	private final ArrayList<CoreComponent> components = new ArrayList<>(4);
 	private volatile Updater updater;
 	private volatile Renderer renderer;
 	private volatile Client client;
 	private volatile Server server;
 
+	// Initialization / Finalization
 	private volatile int index;
 	private volatile boolean stopped;
 	private volatile boolean init;
-
-	protected boolean stopSignal;
-	protected ArrayList<Game> dependencies = new ArrayList<>();
-
-	// Security
 	private volatile boolean starting;
 	private volatile boolean stopping;
 
+	// Hints for the Handler thread
+	protected boolean stopSignal;
+	protected ArrayList<Game> dependencies = new ArrayList<>();
+
 	// Cached booleans
-	private volatile boolean isHeadless;
-	private volatile boolean isClient;
-	private volatile boolean isServer;
-	private volatile boolean isMultiplayer;
-	private volatile boolean hasAutority;
+	private final boolean isHeadless;
+	private final boolean isClient;
+	private final boolean isServer;
+	private final boolean isMultiplayer;
+	private final boolean hasAutority;
 
 	// Constructors using custom classes
-	public Game(Updater updater, Renderer renderer, Client client, Server server) throws Throwable {
-
+	public Game(Updater updater, Renderer renderer, Client client, Server server,
+			Class<? extends EventDispatcher> eventDispatcherClass, Class<? extends GameOptions> gameOptionsClass,
+			Class<? extends AssetManager> assetManagerClass, Class<? extends InputDispatcher> inputDispatcherClass,
+			Class<? extends ClientState> clientStateClass) throws Throwable {
+		// Sanity checks
 		if (client != null && server != null) {
 			throw new IllegalArgumentException("Cannot have both a client and a server in a Game");
 		}
 		if (server != null && renderer != null) {
-			throw new IllegalArgumentException("Cannot have both a server with a renderer in a Game");
+			throw new IllegalArgumentException("Cannot have both a server and a renderer in a Game");
 		}
 		if (updater == null && renderer == null) {
 			throw new IllegalArgumentException("At least an updater or a renderer is required in a Game");
@@ -133,14 +139,11 @@ public final class Game {
 			throw new IllegalArgumentException("Cannot have a client or a server without an updater in a Game");
 		}
 
-		this.eventDispatcher = new EventDispatcher(this);
-		this.options = new GameOptions();
-		this.assetManager = new AssetManager(this);
-		this.inputDispatcher = new InputDispatcher(renderer == null ? null : renderer.getWindow());
-
+		// Initialize Handler hints
 		games.add(this);
 		this.index = games.indexOf(this);
 
+		// Register components
 		if (updater != null) {
 			this.updater = updater;
 			this.components.add(updater);
@@ -166,6 +169,14 @@ public final class Game {
 			registerThread(this.server);
 		}
 
+		// Initialize global variables
+		this.eventDispatcher = eventDispatcherClass.getConstructor(Game.class).newInstance(this);
+		this.options = gameOptionsClass.getConstructor(Game.class).newInstance(this);
+		this.assetManager = assetManagerClass.getConstructor(Game.class).newInstance(this);
+		this.inputDispatcher = inputDispatcherClass.getConstructor(Game.class).newInstance(this);
+		this.clientState = clientStateClass.getConstructor(Game.class).newInstance(this);
+
+		// Cache booleans
 		this.isHeadless = renderer == null;
 		this.isMultiplayer = client != null || server != null;
 		this.isClient = (client != null || server == null) || !isMultiplayer;
@@ -211,13 +222,13 @@ public final class Game {
 
 	// Start all child threads
 	public void begin() throws Throwable {
-
 		if (stopped || init || starting || stopping) {
 			return;
 		}
 
 		Logger.loading(this, "Allocating assets...");
 		starting = true;
+		// Allocate asset manager
 		if (assetManager != null) {
 			assetManager.loadAssetSheet(options.getOption(GameOptions.PREFIX + "assetsheet"));
 		}
@@ -467,11 +478,7 @@ public final class Game {
 	}
 
 	public float getTickMultiplier(float delta) {
-		return (delta / 1000) / options.getTick();
-	}
-
-	public Level getActiveLevel() {
-		return activeLevel;
+		return (delta / 1000) * clientState.getTickMultiplier();
 	}
 
 	public long getUpdaterId() {
@@ -526,23 +533,46 @@ public final class Game {
 		return inputDispatcher;
 	}
 
-	public void detachLevel() {
-		if (activeLevel == null) {
-			return;
-		}
-		activeLevel.source = null;
-		activeLevel = null;
+	// Client state
+
+	public ClientState getClientState() {
+		return clientState;
+	}
+
+	public Level getActiveLevel() {
+		return clientState.getActiveLevel();
 	}
 
 	public void attachLevel(Level level) {
-		if (level == null) {
-			return;
-		}
-		if (activeLevel != null) {
-			detachLevel();
-		}
-		activeLevel = level;
-		activeLevel.source = this;
+		clientState.attachLevel(level);
+	}
+
+	public void detachLevel() {
+		clientState.detachLevel();
+	}
+
+	public Camera getActiveCamera() {
+		return clientState.getActiveCamera();
+	}
+
+	public void attachCamera(Camera camera) {
+		clientState.attachCamera(camera);
+	}
+
+	public void detachCamera() {
+		clientState.detachCamera();
+	}
+
+	public Controller getActiveController() {
+		return clientState.getActiveController();
+	}
+
+	public void attachController(Controller controller) {
+		clientState.attachController(controller);
+	}
+
+	public void detachController() {
+		clientState.detachController();
 	}
 
 }

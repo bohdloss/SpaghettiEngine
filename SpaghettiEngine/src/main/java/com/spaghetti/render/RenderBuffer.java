@@ -78,7 +78,7 @@ public class RenderBuffer extends Asset {
 	}
 
 	@Override
-	protected void delete0() {
+	protected void unload0() {
 		GL30.glDeleteRenderbuffers(id);
 		Utils.glError();
 	}
