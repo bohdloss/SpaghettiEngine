@@ -11,6 +11,8 @@ import org.lwjgl.assimp.AIString;
 import org.lwjgl.assimp.Assimp;
 import org.lwjgl.openal.AL;
 import org.lwjgl.openal.AL10;
+import org.lwjgl.openal.AL11;
+import org.lwjgl.openal.ALC11;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL30;
@@ -65,14 +67,38 @@ public final class Utils {
 		return pixels;
 	}
 
-	public static void effectiveRead(InputStream stream, byte[] buffer, int offset, int amount) throws IOException {
+	public static int effectiveRead(InputStream stream, byte[] buffer, int offset, int amount) throws IOException {
 		int read = offset, status = 0;
-		while (read < amount || read == -1) {
+		while (read < amount && status != -1) {
 			status = stream.read(buffer, read, amount - read);
 			read += status;
 		}
+		if(status == -1) {
+			read += 1;
+		}
+		return read;
 	}
 
+	public static int effectiveRead(InputStream stream, ByteBuffer buffer, int offset, int amount) throws IOException {
+		if(buffer.hasArray()) {
+			int read = effectiveRead(stream, buffer.array(), buffer.position() + offset, amount);
+			buffer.position(buffer.position() + amount);
+			return read;
+		} else {
+			int read = offset, status = 0;
+			byte[] arr = new byte[amount];
+			while (read < amount && status != -1) {
+				status = stream.read(arr, read, amount - read);
+				read += status;
+			}
+			if(status == -1) {
+				read += 1;
+			}
+			buffer.put(arr, 0, amount);
+			return read;
+		}
+	}
+	
 	public static boolean socketClose(Socket socket) {
 		try {
 			socket.close();
@@ -135,13 +161,17 @@ public final class Utils {
 		}
 		return hash;
 	}
-
+static int num;
 	public static void alError() {
+		if(num >= 10) {
+			System.exit(0);
+		}
 		int error = AL10.alGetError();
+		if(error == AL11.AL_NO_ERROR) {
+			return;
+		}
 		String error_str = "OpenAL error detected: ";
 		switch (error) {
-		case AL10.AL_NO_ERROR:
-			return;
 		case AL10.AL_INVALID_OPERATION:
 			error_str += "AL_INVALID_OPERATION";
 			break;
@@ -172,14 +202,57 @@ public final class Utils {
 			error_str += s[i].toString() + (i == s.length - 1 ? "" : "\n");
 		}
 		Logger.error(error_str);
+		num++;
 	}
 
+	public static void alcError(long deviceHandle) {
+		if(num >= 10) {
+			System.exit(0);
+		}
+		int error = ALC11.alcGetError(deviceHandle);
+		if(error == ALC11.ALC_NO_ERROR) {
+			return;
+		}
+		String error_str = "OpenALC error detected: ";
+		switch (error) {
+		case ALC11.ALC_INVALID_CONTEXT:
+			error_str += "ALC_INVALID_CONTEXT";
+			break;
+		case ALC11.ALC_INVALID_DEVICE:
+			error_str += "ALC_INVALID_DEVICE";
+			break;
+		case ALC11.ALC_INVALID_ENUM:
+			error_str += "ALC_INVALID_ENUM";
+			break;
+		case ALC11.ALC_INVALID_VALUE:
+			error_str += "ALC_INVALID_VALUE";
+			break;
+		case ALC11.ALC_OUT_OF_MEMORY:
+			error_str += "ALC_OUT_OF_MEMORY";
+			break;
+		default:
+			error_str += "Unknown error";
+			break;
+		}
+		error_str += "\n";
+		if(deviceHandle == 0) {
+			error_str += "WARNING: No valid device handle specified\n";
+		}
+		StackTraceElement[] s = Thread.currentThread().getStackTrace();
+		for (int i = 2; i < s.length; i++) {
+			error_str += s[i].toString() + (i == s.length - 1 ? "" : "\n");
+		}
+		Logger.error(error_str);
+		num++;
+	}
+	
 	public static void glError() {
 		int error = GL11.glGetError();
+		if(error == GL11.GL_NO_ERROR) {
+			return;
+		}
 		String error_str = "OpenGL error detected: ";
 		switch (error) {
-		case GL11.GL_NO_ERROR:
-			return;
 		case GL11.GL_INVALID_ENUM:
 			error_str += "GL_INVALID_ENUM";
 			break;

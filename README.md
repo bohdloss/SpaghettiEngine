@@ -6,7 +6,7 @@ Spaghetti engine is an open source personal project 2D game framework, and its m
 
 Its dependencies are:
 - [LWJGL 3.2.3](https://github.com/LWJGL/lwjgl3)
-- [JOML 1.9.25](https://github.com/JOML-CI/JOML)
+- [JOML 1.10.1](https://github.com/JOML-CI/JOML)
 
 Every dependency is included in the pom.xml file
 
@@ -122,6 +122,7 @@ This lets you display your first images on screen
 
 ```java
 private Level myLevel;
+private Mesh myMesh;
 
 protected void initialize0() {
 	// Create a new Level
@@ -133,22 +134,20 @@ protected void initialize0() {
 	
 	/*
 	* You will need a Camera to render the scene
-	* The only argument is the level the camera belongs to
 	*/
-	Camera camera = new Camera(myLevel);
+	Camera camera = new Camera();
 	/*
 	* Create a mesh to place in the level
-	* The arguments are the same except you will have to provide
-	* a Model and a Material too
+	* You will have to provide a Model and a Material too
 	*/
-	Mesh mesh = new Mesh(myLevel, Model.get("apple_model"), Material.get("apple_mat"));
+	myMesh = new Mesh(Model.get("apple_model"), Material.get("apple_mat"));
 	
 	// Add our objects to the level
 	myLevel.addObject(camera);
 	myLevel.addObject(mesh);
 	
 	// Now the Renderer will use this camera to render the scene
-	myLevel.attachCamera(camera);
+	getGame().attachCamera(camera);
 }
 ```
 This will create a Camera to render your scene and a Mesh to be rendered
@@ -161,11 +160,11 @@ private float i;
 public void loopEvents(float delta) {
 	super.loopEvents(delta);
 	
-	// You multiply by the multiplier to be framerate-independent
+	// Take delta into account to be framerate-independent
 	i += 0.05 * this.getGame().getTickMultiplier(delta);
 	
-	// You get an object of type Mesh from the level and change the rotation
-	myLevel.getObject(Mesh.class).setPitch(i);
+	// Change the rotation
+	myMesh.setPitch(i);
 
 }
 ```
@@ -181,10 +180,10 @@ By default, the file ```/res/main.txt``` will be searched for asset import
 
 Each line in the file indicates a different asset
 
-Lines that start with // will be ignored
+Lines that are empty or start with // will be ignored
 
 Each word in a line, separated by 1 space, indicates the following:
-- First word: asset type (choose between - shader / shaderprogram / material / texture / model / soundbuffer)
+- First word: asset type (choose between - shader / shaderprogram / material / texture / model / sound / music)
 - Second word: asset name
 - All the other words are arguments
 
@@ -207,10 +206,18 @@ Here is the full documentation for the arguments that are needed for each asset 
   
 5) Model
   - Model location
+  - Operation type (find to search for a specific model in the specified file / unify to merge all models found into one)
+  - (Optional) If operation type is 'find' specify the mesh to search for
 
-6) SoundBuffer
+6) Sound
   - Sound location
   
-This ```.txt``` file type may be referred to Asset Sheet later in the documentation
+7) Music
+  - Music location
+  
+The difference between sound and music is that when played music is being streamed, while a sound is fully loaded into memory beforehand.
+Use Sound for relatively short audio files and Music for long ones. Please note that streaming from disk might have a performance impact.
+  
+This ```.txt``` file type may be referred to as Asset Sheet later in the documentation
 
 An example of an asset sheet can be found in the folder ```/res/main.txt``` of this repository

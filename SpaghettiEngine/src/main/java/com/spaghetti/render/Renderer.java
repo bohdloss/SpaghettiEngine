@@ -4,12 +4,14 @@ import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.IntBuffer;
 
 import org.joml.Matrix4d;
 import org.joml.Vector3f;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.openal.AL;
+import org.lwjgl.openal.AL10;
 import org.lwjgl.openal.ALC;
 import org.lwjgl.openal.ALC10;
 import org.lwjgl.openal.ALCCapabilities;
@@ -17,8 +19,12 @@ import org.lwjgl.openal.ALCapabilities;
 import org.lwjgl.opengl.GLCapabilities;
 
 import com.spaghetti.assets.AssetManager;
+import com.spaghetti.audio.MicrophoneInputStream;
+import com.spaghetti.audio.SoundSource;
+import com.spaghetti.audio.StreamingSound;
 import com.spaghetti.core.CoreComponent;
 import com.spaghetti.core.GameWindow;
+import com.spaghetti.interfaces.StreamProvider;
 import com.spaghetti.objects.Camera;
 import com.spaghetti.utils.*;
 
@@ -89,6 +95,23 @@ public class Renderer extends CoreComponent {
 	}
 
 	@Override
+	protected void postInitialize() throws Throwable {
+//		for(String device : MicrophoneInputStream.getCaptureDevices()) {
+//			System.out.println(device);
+//		}
+//		StreamProvider provider = (StreamProvider) () -> new MicrophoneInputStream();
+//		
+//		StreamingSound sound = new StreamingSound();
+//		sound.setData(MicrophoneInputStream.DEFAULT_FORMAT, MicrophoneInputStream.DEFAULT_FREQUENCY - 1000,
+//				MicrophoneInputStream.BPS, ByteOrder.nativeOrder(), provider, 4, 1000);
+//		sound.load();
+//		
+//		SoundSource source = new SoundSource(sound);
+//		source.play();
+//		getGame().getActiveLevel().addObject(source);
+	}
+	
+	@Override
 	protected void terminate0() throws Throwable {
 		if (openal) {
 			// Terminates OpenAL
@@ -112,6 +135,22 @@ public class Renderer extends CoreComponent {
 			}
 			Camera camera = getCamera();
 			if (camera != null) {
+				if(openal) {
+					// Update listener position and velocity
+					Vector3f camerapos = new Vector3f();
+					camera.getWorldPosition(camerapos);
+					Vector3f cameravel = new Vector3f();
+					camerapos.sub(camerapos_old, cameravel);
+					if (delta == 0) {
+						cameravel.set(0);
+					} else {
+						cameravel.div(delta / 1000);
+					}
+					AL10.alListener3f(AL10.AL_POSITION, camerapos.x, camerapos.y, camerapos.z);
+					AL10.alListener3f(AL10.AL_VELOCITY, cameravel.x, cameravel.y, cameravel.z);
+					camerapos_old.set(camerapos);
+				}
+				
 				// Draw level to camera frame buffer
 				camera.render(null, delta);
 

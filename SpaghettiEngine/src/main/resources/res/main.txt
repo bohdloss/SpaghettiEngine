@@ -9,4 +9,6 @@ model apple_model /res/apple/apple.obj find Apple
 texture t_skybox /res/skybox/skybox.png
 material m_skybox t_skybox defaultSP
 // sound
-soundbuffer sb_bruh /res/bruh.wav
+sound sb_bruh /res/bruh.wav
+music sb_wind /res/wind.wav
+music music_30sec /res/30sec.wav

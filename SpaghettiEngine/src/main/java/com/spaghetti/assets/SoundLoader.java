@@ -7,15 +7,15 @@ import javax.sound.sampled.*;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.openal.AL10;
 
-import com.spaghetti.audio.SoundBuffer;
+import com.spaghetti.audio.*;
 import com.spaghetti.interfaces.AssetLoader;
 import com.spaghetti.utils.*;
 
-public class SoundBufferLoader implements AssetLoader {
+public class SoundLoader implements AssetLoader {
 
 	@Override
 	public void initializeAsset(SheetEntry asset) {
-		asset.asset = new SoundBuffer();
+		asset.asset = new StaticSound();
 	}
 
 	@Override
@@ -33,7 +33,7 @@ public class SoundBufferLoader implements AssetLoader {
 		int bps = audio_format.getSampleSizeInBits();
 		int samplerate = (int) audio_format.getSampleRate();
 
-		int format = 0;
+		int format = AL10.AL_FORMAT_MONO8;
 		if (channels == 1) {
 			if (bps == 8) {
 				format = AL10.AL_FORMAT_MONO8;
@@ -62,7 +62,7 @@ public class SoundBufferLoader implements AssetLoader {
 			int pos = raw_data.position();
 			for (int i = 0; i < bytes; i++) {
 				dest_data.put(
-						dest_data.order() == raw_data.order() ? raw_data.get(pos + i) : raw_data.get(pos + bytes - i));
+						dest_data.order() == raw_data.order() ? raw_data.get(pos + i) : raw_data.get(pos + bytes - i - 1));
 			}
 			raw_data.position(pos + bytes);
 		}

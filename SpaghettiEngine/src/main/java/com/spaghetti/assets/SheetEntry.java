@@ -16,7 +16,7 @@ public class SheetEntry {
 
 	// Runtime data
 	public Asset asset;
-	public boolean needLoad;
 	public boolean queued;
+	public boolean busy;
 
 }

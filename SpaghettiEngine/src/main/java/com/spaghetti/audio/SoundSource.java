@@ -1,12 +1,13 @@
 package com.spaghetti.audio;
 
 import org.joml.Vector3f;
-import org.lwjgl.openal.AL10;
+import org.lwjgl.openal.*;
+
 import com.spaghetti.core.GameObject;
 import com.spaghetti.interfaces.ToClient;
 import com.spaghetti.networking.NetworkBuffer;
 import com.spaghetti.objects.Camera;
-import com.spaghetti.utils.Utils;
+import com.spaghetti.utils.*;
 
 @ToClient
 public class SoundSource extends GameObject {
@@ -15,25 +16,25 @@ public class SoundSource extends GameObject {
 
 	// Internal data
 	protected int id;
-	protected SoundBuffer soundBuffer;
+	protected Sound sound;
 	protected int status;
 	protected Vector3f lastpos = new Vector3f();
 	protected Vector3f lastcamera = new Vector3f();
-	protected boolean destroyOnStop;
 
 	// Variables
 	protected float gain;
 	protected float pitch;
 	protected boolean looping;
+	protected boolean destroyOnStop;
 
 	public SoundSource() {
 		gain = 1;
 		pitch = 1;
 	}
-
-	public SoundSource(SoundBuffer soundBuffer) {
+	
+	public SoundSource(Sound sound) {
 		this();
-		this.soundBuffer = soundBuffer;
+		this.sound = sound;
 	}
 
 	@Override
@@ -49,14 +50,16 @@ public class SoundSource extends GameObject {
 		if (getGame().isHeadless()) {
 			return;
 		}
-		getGame().getRendererDispatcher().queue(() -> {
+		getGame().getRendererDispatcher().quickQueue(() -> {
 			if (id != 0) {
+				AL11.alGetError();
 				AL10.alSourceStop(id);
 				Utils.alError();
 				AL10.alSourcei(id, AL10.AL_LOOPING, 0);
 				Utils.alError();
-				AL10.alSourcei(id, AL10.AL_BUFFER, 0);
-				Utils.alError();
+				if(sound != null) {
+					sound.stop(this);
+				}
 				AL10.alDeleteSources(id);
 				Utils.alError();
 				id = 0;
@@ -70,19 +73,20 @@ public class SoundSource extends GameObject {
 
 	@Override
 	protected void onDestroy() {
+		Logger.info("destroy");
 	}
 
 	@Override
 	public void writeDataServer(NetworkBuffer buffer) {
 		super.writeDataServer(buffer);
-		buffer.putString(true, soundBuffer == null ? "" : soundBuffer.getName(), NetworkBuffer.UTF_8);
+		buffer.putString(true, sound == null ? "" : sound.getName(), NetworkBuffer.UTF_8);
 	}
 
 	@Override
 	public void readDataClient(NetworkBuffer buffer) {
 		super.readDataClient(buffer);
 		String name = buffer.getString(true, NetworkBuffer.UTF_8);
-		soundBuffer = name.equals("") ? null : getGame().getAssetManager().soundBuffer(name);
+		setSound(name.equals("") ? null : getGame().getAssetManager().sound(name));
 	}
 
 	public void play() {
@@ -99,90 +103,77 @@ public class SoundSource extends GameObject {
 
 	@Override
 	public void render(Camera renderer, float delta) {
+		if(sound == null || !sound.valid()) {
+			return;
+		}
 		if (id == 0) {
 			id = AL10.alGenSources();
 			Utils.alError();
-			return;
 		}
-		// Update listener position and velocity
-		Camera camera = getGame().getActiveCamera();
-		Vector3f camerapos = new Vector3f();
-		camera.getWorldPosition(camerapos);
-		Vector3f cameravel = new Vector3f();
-		camerapos.sub(lastcamera, cameravel);
-		if (delta == 0) {
-			cameravel.set(0);
-		} else {
-			cameravel.div(delta / 1000);
-		}
-		AL10.alListener3f(AL10.AL_POSITION, camerapos.x, camerapos.y, camerapos.z);
-		AL10.alListener3f(AL10.AL_VELOCITY, cameravel.x, cameravel.y, cameravel.z);
-		lastcamera.set(camerapos);
-
-		// Update source position and velocity
+		
+		// Update position and velocity
 		Vector3f currentpos = new Vector3f();
 		getWorldPosition(currentpos);
 		Vector3f currentvel = new Vector3f();
 		currentpos.sub(lastpos, currentvel);
-		if (delta == 0) {
-			currentvel.set(0);
-		} else {
-			currentvel.div(delta / 1000);
-		}
+		currentvel.div(delta / 1000);
 		lastpos.set(currentpos);
 		AL10.alSource3f(id, AL10.AL_POSITION, currentpos.x, currentpos.y, currentpos.z);
-		AL10.alSource3f(id, AL10.AL_VELOCITY, currentvel.x, currentvel.y, currentvel.z);
-
+		if(delta != 0) { // Avoid getting Infinity or NaN as velocity
+			AL10.alSource3f(id, AL10.AL_VELOCITY, currentvel.x, currentvel.y, currentvel.z);
+		}
+		
 		// Update properties
 		AL10.alSourcef(id, AL10.AL_GAIN, gain);
 		AL10.alSourcef(id, AL10.AL_PITCH, pitch);
-		AL10.alSourcei(id, AL10.AL_LOOPING, looping ? 1 : 0);
-
-		// Update stopped status
-		if (AL10.alGetSourcei(id, AL10.AL_SOURCE_STATE) == AL10.AL_STOPPED) {
-			status = IDLE;
-			if (destroyOnStop) {
-				destroy();
-				return;
-			}
-		}
-
+		
 		// Update playing state
 		switch (status) {
 		case PLAYING:
-			if (soundBuffer != null && soundBuffer.valid()
-					&& AL10.alGetSourcei(id, AL10.AL_SOURCE_STATE) != AL10.AL_PLAYING) {
-				AL10.alSourcei(id, AL10.AL_BUFFER, soundBuffer.getId());
-				Utils.alError();
-				AL10.alSourcePlay(id);
-				Utils.alError();
-			}
+			sound.play(this);
 			break;
 		case PAUSED:
-			AL10.alSourcePause(id);
-			Utils.alError();
+			sound.pause(this);
 			break;
 		case IDLE:
-			AL10.alSourceStop(id);
-			Utils.alError();
+			sound.stop(this);
+			if(destroyOnStop) {
+				destroy();
+				return;
+			}
 			break;
 		}
+		
+		// Update the sound then
+		sound.update(this);
 	}
-
+	
+	protected void internal_delete() {
+		
+	}
+	
 	// Getters and setters
 
 	public int getSourceId() {
 		return id;
 	}
 
-	public SoundBuffer getSoundBuffer() {
-		return soundBuffer;
+	public Sound getSound() {
+		return sound;
 	}
 
-	public void setSoundBuffer(SoundBuffer buffer) {
-		this.soundBuffer = buffer;
+	public void setSound(Sound buffer) {
+		if(this.sound != null) {
+			if(!getGame().isHeadless()) {
+				getGame().getRendererDispatcher().quickQueue(() -> {
+					sound.stop(this);
+					return null;
+				});
+			}
+		}
+		this.sound = buffer;
 	}
-
+	
 	public float getSourceGain() {
 		return gain;
 	}
@@ -205,6 +196,7 @@ public class SoundSource extends GameObject {
 
 	public void setSourceLooping(boolean looping) {
 		this.looping = looping;
+		this.destroyOnStop = looping ? false : this.destroyOnStop;
 	}
 
 	public boolean destroyOnStop() {
@@ -212,7 +204,11 @@ public class SoundSource extends GameObject {
 	}
 
 	public void setDestroyOnStop(boolean destroyOnStop) {
-		this.destroyOnStop = destroyOnStop;
+		this.destroyOnStop = looping ? false : destroyOnStop;
 	}
-
+	
+	public int getStatus() {
+		return status;
+	}
+	
 }

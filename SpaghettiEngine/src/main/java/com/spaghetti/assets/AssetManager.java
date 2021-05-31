@@ -35,8 +35,9 @@ public class AssetManager {
 		registerAssetLoader("shader", new ShaderLoader());
 		registerAssetLoader("shaderprogram", new ShaderProgramLoader());
 		registerAssetLoader("texture", new TextureLoader());
-		registerAssetLoader("soundbuffer", new SoundBufferLoader());
+		registerAssetLoader("sound", new SoundLoader());
 		registerAssetLoader("material", new MaterialLoader());
+		registerAssetLoader("music", new MusicLoader());
 
 		// Register shutdown hook
 		game.getEventDispatcher().registerSignalHandler((isClient, issuer, signal) -> {
@@ -53,6 +54,47 @@ public class AssetManager {
 		});
 	}
 
+	// Internal
+	protected void internal_fillasset(SheetEntry asset) {
+		// Get asset loader
+		AssetLoader loader = getAssetLoader(asset.type);
+		if (loader == null) {
+			Logger.error("No loader registered for asset type " + asset.type);
+		}
+
+		// Attempt to load data
+		Object[] data;
+		try {
+			data = loader.loadAsset(asset);
+			// Attempt to setData in order to check for errors
+			asset.asset.setData(data);
+			if(!asset.asset.isFilled()) {
+				throw new IllegalStateException("Asset didn't accept arguments provided by loader");
+			}
+		} catch (Throwable t0) {
+			Logger.error("Couldn't load " + asset.type + " " + asset.name
+					+ ", trying to use default version instead", t0);
+			try {
+				data = loader.provideDefault(asset);
+				// Doing another check
+				asset.asset.setData(data);
+				if(!asset.asset.isFilled()) {
+					throw new IllegalStateException("Asset didn't accept default arguments provided by loader");
+				}
+			} catch (Throwable t1) {
+				Logger.error("Attempt to use default version of asset type " + asset.type + " failed",
+						t1);
+				return;
+			}
+		}
+	}
+	
+	protected void internal_nativeload(SheetEntry asset) {
+		asset.asset.load();
+		asset.queued = false;
+		asset.busy = false;
+	}
+	
 	// Initialization / finalization of this object
 
 	// Load an asset sheet at the specified location
@@ -100,8 +142,8 @@ public class AssetManager {
 			// Initialize all dummy assets
 			for (SheetEntry entry : assets.values()) {
 				getAssetLoader(entry.type).initializeAsset(entry);
+				entry.asset.setName(entry.name);
 			}
-			Logger.info(game, "Finished instantiating dummy assets");
 
 			// We're ready!
 			ready = true;
@@ -134,8 +176,7 @@ public class AssetManager {
 		if (asset.asset.valid()) {
 			return;
 		}
-		asset.queued = true;
-
+		
 		// Retrieve dependencies
 		String[] dependencies = null;
 		try {
@@ -149,81 +190,55 @@ public class AssetManager {
 				loadAsset(assetName, false);
 			}
 		}
-
-		// Behave differently if the current thread is the renderer, to avoid deadlocks
-		boolean isRenderer = game.getRenderer() == Thread.currentThread();
-
-		// Initialize load thread
-		Thread loadThread = new Thread() {
-			@Override
-			public void run() {
-				if (!ready) {
-					return;
-				}
-
-				// Get asset loader
-				AssetLoader loader = getAssetLoader(asset.type);
-				if (loader == null) {
-					Logger.error("No loader registered for asset type " + asset.type);
-				}
-
-				// Attempt to load data
-				Object[] data;
-				try {
-					data = loader.loadAsset(asset);
-				} catch (Throwable t0) {
-					Logger.error("Couldn't load " + asset.type + " " + asset.name
-							+ ", trying to use default version instead", t0);
-					try {
-						data = loader.provideDefault(asset);
-					} catch (Throwable t1) {
-						Logger.error("Attempt to use default version of " + asset.type + " " + asset.name + " failed",
-								t1);
+		
+		asset.busy = true;
+		
+		// In lazy mode we have the chance to load asset in a dedicated thread
+		if(lazy) {
+			// Initialize load thread
+			Thread loadThread = new Thread() {
+				@Override
+				public void run() {
+					if (!ready) {
 						return;
 					}
-				}
-				asset.asset.setData(data);
-
-				// If the calling thread is a renderer, don't queue functions or deadlocks will
-				// happen
-				if (!isRenderer) {
-					// Queue native loading to renderer thread
-					FunctionDispatcher dispatcher = game.getRendererDispatcher();
-					long func = dispatcher.queue(() -> {
-						asset.asset.load();
-						asset.needLoad = false;
-						asset.queued = false;
-						return null;
-					}, true);
-
-					// Wait if this is not lazy loading
-					if (!lazy) {
-						dispatcher.waitFor(func);
+					try {
+						// Fill asset
+						internal_fillasset(asset);
+						
+						// Queue native loading
+						FunctionDispatcher dispatcher = game.getRendererDispatcher();
+						dispatcher.queue(() -> {
+							internal_nativeload(asset);
+							return null;
+						}, true);
+					} catch(Throwable t) {
+						Logger.error("Error loading " + asset.type + " " + asset.name, t);
 					}
+					// Unregister this thread upon completion
+					game.unregisterThread(this);
 				}
-
-				// Unregister this thread upon completion
-				game.unregisterThread(this);
-			}
-		};
-
-		// Register thread and start it
-		loadThread.setName(asset.type + " " + asset.name + " LOADER");
-		game.registerThread(loadThread);
-		loadThread.start();
-
-		// Wait if not in lazy mode
-		if (!lazy) {
-			while (loadThread.isAlive()) {
-				Utils.sleep(1);
-			}
-		}
-
-		// If this is the renderer perform loading
-		if (isRenderer) {
-			asset.asset.load();
-			asset.needLoad = false;
-			asset.queued = false;
+			};
+	
+			// Register thread and start it
+			loadThread.setName(asset.type + " " + asset.name + " LOADER");
+			game.registerThread(loadThread);
+			loadThread.start();
+		} else {
+			// We must load the asset right now
+			
+			// Fill the asset
+			internal_fillasset(asset);
+			
+			// Queue native loading (immediately executed if this is the renderer thread)
+			FunctionDispatcher dispatcher = game.getRendererDispatcher();
+			long func = dispatcher.queue(() -> {
+				internal_nativeload(asset);
+				return null;
+			}, true);
+			
+			// Then wait
+			dispatcher.waitFor(func);
 		}
 	}
 
@@ -253,13 +268,13 @@ public class AssetManager {
 		if (!asset.asset.valid()) {
 			return;
 		}
-		asset.queued = true;
+		asset.busy = true;
 
 		// Queue unload function
 		FunctionDispatcher dispatcher = game.getRendererDispatcher();
 		long func = dispatcher.queue(() -> {
 			asset.asset.unload();
-			asset.queued = false;
+			asset.busy = false;
 			return null;
 		}, true);
 
@@ -298,13 +313,13 @@ public class AssetManager {
 		if (!asset.asset.valid()) {
 			return;
 		}
-		asset.queued = true;
+		asset.busy = true;
 
 		// Queue reset function
 		FunctionDispatcher dispatcher = game.getRendererDispatcher();
 		long func = dispatcher.queue(() -> {
 			asset.asset.reset();
-			asset.queued = false;
+			asset.busy = false;
 			return null;
 		}, true);
 
@@ -338,8 +353,7 @@ public class AssetManager {
 			return;
 		}
 		assets.forEach((name, asset) -> {
-			if (asset.needLoad && !asset.queued) {
-				asset.queued = true;
+			if (asset.queued && !asset.busy) {
 				loadAsset(name, true);
 			}
 		});
@@ -387,7 +401,7 @@ public class AssetManager {
 		}
 		SheetEntry asset = assets.get(name);
 		Asset ret = asset.asset;
-		asset.needLoad = true;
+		asset.queued = true;
 		return ret;
 	}
 
@@ -397,7 +411,7 @@ public class AssetManager {
 		}
 		SheetEntry asset = assets.get(name);
 		Model ret = (Model) asset.asset;
-		asset.needLoad = true;
+		asset.queued = true;
 		return ret;
 	}
 
@@ -407,7 +421,7 @@ public class AssetManager {
 		}
 		SheetEntry asset = assets.get(name);
 		Shader ret = (Shader) asset.asset;
-		asset.needLoad = true;
+		asset.queued = true;
 		return ret;
 	}
 
@@ -417,7 +431,7 @@ public class AssetManager {
 		}
 		SheetEntry asset = assets.get(name);
 		ShaderProgram ret = (ShaderProgram) asset.asset;
-		asset.needLoad = true;
+		asset.queued = true;
 		return ret;
 	}
 
@@ -427,7 +441,7 @@ public class AssetManager {
 		}
 		SheetEntry asset = assets.get(name);
 		Texture ret = (Texture) asset.asset;
-		asset.needLoad = true;
+		asset.queued = true;
 		return ret;
 	}
 
@@ -437,17 +451,17 @@ public class AssetManager {
 		}
 		SheetEntry asset = assets.get(name);
 		Material ret = (Material) asset.asset;
-		asset.needLoad = true;
+		asset.queued = true;
 		return ret;
 	}
 
-	public SoundBuffer soundBuffer(String name) {
+	public Sound sound(String name) {
 		if (!checkExists(name)) {
 			return null;
 		}
 		SheetEntry asset = assets.get(name);
-		SoundBuffer ret = (SoundBuffer) asset.asset;
-		asset.needLoad = true;
+		Sound ret = (Sound) asset.asset;
+		asset.queued = true;
 		return ret;
 	}
 
@@ -519,17 +533,27 @@ public class AssetManager {
 		return ret;
 	}
 
-	public SoundBuffer requireSoundBuffer(String name) {
+	public Sound requireSound(String name) {
 		if (!checkExists(name)) {
 			return null;
 		}
-		SoundBuffer ret = soundBuffer(name);
+		Sound ret = sound(name);
 		if (!ret.valid()) {
 			loadAsset(name, false);
 		}
 		return ret;
 	}
 
+	// Getters
+	
+	public boolean isAssetBusy(String name) {
+		return assets.get(name).busy;
+	}
+	
+	public boolean isAssetQueued(String name) {
+		return assets.get(name).queued;
+	}
+	
 	public Asset getAsset(String name) {
 		SheetEntry entry = assets.get(name);
 		return entry == null ? null : entry.asset;

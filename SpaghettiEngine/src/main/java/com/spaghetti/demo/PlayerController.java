@@ -3,7 +3,7 @@ package com.spaghetti.demo;
 import org.joml.Vector2f;
 import org.joml.Vector3f;
 
-import com.spaghetti.audio.SoundBuffer;
+import com.spaghetti.audio.Sound;
 import com.spaghetti.audio.SoundSource;
 import com.spaghetti.core.GameWindow;
 import com.spaghetti.input.Controller;
@@ -71,10 +71,11 @@ public class PlayerController extends Controller {
 			window.toggleFullscreen();
 			break;
 		case Keys.O:
-			SoundSource source = new SoundSource(SoundBuffer.get("sb_bruh"));
+			SoundSource source = new SoundSource(Sound.get("music_30sec"));
 			source.setDestroyOnStop(true);
-			player.addChild(source);
+			source.setSourceLooping(true);
 			source.play();
+			getLevel().addObject(source);
 			break;
 		}
 	}
