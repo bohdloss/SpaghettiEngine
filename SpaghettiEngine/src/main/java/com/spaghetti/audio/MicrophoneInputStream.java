@@ -23,7 +23,7 @@ public class MicrophoneInputStream extends InputStream {
 	public static final int DEFAULT_TEMP_BUFFER_SIZE = 1024;
 	public static final int DEFAULT_SECONDARY_BUFFER_SIZE = 1024;
 	public static final int BPS = 8;
-	public static final int DEFAULT_EMPTY_BIAS = StreamingSound.BUFFER_SIZE;
+	public static final int DEFAULT_EMPTY_BIAS = StreamingSound.BUFFER_SIZE * StreamingSound.NUM_BUFFERS;
 	
 	public static String[] getCaptureDevices() {
 		List<String> device_names = ALUtil.getStringList(0, ALC11.ALC_CAPTURE_DEVICE_SPECIFIER);
@@ -127,7 +127,7 @@ public class MicrophoneInputStream extends InputStream {
 		int toCapture = (int) CMath.clampMax(available(), secondary_buffer.capacity());
 		toCapture = (int) CMath.clampMax(toCapture, length);
 		
-		// We have some emtiness to put in the buffer
+		// We have some emptiness to put in the buffer
 		if(remaining_bias > 0) {
 			// Find maximum amount of empty we can put and decrease emptiness counter
 			int copy_bias = (int) CMath.clampMax(remaining_bias, toCapture);

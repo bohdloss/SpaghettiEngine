@@ -1091,10 +1091,8 @@ public abstract class NetworkWorker {
 			if (!test_readClass(rpc)) {
 				return;
 			}
-			getGame().getUpdaterDispatcher().quickQueue(() -> {
-				rpc.execute(this);
-				return null;
-			});
+			
+			rpc.execute(this);
 			writeRPCResponse(rpc);
 		} catch (IllegalAccessException e) {
 		}
@@ -1117,6 +1115,7 @@ public abstract class NetworkWorker {
 		RPC rpc = waiting_rpcs.get(id);
 
 		if (!rpc.hasReturnValue()) {
+			f_rpcready.set(rpc, true);
 			throw new IllegalStateException("RPC " + rpc.getClass().getName() + " sent a return value instead of void");
 		}
 		rpc.readReturn(r_buffer);

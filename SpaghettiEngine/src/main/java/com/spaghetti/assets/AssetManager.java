@@ -173,7 +173,7 @@ public class AssetManager {
 
 		// Check before loading
 		SheetEntry asset = assets.get(name);
-		if (asset.asset.valid()) {
+		if (asset.asset.valid() || asset.busy) {
 			return;
 		}
 		
@@ -210,6 +210,7 @@ public class AssetManager {
 						FunctionDispatcher dispatcher = game.getRendererDispatcher();
 						dispatcher.queue(() -> {
 							internal_nativeload(asset);
+							asset.busy = false;
 							return null;
 						}, true);
 					} catch(Throwable t) {
@@ -239,6 +240,7 @@ public class AssetManager {
 			
 			// Then wait
 			dispatcher.waitFor(func);
+			asset.busy = false;
 		}
 	}
 

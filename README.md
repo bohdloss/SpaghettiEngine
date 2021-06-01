@@ -23,11 +23,11 @@ And you can do the following with it
 - Use the input system to control a player
 - Use the event system to easily dispatch custom events across the level and network
 - Easily manage networking for multiplayer
-- (SOON) Switch between TCP and UDP protocols without changing a line of code
+- (WIP) Switch between TCP and UDP protocols without changing a line of code
 - Run servers
-- (SOON) Physics
+- (WIP) Physics
 - Play sounds and music
-- (WIP) Microphone input
+- (SOON) Microphone input
 
 ### How to set it up
 

@@ -71,11 +71,18 @@ public class PlayerController extends Controller {
 			window.toggleFullscreen();
 			break;
 		case Keys.O:
-			SoundSource source = new SoundSource(Sound.get("music_30sec"));
-			source.setDestroyOnStop(true);
-			source.setSourceLooping(true);
-			source.play();
-			getLevel().addObject(source);
+			if(getGame().hasAuthority()) {
+				SoundSource source = new SoundSource(Sound.get("music_30sec"));
+				source.setDestroyOnStop(true);
+				source.setSourceLooping(true);
+				source.play();
+				getLevel().addObject(source);
+			} else {
+				Vector3f vec = new Vector3f();
+				player.getWorldPosition(vec);
+				RPlaySound soundCall = new RPlaySound();
+				soundCall.callAndWait("music_30sec", vec);
+			}
 			break;
 		}
 	}

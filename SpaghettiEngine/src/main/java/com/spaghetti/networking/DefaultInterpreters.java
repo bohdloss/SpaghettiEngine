@@ -112,6 +112,16 @@ public final class DefaultInterpreters {
 		interpreters.put("java.lang.Float", interpreters.get("float"));
 		interpreters.put("java.lang.Double", interpreters.get("double"));
 		interpreters.put("java.lang.Boolean", interpreters.get("boolean"));
+		interpreters.put("java.lang.String", new ClassInterpreter<String>() {
+			@Override
+			public void writeClass(String object, NetworkBuffer buffer) {
+				buffer.putString(object);
+			}
+			@Override
+			public String readClass(String original, NetworkBuffer buffer) {
+				return buffer.getString();
+			}
+		});
 
 		// Assets
 		interpreters.put("com.spaghetti.assets.Asset", new ClassInterpreter<Asset>() {

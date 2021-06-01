@@ -65,7 +65,7 @@ public class EventDispatcher {
 		event.setFrom(game.isClient() ? GameEvent.SERVER : GameEvent.CLIENT);
 
 		if (evnt_ghandles.size() == 0) {
-			Logger.info(game, "Event (from " + (event.getFrom() == GameEvent.CLIENT ? "CLIENT" : "SERVER")
+			Logger.info(game, "Event " + event.getClass().getSimpleName() + " (from " + (event.getFrom() == GameEvent.CLIENT ? "CLIENT" : "SERVER")
 					+ ", with id " + event.getId() + ") received but no handler registered");
 		} else {
 			evnt_ghandles.forEach(handler -> {

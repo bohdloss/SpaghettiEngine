@@ -17,11 +17,11 @@ public class SoundSource extends GameObject {
 	// Internal data
 	protected int id;
 	protected Sound sound;
-	protected int status;
 	protected Vector3f lastpos = new Vector3f();
 	protected Vector3f lastcamera = new Vector3f();
 
 	// Variables
+	protected int status;
 	protected float gain;
 	protected float pitch;
 	protected boolean looping;
@@ -73,20 +73,38 @@ public class SoundSource extends GameObject {
 
 	@Override
 	protected void onDestroy() {
-		Logger.info("destroy");
+//		Logger.info("destroy");
 	}
 
 	@Override
 	public void writeDataServer(NetworkBuffer buffer) {
 		super.writeDataServer(buffer);
+		
+		// Sound
 		buffer.putString(true, sound == null ? "" : sound.getName(), NetworkBuffer.UTF_8);
+		
+		// Variables
+		buffer.putByte((byte) status);
+		buffer.putFloat(gain);
+		buffer.putFloat(pitch);
+		buffer.putBoolean(looping);
+		buffer.putBoolean(destroyOnStop);
 	}
 
 	@Override
 	public void readDataClient(NetworkBuffer buffer) {
 		super.readDataClient(buffer);
+		
+		// Sound
 		String name = buffer.getString(true, NetworkBuffer.UTF_8);
 		setSound(name.equals("") ? null : getGame().getAssetManager().sound(name));
+		
+		// Variables
+		status = buffer.getByte() & 0xFF;
+		gain = buffer.getFloat();
+		pitch = buffer.getFloat();
+		looping = buffer.getBoolean();
+		destroyOnStop = buffer.getBoolean();
 	}
 
 	public void play() {
@@ -163,10 +181,13 @@ public class SoundSource extends GameObject {
 	}
 
 	public void setSound(Sound buffer) {
+		if(this.sound == buffer) {
+			return;
+		}
 		if(this.sound != null) {
 			if(!getGame().isHeadless()) {
 				getGame().getRendererDispatcher().quickQueue(() -> {
-					sound.stop(this);
+					this.sound.stop(this);
 					return null;
 				});
 			}

@@ -102,8 +102,8 @@ public class Renderer extends CoreComponent {
 //		StreamProvider provider = (StreamProvider) () -> new MicrophoneInputStream();
 //		
 //		StreamingSound sound = new StreamingSound();
-//		sound.setData(MicrophoneInputStream.DEFAULT_FORMAT, MicrophoneInputStream.DEFAULT_FREQUENCY - 1000,
-//				MicrophoneInputStream.BPS, ByteOrder.nativeOrder(), provider, 4, 1000);
+//		sound.setData(MicrophoneInputStream.DEFAULT_FORMAT, MicrophoneInputStream.DEFAULT_FREQUENCY,
+//				MicrophoneInputStream.BPS, ByteOrder.nativeOrder(), provider, 2, 1000);
 //		sound.load();
 //		
 //		SoundSource source = new SoundSource(sound);

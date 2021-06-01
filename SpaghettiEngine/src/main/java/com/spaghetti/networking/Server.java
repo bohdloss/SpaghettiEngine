@@ -85,6 +85,7 @@ public class Server extends CoreComponent {
 								client.writeIntention(issuer, (Long) event);
 							}
 						});
+						events.clear();
 
 						// Write remote procedure calls
 						rpcs.forEach(rpc -> {
@@ -92,9 +93,11 @@ public class Server extends CoreComponent {
 								client.writeRPC(rpc);
 							}
 						});
+						rpcs.clear();
 
 						// Execute any queued special function
 						functions.forEach(func -> func.execute(client));
+						functions.clear();
 
 						// Write data about every object that needs to be updated
 						client.writeData();
@@ -111,9 +114,6 @@ public class Server extends CoreComponent {
 						internal_clienterror(t, entry.getValue(), entry.getKey());
 					}
 				}
-				events.clear();
-				rpcs.clear();
-				functions.clear();
 			}
 
 			for (Iterator<Entry<Long, NetworkWorker>> iterator = clients.entrySet().iterator(); iterator.hasNext();) {
