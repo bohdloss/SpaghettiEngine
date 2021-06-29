@@ -51,10 +51,10 @@ public class EventDispatcher {
 			return;
 		}
 		if (game.getClient() != null) {
-			Client client = game.getClient();
+			ClientCore client = game.getClient();
 			client.queueEvent(issuer, event);
 		} else {
-			Server server = game.getServer();
+			ServerCore server = game.getServer();
 			server.queueEvent(issuer, event);
 		}
 	}
@@ -78,7 +78,7 @@ public class EventDispatcher {
 		}
 	}
 
-	public void dispatchEvent(NetworkWorker.Identity identity, GameObject issuer, GameEvent event) {
+	public void dispatchEvent(NetworkConnection.Identity identity, GameObject issuer, GameEvent event) {
 		if (identity != null) {
 			dispatchEvent(issuer, event);
 		}
@@ -92,10 +92,10 @@ public class EventDispatcher {
 			throw new UnsupportedOperationException("You can't raise intentions in a singleplayer environment");
 		}
 		if (game.getClient() != null) {
-			Client client = game.getClient();
+			ClientCore client = game.getClient();
 			client.queueIntention(issuer, intention);
 		} else {
-			Server server = game.getServer();
+			ServerCore server = game.getServer();
 			server.queueIntention(issuer, intention);
 		}
 	}
@@ -115,7 +115,7 @@ public class EventDispatcher {
 		}
 	}
 
-	public void dispatchIntention(NetworkWorker.Identity identity, GameObject issuer, long intention) {
+	public void dispatchIntention(NetworkConnection.Identity identity, GameObject issuer, long intention) {
 		if (identity != null) {
 			dispatchIntention(issuer, intention);
 		}

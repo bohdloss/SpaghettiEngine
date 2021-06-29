@@ -3,14 +3,14 @@ package com.spaghetti.demo;
 import java.util.Random;
 
 import com.spaghetti.core.*;
-import com.spaghetti.input.Updater;
+import com.spaghetti.input.UpdaterCore;
 import com.spaghetti.objects.Camera;
 import com.spaghetti.objects.Mesh;
 import com.spaghetti.objects.UntransformedMesh;
 import com.spaghetti.physics.Physics;
 import com.spaghetti.render.*;
 
-public class MyUpdater extends Updater {
+public class MyUpdater extends UpdaterCore {
 
 	protected Level level;
 	protected Physics physics;

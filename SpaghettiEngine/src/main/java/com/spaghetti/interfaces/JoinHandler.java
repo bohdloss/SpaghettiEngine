@@ -1,9 +1,9 @@
 package com.spaghetti.interfaces;
 
-import com.spaghetti.networking.NetworkWorker;
+import com.spaghetti.networking.NetworkConnection;
 
 public interface JoinHandler {
 
-	public void handleJoin(boolean isClient, NetworkWorker worker);
+	public void handleJoin(boolean isClient, NetworkConnection worker);
 
 }

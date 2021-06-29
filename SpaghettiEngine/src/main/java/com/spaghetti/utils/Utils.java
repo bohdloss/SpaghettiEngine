@@ -1,6 +1,7 @@
 package com.spaghetti.utils;
 
 import java.awt.image.BufferedImage;
+import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.Socket;
@@ -79,6 +80,22 @@ public final class Utils {
 		return read;
 	}
 
+	public static int effectiveReadTimeout(InputStream stream, byte[] buffer, int offset, int amount, long timeout) throws IOException {
+		long time = System.currentTimeMillis();
+		int read = offset, status = 0;
+		while (read < amount && status != -1) {
+			status = stream.read(buffer, read, amount - read);
+			read += status;
+			if(System.currentTimeMillis() > time + timeout && timeout != 0) {
+				throw new IllegalStateException("Read timeout of " + timeout + " ms reached");
+			}
+		}
+		if(status == -1) {
+			read += 1;
+		}
+		return read;
+	}
+	
 	public static int effectiveRead(InputStream stream, ByteBuffer buffer, int offset, int amount) throws IOException {
 		if(buffer.hasArray()) {
 			int read = effectiveRead(stream, buffer.array(), buffer.position() + offset, amount);
@@ -99,9 +116,9 @@ public final class Utils {
 		}
 	}
 	
-	public static boolean socketClose(Socket socket) {
+	public static boolean close(Closeable closeable) {
 		try {
-			socket.close();
+			closeable.close();
 			return true;
 		} catch (Throwable t) {
 			return false;
@@ -144,6 +161,15 @@ public final class Utils {
 		return hash;
 	}
 
+	public static long longHash(byte[] mem, int offset, int size) {
+		long hash = 1125899906842597L;
+
+		for (int i = offset; i < offset + size; i++) {
+			hash = 31 * hash + mem[i];
+		}
+		return hash;
+	}
+	
 	public static int intHash(String str) {
 		int hash = 13464481;
 
@@ -153,6 +179,15 @@ public final class Utils {
 		return hash;
 	}
 
+	public static int intHash(byte[] mem, int offset, int size) {
+		int hash = 13464481;
+
+		for (int i = offset; i < offset + size; i++) {
+			hash = 31 * hash + mem[i];
+		}
+		return hash;
+	}
+	
 	public static short shortHash(String str) {
 		short hash = 14951;
 
@@ -161,7 +196,18 @@ public final class Utils {
 		}
 		return hash;
 	}
-static int num;
+	
+	public static short shortHash(byte[] mem, int offset, int size) {
+		short hash = 14951;
+
+		for (int i = offset; i < offset + size; i++) {
+			hash = (short) (hash * 31 + mem[i]);
+		}
+		return hash;
+	}
+	
+	// TODO Temporary, remove later
+	static int num;
 	public static void alError() {
 		if(num >= 10) {
 			System.exit(0);

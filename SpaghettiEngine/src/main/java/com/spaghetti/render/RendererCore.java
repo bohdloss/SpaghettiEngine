@@ -28,7 +28,7 @@ import com.spaghetti.interfaces.StreamProvider;
 import com.spaghetti.objects.Camera;
 import com.spaghetti.utils.*;
 
-public class Renderer extends CoreComponent {
+public class RendererCore extends CoreComponent {
 
 	// Internal data
 	protected GameWindow window;
@@ -54,7 +54,7 @@ public class Renderer extends CoreComponent {
 	protected int fps;
 	protected long lastCheck;
 
-	public Renderer() {
+	public RendererCore() {
 		window = new GameWindow();
 	}
 
@@ -130,9 +130,12 @@ public class Renderer extends CoreComponent {
 	@Override
 	protected void loopEvents(float delta) throws Throwable {
 		try {
+			GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_STENCIL_BUFFER_BIT);
+			
 			if (window.shouldClose()) {
 				getGame().stopAsync();
 			}
+			
 			Camera camera = getCamera();
 			if (camera != null) {
 				if(openal) {
@@ -167,12 +170,9 @@ public class Renderer extends CoreComponent {
 				defaultShader.use();
 				defaultShader.setProjection(renderMatrix);
 				camera.getFrameBuffer().getColorTexture().use(0);
-				GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_STENCIL_BUFFER_BIT);
+				
 				sceneRenderer.render();
-			} else {
-
 			}
-
 			window.swap();
 
 			fps++;

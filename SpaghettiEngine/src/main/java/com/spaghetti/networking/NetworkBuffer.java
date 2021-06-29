@@ -1,26 +1,29 @@
 package com.spaghetti.networking;
 
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 import java.nio.charset.Charset;
 
 import com.spaghetti.utils.Utils;
 
 public final class NetworkBuffer {
 
-	private static final byte b0 = (byte) 0, b1 = (byte) 1;
+	public static final byte b0 = (byte) 0, b1 = (byte) 1;
 	public static final Charset UTF_16 = Charset.forName("UTF-16");
 	public static final Charset UTF_16BE = Charset.forName("UTF-16BE");
 	public static final Charset UTF_16LE = Charset.forName("UTF-16LE");
 	public static final Charset UTF_8 = Charset.forName("UTF-8");
 	public static final Charset US_ASCII = Charset.forName("US-ASCII");
 	public static final Charset ISO_8859_1 = Charset.forName("ISO-8859-1");
+	public static final ByteOrder ORDER = ByteOrder.BIG_ENDIAN;
 
 	protected ByteBuffer buffer;
-	protected final NetworkWorker owner;
+	protected final NetworkConnection owner;
 
-	public NetworkBuffer(NetworkWorker owner, int size) {
+	public NetworkBuffer(NetworkConnection owner, int size) {
 		this.owner = owner;
 		buffer = ByteBuffer.allocate(size);
+		buffer.order(ORDER);
 	}
 
 	// Getters and setters
@@ -345,7 +348,7 @@ public final class NetworkBuffer {
 
 	// Utility
 
-	public NetworkWorker getWorker() {
+	public NetworkConnection getWorker() {
 		return owner;
 	}
 
@@ -408,4 +411,12 @@ public final class NetworkBuffer {
 		}
 	}
 
+	public ByteOrder getByteOrder() {
+		return buffer.order();
+	}
+	
+	public void setByteOrder(ByteOrder order) {
+		buffer.order(order);
+	}
+	
 }

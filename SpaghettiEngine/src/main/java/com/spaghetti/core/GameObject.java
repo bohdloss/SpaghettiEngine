@@ -50,7 +50,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		c_setflag = setflag;
 	}
 
-	// Instance methods and m_fields
+	// Instance methods and fields
 
 	// O is attached flag
 	public static final int ATTACHED = 0;
@@ -131,9 +131,9 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		}
 
 		// Update the level pointers and add elements to level
-		i_r_upd_lvl(object);
+		internal_updatelevel(object);
 
-		// Finally add the object, set flags and activate trigger
+		// Finally add the object, set flags and activate the object (onBeginPlay triggers)
 		object.parent = this;
 		children.put(object.id, object);
 		object.internal_setflag(ATTACHED, true);
@@ -142,7 +142,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		}
 	}
 
-	private final void i_r_upd_lvl(GameObject object) {
+	private final void internal_updatelevel(GameObject object) {
 		object.level = level;
 		if (isGloballyAttached()) {
 			level.o_ordered.put(object.id, object);
@@ -151,7 +151,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 			});
 		}
 		object.children.forEach((id, child) -> {
-			i_r_upd_lvl(child);
+			internal_updatelevel(child);
 		});
 	}
 

@@ -3,7 +3,7 @@ package com.spaghetti.events;
 import java.util.HashMap;
 
 import com.spaghetti.core.Game;
-import com.spaghetti.networking.NetworkWorker;
+import com.spaghetti.networking.NetworkConnection;
 
 public abstract class GameEvent {
 
@@ -56,7 +56,7 @@ public abstract class GameEvent {
 	}
 
 	// Override this to mask out certain clients / servers
-	public boolean skip(NetworkWorker target, boolean isClient) {
+	public boolean skip(NetworkConnection target, boolean isClient) {
 		return false;
 	}
 

@@ -3,18 +3,18 @@ package com.spaghetti.core;
 import com.spaghetti.assets.AssetManager;
 import com.spaghetti.events.EventDispatcher;
 import com.spaghetti.input.InputDispatcher;
-import com.spaghetti.input.Updater;
-import com.spaghetti.networking.Client;
-import com.spaghetti.networking.Server;
-import com.spaghetti.render.Renderer;
+import com.spaghetti.input.UpdaterCore;
+import com.spaghetti.networking.ClientCore;
+import com.spaghetti.networking.ServerCore;
+import com.spaghetti.render.RendererCore;
 import com.spaghetti.utils.GameOptions;
 
 public final class GameBuilder {
 
-	private Updater updater;
-	private Renderer renderer;
-	private Client client;
-	private Server server;
+	private UpdaterCore updater;
+	private RendererCore renderer;
+	private ClientCore client;
+	private ServerCore server;
 
 	private Class<? extends EventDispatcher> eventDispatcherClass = EventDispatcher.class;
 	private Class<? extends GameOptions> gameOptionsClass = GameOptions.class;
@@ -24,7 +24,7 @@ public final class GameBuilder {
 
 	private Game game;
 
-	public GameBuilder setUpdater(Updater updater) {
+	public GameBuilder setUpdater(UpdaterCore updater) {
 		if (game != null) {
 			return this;
 		}
@@ -32,11 +32,11 @@ public final class GameBuilder {
 		return this;
 	}
 
-	public Updater getUpdater() {
+	public UpdaterCore getUpdater() {
 		return updater;
 	}
 
-	public GameBuilder setRenderer(Renderer renderer) {
+	public GameBuilder setRenderer(RendererCore renderer) {
 		if (game != null) {
 			return this;
 		}
@@ -44,11 +44,11 @@ public final class GameBuilder {
 		return this;
 	}
 
-	public Renderer getRenderer() {
+	public RendererCore getRenderer() {
 		return renderer;
 	}
 
-	public GameBuilder setClient(Client client) {
+	public GameBuilder setClient(ClientCore client) {
 		if (game != null) {
 			return this;
 		}
@@ -56,11 +56,11 @@ public final class GameBuilder {
 		return this;
 	}
 
-	public Client getClient() {
+	public ClientCore getClient() {
 		return client;
 	}
 
-	public GameBuilder setServer(Server server) {
+	public GameBuilder setServer(ServerCore server) {
 		if (game != null) {
 			return this;
 		}
@@ -68,7 +68,7 @@ public final class GameBuilder {
 		return this;
 	}
 
-	public Server getServer() {
+	public ServerCore getServer() {
 		return server;
 	}
 

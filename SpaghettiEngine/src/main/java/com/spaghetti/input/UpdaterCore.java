@@ -3,7 +3,7 @@ package com.spaghetti.input;
 import com.spaghetti.core.CoreComponent;
 import com.spaghetti.utils.Logger;
 
-public class Updater extends CoreComponent {
+public class UpdaterCore extends CoreComponent {
 
 	@Override
 	protected void loopEvents(float delta) throws Throwable {

@@ -7,11 +7,11 @@ import com.spaghetti.events.EventDispatcher;
 import com.spaghetti.events.Signals;
 import com.spaghetti.input.Controller;
 import com.spaghetti.input.InputDispatcher;
-import com.spaghetti.input.Updater;
-import com.spaghetti.networking.Client;
-import com.spaghetti.networking.Server;
+import com.spaghetti.input.UpdaterCore;
+import com.spaghetti.networking.ClientCore;
+import com.spaghetti.networking.ServerCore;
 import com.spaghetti.objects.Camera;
-import com.spaghetti.render.Renderer;
+import com.spaghetti.render.RendererCore;
 import com.spaghetti.utils.FunctionDispatcher;
 import com.spaghetti.utils.GameOptions;
 import com.spaghetti.utils.Logger;
@@ -97,10 +97,10 @@ public final class Game {
 
 	// Components
 	private final ArrayList<CoreComponent> components = new ArrayList<>(4);
-	private volatile Updater updater;
-	private volatile Renderer renderer;
-	private volatile Client client;
-	private volatile Server server;
+	private volatile UpdaterCore updater;
+	private volatile RendererCore renderer;
+	private volatile ClientCore client;
+	private volatile ServerCore server;
 
 	// Initialization / Finalization
 	private volatile int index;
@@ -121,7 +121,7 @@ public final class Game {
 	private final boolean hasAutority;
 
 	// Constructors using custom classes
-	public Game(Updater updater, Renderer renderer, Client client, Server server,
+	public Game(UpdaterCore updater, RendererCore renderer, ClientCore client, ServerCore server,
 			Class<? extends EventDispatcher> eventDispatcherClass, Class<? extends GameOptions> gameOptionsClass,
 			Class<? extends AssetManager> assetManagerClass, Class<? extends InputDispatcher> inputDispatcherClass,
 			Class<? extends ClientState> clientStateClass) throws Throwable {
@@ -186,6 +186,9 @@ public final class Game {
 
 	// If the provided game instance dies, this instance does too
 	public void depends(Game game) {
+		if(game == null) {
+			throw new NullPointerException();
+		}
 		if (!dependencies.contains(game)) {
 			dependencies.add(game);
 		}
@@ -193,6 +196,9 @@ public final class Game {
 
 	// Reverts the effects of depends()
 	public void not_depends(Game game) {
+		if(game == null) {
+			throw new NullPointerException();
+		}
 		dependencies.remove(game);
 	}
 
@@ -390,19 +396,19 @@ public final class Game {
 		return stopping;
 	}
 
-	public Renderer getRenderer() {
+	public RendererCore getRenderer() {
 		return renderer;
 	}
 
-	public Updater getUpdater() {
+	public UpdaterCore getUpdater() {
 		return updater;
 	}
 
-	public Client getClient() {
+	public ClientCore getClient() {
 		return client;
 	}
 
-	public Server getServer() {
+	public ServerCore getServer() {
 		return server;
 	}
 

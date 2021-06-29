@@ -29,6 +29,8 @@ public class ClientState {
 		}
 		activeLevel.source = null;
 		activeLevel = null;
+		detachCamera();
+		detachController();
 	}
 
 	public void attachLevel(Level level) {

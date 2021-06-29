@@ -1,5 +1,6 @@
 package com.spaghetti.networking;
 
+import java.util.HashMap;
 import java.util.concurrent.ThreadLocalRandom;
 
 import com.spaghetti.core.*;
@@ -10,11 +11,17 @@ import com.spaghetti.utils.Utils;
 
 public abstract class RPC {
 
+	protected static final HashMap<Integer, RPC> rpcs = new HashMap<>();
 	protected static final ThreadLocalRandom random = ThreadLocalRandom.current();
-	protected static final Class<?> BYTE = byte.class, CHARACTER = char.class, SHORT = short.class, INTEGER = int.class,
-			LONG = long.class, FLOAT = float.class, DOUBLE = double.class, BOOLEAN = boolean.class,
-			STRING = String.class;
 
+	public static void save(RPC rpc) {
+		rpcs.put(rpc.getId(), rpc);
+	}
+	
+	public static RPC get(int id) {
+		return rpcs.remove(id);
+	}
+	
 	private final ClassInterpreter<?>[] argInterpreter = getArgInterpreters();
 	private final Object[] args = new Object[argInterpreter.length];
 	private final int argAmount = args.length;
@@ -27,7 +34,7 @@ public abstract class RPC {
 	private volatile int id;
 	private volatile boolean ready;
 	private volatile boolean error;
-
+	
 	public final Object callAndWait(Object... args) {
 		call(args);
 		while (!ready) {
@@ -72,7 +79,7 @@ public abstract class RPC {
 		}
 	}
 
-	public final RPC execute(NetworkWorker worker) {
+	public final RPC execute(NetworkConnection worker) {
 		try {
 			retVal = execute0(worker.getGame().isClient(), worker, args);
 			error = false;
@@ -84,7 +91,7 @@ public abstract class RPC {
 		return this;
 	}
 
-	protected abstract Object execute0(boolean isClient, NetworkWorker worker, Object[] args) throws Throwable;
+	protected abstract Object execute0(boolean isClient, NetworkConnection worker, Object[] args) throws Throwable;
 
 	public final void writeReturn(NetworkBuffer buffer) {
 		if (!hasResponse) {
@@ -110,7 +117,7 @@ public abstract class RPC {
 		retVal = retInterpreter.readClassGeneric(retVal, buffer);
 	}
 
-	public boolean skip(NetworkWorker worker, boolean isClient) {
+	public boolean skip(NetworkConnection worker, boolean isClient) {
 		return false;
 	}
 

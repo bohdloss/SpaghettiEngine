@@ -23,7 +23,7 @@ public class Testrpc extends RPC {
 	}
 
 	@Override
-	protected Object execute0(boolean isClient, NetworkWorker worker, Object[] args) throws Throwable {
+	protected Object execute0(boolean isClient, NetworkConnection worker, Object[] args) throws Throwable {
 		Integer arg0 = (Integer) args[0];
 		Logger.info("Received number " + arg0);
 		Logger.info("Sending number " + arg0 + " + 1 = " + (arg0 + 1));

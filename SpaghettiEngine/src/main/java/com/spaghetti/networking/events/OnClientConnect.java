@@ -1,20 +1,21 @@
-package com.spaghetti.networking;
+package com.spaghetti.networking.events;
 
 import com.spaghetti.events.GameEvent;
 import com.spaghetti.interfaces.NoReplicate;
+import com.spaghetti.networking.NetworkConnection;
 
 @NoReplicate
 public class OnClientConnect extends GameEvent {
 
-	protected NetworkWorker client;
+	protected NetworkConnection client;
 	protected long clientId;
 
-	public OnClientConnect(NetworkWorker client, long clientId) {
+	public OnClientConnect(NetworkConnection client, long clientId) {
 		this.client = client;
 		this.clientId = clientId;
 	}
 
-	public NetworkWorker getClient() {
+	public NetworkConnection getClient() {
 		return client;
 	}
 
@@ -23,7 +24,7 @@ public class OnClientConnect extends GameEvent {
 	}
 
 	@Override
-	public boolean skip(NetworkWorker worker, boolean isClient) {
+	public boolean skip(NetworkConnection worker, boolean isClient) {
 		return true;
 	}
 

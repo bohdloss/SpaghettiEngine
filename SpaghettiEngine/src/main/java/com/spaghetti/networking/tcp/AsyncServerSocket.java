@@ -1,4 +1,4 @@
-package com.spaghetti.networking;
+package com.spaghetti.networking.tcp;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
