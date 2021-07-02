@@ -4,6 +4,8 @@ import java.awt.image.BufferedImage;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
+import java.lang.reflect.Field;
+import java.lang.reflect.Modifier;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 
@@ -364,4 +366,27 @@ public final class Utils {
 		}
 	}
 
+	public static Field getPrivateField(Class<?> cls, String name) {
+		try {
+			Field result = null;
+			while(result == null) {
+				try {
+					// Remove private restrictions
+					result = cls.getDeclaredField(name);
+					result.setAccessible(true);
+					
+					// Remove final restrictions
+					Field modifiers = Field.class.getDeclaredField("modifiers");
+					modifiers.setAccessible(true);
+					modifiers.set(result, result.getModifiers() & ~Modifier.FINAL);
+				} catch(NoSuchFieldException nofield) {
+					cls = cls.getSuperclass();
+				}
+			}
+			return result;
+		} catch(Throwable t) {
+			throw new RuntimeException("Couldn't obtain field " + cls.getName() + "." + name);
+		}
+	}
+	
 }
