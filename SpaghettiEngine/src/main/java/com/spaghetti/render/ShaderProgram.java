@@ -376,10 +376,4 @@ public final class ShaderProgram extends Asset {
 		GL20.glUniformMatrix4fv(loc, false, mat4);
 	}
 
-	@Override
-	protected void reset0() {
-		shaders = null;
-		id = -1;
-	}
-
 }

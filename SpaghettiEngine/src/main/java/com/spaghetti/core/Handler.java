@@ -39,7 +39,7 @@ public final class Handler extends Thread {
 							game.stopSignal = true;
 						}
 					}
-					
+
 					// Detect soft-blocked instances and stop()
 					if (!game.isStopped()) {
 						if (game.isInit() && (game.isDead() || game.stopSignal)) {

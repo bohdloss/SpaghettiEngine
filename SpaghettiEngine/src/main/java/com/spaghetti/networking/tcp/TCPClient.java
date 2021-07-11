@@ -9,5 +9,5 @@ public class TCPClient extends ClientCore {
 		super.initialize0();
 		this.worker = new TCPConnection(this);
 	}
-	
+
 }

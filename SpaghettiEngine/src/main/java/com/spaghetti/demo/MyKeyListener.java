@@ -8,11 +8,11 @@ public class MyKeyListener implements Controllable {
 
 	@Override
 	public void onKeyPressed(int key, int x, int y) {
-		switch(key) {
+		switch (key) {
 		case Keys.T:
 			Game.getGame().getClient().disconnect();
 			break;
-		case Keys.O:
+		case Keys.P:
 			Game.getGame().getClient().connect("localhost", 9018);
 			break;
 		}
@@ -20,27 +20,27 @@ public class MyKeyListener implements Controllable {
 
 	@Override
 	public void onKeyReleased(int key, int x, int y) {
-		
+
 	}
 
 	@Override
 	public void onMouseMove(int x, int y) {
-		
+
 	}
 
 	@Override
 	public void onMouseScroll(float scroll, int x, int y) {
-		
+
 	}
 
 	@Override
 	public void onMouseButtonPressed(int button, int x, int y) {
-		
+
 	}
 
 	@Override
 	public void onMouseButtonReleased(int button, int x, int y) {
-		
+
 	}
 
 }

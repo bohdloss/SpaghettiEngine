@@ -237,9 +237,4 @@ public class FrameBuffer extends Asset {
 		return height;
 	}
 
-	@Override
-	protected void reset0() {
-
-	}
-
 }

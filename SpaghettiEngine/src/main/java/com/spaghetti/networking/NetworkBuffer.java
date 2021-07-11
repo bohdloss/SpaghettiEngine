@@ -414,9 +414,9 @@ public final class NetworkBuffer {
 	public ByteOrder getByteOrder() {
 		return buffer.order();
 	}
-	
+
 	public void setByteOrder(ByteOrder order) {
 		buffer.order(order);
 	}
-	
+
 }

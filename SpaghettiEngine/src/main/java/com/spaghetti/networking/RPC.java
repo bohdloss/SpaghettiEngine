@@ -17,11 +17,11 @@ public abstract class RPC {
 	public static void save(RPC rpc) {
 		rpcs.put(rpc.getId(), rpc);
 	}
-	
+
 	public static RPC get(int id) {
 		return rpcs.remove(id);
 	}
-	
+
 	private final ClassInterpreter<?>[] argInterpreter = getArgInterpreters();
 	private final Object[] args = new Object[argInterpreter.length];
 	private final int argAmount = args.length;
@@ -34,7 +34,7 @@ public abstract class RPC {
 	private volatile int id;
 	private volatile boolean ready;
 	private volatile boolean error;
-	
+
 	public final Object callAndWait(Object... args) {
 		call(args);
 		while (!ready) {

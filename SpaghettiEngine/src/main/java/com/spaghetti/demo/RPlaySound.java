@@ -19,7 +19,8 @@ public class RPlaySound extends RPC {
 
 	@Override
 	protected ClassInterpreter<?>[] getArgInterpreters() {
-		return new ClassInterpreter<?>[] {DefaultInterpreters.interpreters.get("java.lang.String"), DefaultInterpreters.interpreters.get("org.joml.Vector3f")};
+		return new ClassInterpreter<?>[] { DefaultInterpreters.interpreters.get("java.lang.String"),
+				DefaultInterpreters.interpreters.get("org.joml.Vector3f") };
 	}
 
 	@Override

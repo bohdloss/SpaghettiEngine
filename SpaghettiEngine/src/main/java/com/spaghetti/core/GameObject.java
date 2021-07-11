@@ -133,7 +133,8 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		// Update the level pointers and add elements to level
 		internal_updatelevel(object);
 
-		// Finally add the object, set flags and activate the object (onBeginPlay triggers)
+		// Finally add the object, set flags and activate the object (onBeginPlay
+		// triggers)
 		object.parent = this;
 		children.put(object.id, object);
 		object.internal_setflag(ATTACHED, true);

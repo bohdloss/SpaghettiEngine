@@ -61,8 +61,8 @@ public class SoundLoader implements AssetLoader {
 		while (raw_data.hasRemaining()) {
 			int pos = raw_data.position();
 			for (int i = 0; i < bytes; i++) {
-				dest_data.put(
-						dest_data.order() == raw_data.order() ? raw_data.get(pos + i) : raw_data.get(pos + bytes - i - 1));
+				dest_data.put(dest_data.order() == raw_data.order() ? raw_data.get(pos + i)
+						: raw_data.get(pos + bytes - i - 1));
 			}
 			raw_data.position(pos + bytes);
 		}

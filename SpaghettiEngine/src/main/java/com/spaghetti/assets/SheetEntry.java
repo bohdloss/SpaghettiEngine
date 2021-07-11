@@ -19,7 +19,7 @@ public class SheetEntry {
 	public boolean loading;
 	public boolean unloading;
 	public boolean resetting;
-	
+
 	public boolean isBusy() {
 		return loading || unloading || resetting;
 	}

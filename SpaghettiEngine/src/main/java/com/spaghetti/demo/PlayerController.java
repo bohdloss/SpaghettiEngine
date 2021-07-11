@@ -71,10 +71,13 @@ public class PlayerController extends Controller {
 			window.toggleFullscreen();
 			break;
 		case Keys.O:
-			if(getGame().hasAuthority()) {
+			if (getGame().hasAuthority()) {
+				Vector3f vec = new Vector3f();
+				player.getWorldPosition(vec);
 				SoundSource source = new SoundSource(Sound.get("music_30sec"));
 				source.setDestroyOnStop(true);
 				source.setSourceLooping(true);
+				source.setWorldPosition(vec);
 				source.play();
 				getLevel().addObject(source);
 			} else {

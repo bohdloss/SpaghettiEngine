@@ -31,8 +31,6 @@ And you can do the following with it
 
 ### How to set it up
 
-### WARNING: At this exact moment the engine is highly unstable because of some bugs affecting it, please refrain from using any version of it that contains the following disclaimer
-
 Requires the following commands installed on your system:
 - javac (Windows: [Website](https://adoptopenjdk.net/releases.html?variant=openjdk8&jvmVariant=hotspot) - Linux: ```sudo apt install openjdk-8-jdk```)
 - git (Windows: [Website](https://gitforwindows.org/) - Linux: ```sudo apt install git```)

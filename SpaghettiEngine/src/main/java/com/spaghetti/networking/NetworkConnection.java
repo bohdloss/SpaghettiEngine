@@ -21,7 +21,7 @@ public abstract class NetworkConnection {
 		private Identity() {
 		}
 	}
-	
+
 	public static enum Priority {
 		NONE, SEND, RECEIVE
 	}
@@ -103,24 +103,22 @@ public abstract class NetworkConnection {
 		f_rpcready = rpcready;
 		f_rpcerror = rpcerror;
 	}
-	
-	
-	
+
 	// Member data
-	
+
 	// Reference to owner
 	protected CoreComponent parent;
-	
+
 	// Buffers
 	protected NetworkBuffer w_buffer;
 	protected NetworkBuffer r_buffer;
-	
+
 	// Interfaces
 	protected Authenticator authenticator;
 	protected HashMap<Class<?>, ClassReplicationRule> cls_rules;
 	protected HashMap<Field, FieldReplicationRule> field_rules;
 	protected final HashMap<String, ClassInterpreter<?>> interpreters = new HashMap<>();
-	
+
 	// Flags
 	public boolean forceReplication;
 	public boolean reliable;
@@ -130,7 +128,7 @@ public abstract class NetworkConnection {
 	public GameObject player;
 	public GameComponent player_controller;
 	public Camera player_camera;
-	
+
 	// Cache
 	protected final ArrayList<Object> delete_list = new ArrayList<>(256);
 	protected final HashMap<Short, String> str_cache = new HashMap<>(256);
@@ -166,11 +164,11 @@ public abstract class NetworkConnection {
 	public <T> void registerInterpreter(Class<T> cls, ClassInterpreter<T> interpreter) {
 		interpreters.put(cls.getName(), interpreter);
 	}
-	
+
 	public <T> void unregisterInterpreter(Class<T> cls) {
 		interpreters.remove(cls.getName());
 	}
-	
+
 	public void destroy() {
 		try {
 			if (player != null) {
@@ -328,9 +326,9 @@ public abstract class NetworkConnection {
 		ArrayList<Field> list = null;
 		try {
 			// This method assumes cls extends GameObject, GameComponent or GameEvent
-	
+
 			list = new ArrayList<>();
-	
+
 			// Gather all declared fields from super classes
 			Class<?> current = cls;
 			do {
@@ -341,25 +339,25 @@ public abstract class NetworkConnection {
 				}
 				current = current.getSuperclass();
 			} while (current != null);
-	
+
 			// Remove any restriction from gathered fields
 			for (Field field : list) {
 				field.setAccessible(true);
-	
+
 				f_modifiers.set(field, field.getModifiers() & ~Modifier.FINAL);
 			}
-	
+
 		} catch (Throwable t) {
 			// Catch all exceptions for simplicity
 			t.printStackTrace();
 		}
-	
+
 		// Array must always be in the same order to work
 		// regardless of the platform
 		list.sort((field1, field2) -> field1.getName().compareTo(field2.getName()));
 		list.sort((field1, field2) -> field1.getDeclaringClass().getName()
 				.compareTo(field2.getDeclaringClass().getName()));
-	
+
 		// Cast to Field[]
 		Field[] result = new Field[list.size()];
 		for (int i = 0; i < list.size(); i++) {
@@ -827,12 +825,12 @@ public abstract class NetworkConnection {
 		int id = r_buffer.getInt();
 		if (isComp) {
 			GameComponent component = level.getComponent(id);
-			if(component != null) {
+			if (component != null) {
 				component.destroy();
 			}
 		} else {
 			GameObject object = level.getObject(id);
-			if(object != null) {
+			if (object != null) {
 				object.destroy();
 			}
 		}
@@ -1109,32 +1107,32 @@ public abstract class NetworkConnection {
 			if (!test_readClass(rpc)) {
 				return;
 			}
-			
+
 			// Dispatch RPC execution to the updater thread
 			getGame().getUpdaterDispatcher().queue(() -> {
 				// Execute
 				rpc.execute(this);
-				
+
 				// Queue the function to write the callback
 				CoreComponent core = getCore();
-				
-				if(ServerCore.class.isAssignableFrom(core.getClass())) {
-					
+
+				if (ServerCore.class.isAssignableFrom(core.getClass())) {
+
 					// For server
 					((ServerCore) core).queueNetworkFunction(client -> {
-						
+
 						// Only in this specific client
-						if(client == this) {
+						if (client == this) {
 							client.writeRPCResponse(rpc);
 						}
 					});
 				} else {
-					
+
 					// Same for client
 					((ClientCore) core).queueNetworkFunction(client -> {
-						
+
 						// Only in this specific client
-						if(client == this) {
+						if (client == this) {
 							client.writeRPCResponse(rpc);
 						}
 					});
@@ -1165,7 +1163,7 @@ public abstract class NetworkConnection {
 			f_rpcready.set(rpc, true);
 			throw new IllegalStateException("RPC " + rpc.getClass().getName() + " sent a return value instead of void");
 		}
-		
+
 		rpc.readReturn(r_buffer);
 		f_rpcready.set(rpc, true);
 		getGame().getUpdaterDispatcher().queue(() -> rpc.executeReturnCallback());
@@ -1175,12 +1173,12 @@ public abstract class NetworkConnection {
 		int id = r_buffer.getInt();
 		RPC rpc = RPC.get(id);
 		boolean error = r_buffer.getBoolean();
-		
+
 		if (rpc.hasReturnValue()) {
 			f_rpcready.set(rpc, true);
 			throw new IllegalStateException("RPC " + rpc.getClass().getName() + " sent void instead of a return value");
 		}
-		
+
 		f_rpcerror.set(rpc, error);
 		f_rpcready.set(rpc, true);
 		getGame().getUpdaterDispatcher().queue(() -> rpc.executeAckCallback());
@@ -1317,42 +1315,42 @@ public abstract class NetworkConnection {
 	public CoreComponent getCore() {
 		return parent;
 	}
-	
+
 	public boolean isForceReplication() {
 		return forceReplication;
 	}
-	
+
 	public void setForceReplication(boolean forceReplication) {
 		this.forceReplication = forceReplication;
 	}
-	
+
 	public boolean isReliable() {
 		return reliable;
 	}
-	
+
 	public void setReliable(boolean reliable) {
 		this.reliable = reliable;
 	}
-	
+
 	public boolean isPing() {
 		return ping;
 	}
-	
+
 	public void setPing(boolean ping) {
 		this.ping = ping;
 	}
-	
+
 	public Priority getPriority() {
 		return Priority.NONE;
 	}
-	
+
 	// Abstract methods
 	public abstract void connect(Object socket);
-	
+
 	public abstract void connect(String ip, int port) throws Throwable;
 
 	public abstract void disconnect();
-	
+
 	public void reconnect() throws Throwable {
 		String ip = getRemoteIp();
 		int port = getRemotePort();
@@ -1363,7 +1361,7 @@ public abstract class NetworkConnection {
 	public abstract void send() throws Throwable;
 
 	public abstract void receive() throws Throwable;
-	
+
 	// Abstract getters
 	public abstract boolean isConnected();
 
@@ -1374,9 +1372,9 @@ public abstract class NetworkConnection {
 	public abstract String getLocalIp();
 
 	public abstract int getLocalPort();
-	
+
 	public abstract boolean canSend();
-	
+
 	public abstract boolean canReceive();
-	
+
 }

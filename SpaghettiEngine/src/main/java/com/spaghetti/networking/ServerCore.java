@@ -1,8 +1,6 @@
 package com.spaghetti.networking;
 
 import java.io.IOException;
-import java.net.InetSocketAddress;
-import java.net.Socket;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Map.Entry;
@@ -16,8 +14,6 @@ import com.spaghetti.networking.events.OnClientBanned;
 import com.spaghetti.networking.events.OnClientConnect;
 import com.spaghetti.networking.events.OnClientDisconnect;
 import com.spaghetti.networking.events.OnClientUnbanned;
-import com.spaghetti.networking.tcp.AsyncServerSocket;
-import com.spaghetti.networking.tcp.TCPConnection;
 import com.spaghetti.utils.*;
 
 public abstract class ServerCore extends CoreComponent {
@@ -72,9 +68,9 @@ public abstract class ServerCore extends CoreComponent {
 	protected void loopEvents(float delta) throws Throwable {
 		// Catch any exception for safety
 		try {
-		
+
 			if (getClientsAmount() != 0) {
-	
+
 				synchronized (queue_lock) {
 					for (Entry<Long, NetworkConnection> entry : clients.entrySet()) {
 						try {
@@ -84,68 +80,69 @@ public abstract class ServerCore extends CoreComponent {
 							if (!client.isConnected()) {
 								continue;
 							}
-							
+
 							// Can send
-							if(client.canSend() && client.getPriority() != Priority.RECEIVE) {
-								
+							if (client.canSend() && client.getPriority() != Priority.RECEIVE) {
+
 								// We need to send more data when a client just connected
-								if(clientFlags.firstTime) {
-									
+								if (clientFlags.firstTime) {
+
 									clientFlags.firstTime = false;
-									
+
 									// Write level structure
 									client.writeLevelStructure();
-		
+
 									// Write some info about the owned player
 									client.writeActivePlayer();
 									client.writeActiveCamera();
 									client.writeActiveController();
-		
+
 									// Flush the packet
 									client.setReliable(true);
 									client.send();
-		
+
 									// Turn on force replication flag
 									client.setForceReplication(true);
 									client.setReliable(true);
 								} else {
-									
+
 									// Execute any queued special function
 									functions.forEach(func -> func.execute(client));
 									functions.clear();
-			
+
 									// Write data about every object that needs to be updated
 									client.writeObjectReplication();
 									client.setForceReplication(false);
-			
+
 									// Write to network
 									client.send();
 								}
 							} // send
-							
+
 							// Can receive
-							if(client.canReceive() && client.getPriority() != Priority.SEND) {
+							if (client.canReceive() && client.getPriority() != Priority.SEND) {
 								// Read incoming packets
 								client.receive();
-								
+
 								// Parse them
 								client.parsePacket();
 							} // receive
-							
+
 						} catch (Throwable t) {
 							// Something went wrong, wait for reconnection
 							clientError(t, entry.getKey());
 						}
 					}
 				}
-	
+
 				// Kick clients that didn't reconnect in time
-				for (Iterator<Entry<Long, NetworkConnection>> iterator = clients.entrySet().iterator(); iterator.hasNext();) {
+				for (Iterator<Entry<Long, NetworkConnection>> iterator = clients.entrySet().iterator(); iterator
+						.hasNext();) {
 					Entry<Long, NetworkConnection> entry = iterator.next();
 					Long clientId = entry.getKey();
 					NetworkConnection client = entry.getValue();
 					ClientFlags clientFlags = flags.get(clientId);
-					
+
 					boolean remove = !client.isConnected()
 							&& System.currentTimeMillis() > clientFlags.lostConnectionTime + awaitReconnect
 							&& clientFlags.await;
@@ -155,15 +152,15 @@ public abstract class ServerCore extends CoreComponent {
 						iterator.remove();
 					}
 				}
-	
+
 			}
-			
+
 			// Accept new clients
 			if (isBound()) {
 				internal_accept();
 			}
-		
-		} catch(Throwable t) {
+
+		} catch (Throwable t) {
 			Logger.error("Server error:", t);
 		}
 	}
@@ -176,18 +173,18 @@ public abstract class ServerCore extends CoreComponent {
 	}
 
 	public void queueNetworkFunction(NetworkFunction function) {
-		synchronized(queue_lock) {
+		synchronized (queue_lock) {
 			functions.add(function);
 		}
 	}
-	
+
 	public void queueEvent(GameObject issuer, GameEvent event) {
 		if (event == null) {
 			throw new IllegalArgumentException();
 		}
 		synchronized (queue_lock) {
 			functions.add(client -> {
-				if(!event.skip(client, false)) {
+				if (!event.skip(client, false)) {
 					client.writeGameEvent(issuer, event);
 				}
 			});
@@ -203,7 +200,7 @@ public abstract class ServerCore extends CoreComponent {
 	public void queueRPC(RPC rpc) {
 		synchronized (queue_lock) {
 			functions.add(client -> {
-				if(!rpc.skip(client, false)) {
+				if (!rpc.skip(client, false)) {
 					client.writeRPC(rpc);
 				}
 			});
@@ -282,18 +279,18 @@ public abstract class ServerCore extends CoreComponent {
 		}
 		return false;
 	}
-	
+
 	protected void clientError(Throwable error, long clientId) {
 		Logger.error("Exception occurred in client " + clientId, error);
 
-		if(!_increaseDisconnections(clientId)) {
+		if (!_increaseDisconnections(clientId)) {
 			NetworkConnection client = clients.get(clientId);
 			ClientFlags clientFlags = flags.get(clientId);
-			
+
 			clientFlags.await = true;
 			client.disconnect();
 			clientFlags.lostConnectionTime = System.currentTimeMillis();
-			
+
 			Logger.info("Awaiting reconnection for " + awaitReconnect + " ms");
 		}
 	}
@@ -381,7 +378,7 @@ public abstract class ServerCore extends CoreComponent {
 
 	protected boolean internal_pardonall() {
 		boolean last = true;
-		for(Entry<Long, NetworkConnection> entry : clients.entrySet()) {
+		for (Entry<Long, NetworkConnection> entry : clients.entrySet()) {
 			last &= internal_pardon(entry.getKey());
 		}
 		return last;
@@ -390,37 +387,37 @@ public abstract class ServerCore extends CoreComponent {
 	protected boolean internal_accept() throws Throwable {
 		// Accept connection
 		Object socket = internal_acceptsocket();
-		if(socket == null) {
+		if (socket == null) {
 			return false;
 		}
-		
+
 		// Hash ip and port
 		long hash = internal_hashsocket(socket);
 
 		// Instantiate a new ClientFlags object and register it
 		Long clientId = new Long(hash);
 		ClientFlags clientFlags = flags.get(clientId);
-		if(clientFlags == null) {
+		if (clientFlags == null) {
 			clientFlags = new ClientFlags();
 			flags.put(clientId, clientFlags);
 		}
-		
+
 		// Check if client is banned
 		if (!clientFlags.banned) {
 
 			// Check if it is already instantiated here and add it
 			if (!clients.containsKey(clientId)) {
-				
+
 				// If we reached the maximum number of clients, refuse connection
-				if(getClientsAmount() < maxClients) {
-				
+				if (getClientsAmount() < maxClients) {
+
 					// New connection, initialize it
 					NetworkConnection client = internal_initworker();
 					client.connect(socket);
 					clients.put(clientId, client);
-	
+
 					// Perform handshake
-					if(!internal_handshake(client)) {
+					if (!internal_handshake(client)) {
 						Logger.warning("Client handshake failed (" + clientId + ")");
 						internal_kick(clientId);
 					} else {
@@ -466,10 +463,13 @@ public abstract class ServerCore extends CoreComponent {
 
 	// Abstract functions related to internal_accept
 	protected abstract Object internal_acceptsocket() throws Throwable;
+
 	protected abstract long internal_hashsocket(Object object);
+
 	protected abstract void internal_closesocket(Object object) throws Throwable;
+
 	protected abstract NetworkConnection internal_initworker();
-	
+
 	public boolean bind(int port) {
 		return (boolean) getDispatcher().quickQueue(() -> internal_bind(port));
 	}
@@ -484,7 +484,7 @@ public abstract class ServerCore extends CoreComponent {
 		} catch (IOException e) {
 			Logger.error("I/O exception occurred while starting server on port " + port + ", aborting", e);
 			return false;
-		} catch(Throwable t) {
+		} catch (Throwable t) {
 			Logger.error("Unknown error occurred while starting server on port " + port + ", aborting", t);
 			return false;
 		}
@@ -493,7 +493,7 @@ public abstract class ServerCore extends CoreComponent {
 	}
 
 	protected abstract void internal_startserver(int port) throws Throwable;
-	
+
 	public boolean unbind() {
 		return (boolean) getDispatcher().quickQueue(this::internal_unbind);
 	}
@@ -513,7 +513,7 @@ public abstract class ServerCore extends CoreComponent {
 		Logger.info("Server unbound");
 		return true;
 	}
-	
+
 	protected abstract void internal_stopserver() throws Throwable;
 
 	protected boolean internal_handshake(NetworkConnection client) {
@@ -523,7 +523,7 @@ public abstract class ServerCore extends CoreComponent {
 			boolean ret = client.writeAuthentication();
 			client.send();
 			return ret;
-		} catch(Throwable t) {
+		} catch (Throwable t) {
 			Logger.error("Handshake error:", t);
 			return false;
 		}
@@ -562,7 +562,7 @@ public abstract class ServerCore extends CoreComponent {
 	}
 
 	public abstract String getLocalIp();
-	
+
 	public abstract int getLocalPort();
 
 	public abstract boolean isBound();

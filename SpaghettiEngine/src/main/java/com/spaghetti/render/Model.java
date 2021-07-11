@@ -161,14 +161,6 @@ public class Model extends Asset {
 		return buffer;
 	}
 
-	@Override
-	protected void reset0() {
-		this.vertices = null;
-		this.tex_coords = null;
-		this.normals = null;
-		this.indices = null;
-	}
-
 	public int getDrawCount() {
 		return draw_count;
 	}

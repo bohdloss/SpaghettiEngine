@@ -108,11 +108,4 @@ public final class Shader extends Asset {
 		return type;
 	}
 
-	@Override
-	protected void reset0() {
-		id = -1;
-		source = null;
-		type = -1;
-	}
-
 }

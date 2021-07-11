@@ -1,19 +1,15 @@
 package com.spaghetti.assets;
 
-import java.io.IOException;
 import java.nio.ByteOrder;
 
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
-import javax.sound.sampled.UnsupportedAudioFileException;
-
 import org.lwjgl.openal.AL10;
 
 import com.spaghetti.audio.StreamingSound;
 import com.spaghetti.interfaces.AssetLoader;
 import com.spaghetti.interfaces.StreamProvider;
-import com.spaghetti.utils.Logger;
 import com.spaghetti.utils.ResourceLoader;
 
 public class MusicLoader implements AssetLoader {
@@ -32,9 +28,9 @@ public class MusicLoader implements AssetLoader {
 	public Object[] loadAsset(SheetEntry asset) throws Throwable {
 		AudioInputStream audio_stream = AudioSystem.getAudioInputStream(ResourceLoader.getStream(asset.args[0]));
 		AudioFormat audio_format = audio_stream.getFormat();
-		
+
 		StreamProvider provider = () -> AudioSystem.getAudioInputStream(ResourceLoader.getStream(asset.args[0]));
-		
+
 		// Read metadata
 		int channels = audio_format.getChannels();
 		int bps = audio_format.getSampleSizeInBits();
@@ -54,27 +50,27 @@ public class MusicLoader implements AssetLoader {
 				format = AL10.AL_FORMAT_STEREO16;
 			}
 		}
-		
+
 		int numbuffers = 0;
 		int buffersize = 0;
-		
+
 		// Optional argument numbuffers
-		if(asset.args.length >= 2) {
+		if (asset.args.length >= 2) {
 			try {
 				numbuffers = Integer.parseInt(asset.args[1]);
-			} catch(NumberFormatException e) {
+			} catch (NumberFormatException e) {
 			}
 		}
-		
+
 		// Optional argument buffersize
-		if(asset.args.length >= 3) {
+		if (asset.args.length >= 3) {
 			try {
 				buffersize = Integer.parseInt(asset.args[2]);
-			} catch(NumberFormatException e) {
+			} catch (NumberFormatException e) {
 			}
 		}
-		
-		return new Object[] {format, samplerate, bps, ByteOrder.LITTLE_ENDIAN, provider, numbuffers, buffersize};
+
+		return new Object[] { format, samplerate, bps, ByteOrder.LITTLE_ENDIAN, provider, numbuffers, buffersize };
 	}
 
 	@Override

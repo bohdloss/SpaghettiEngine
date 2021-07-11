@@ -117,6 +117,7 @@ public final class DefaultInterpreters {
 			public void writeClass(String object, NetworkBuffer buffer) {
 				buffer.putString(object);
 			}
+
 			@Override
 			public String readClass(String original, NetworkBuffer buffer) {
 				return buffer.getString();

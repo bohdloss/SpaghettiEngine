@@ -5,7 +5,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.concurrent.ThreadLocalRandom;
+import java.util.Random;
 
 public final class FunctionDispatcher {
 
@@ -19,7 +19,7 @@ public final class FunctionDispatcher {
 	private HashMap<Long, Throwable> exceptions = new HashMap<>();
 	private List<Long> hasException = new ArrayList<>();
 	private List<Long> ignoreReturn = new ArrayList<>();
-	private ThreadLocalRandom random;
+	private Random random;
 
 	private Thread thread;
 
@@ -27,7 +27,7 @@ public final class FunctionDispatcher {
 
 	public FunctionDispatcher() {
 		this.thread = Thread.currentThread();
-		this.random = ThreadLocalRandom.current();
+		this.random = new Random();
 	}
 
 	public synchronized long queue(boolean ignoreReturnValue, Object target, String funcName, Object... args) {
@@ -74,7 +74,17 @@ public final class FunctionDispatcher {
 			throw new IllegalArgumentException();
 		}
 
-		long rand = random.nextLong();
+		// Make sure the random number is unique
+		long rand = 0;
+		while (true) {
+			Utils.sleep(1);
+			rand = random.nextLong();
+
+			if (!calls.containsKey(rand) && !returnValues.containsKey(rand) && !hasReturn.contains(rand)
+					&& !exceptions.containsKey(rand) && !hasException.contains(rand) && !ignoreReturn.contains(rand)) {
+				break;
+			}
+		}
 
 		if (ignoreReturnValue) {
 			ignoreReturn.add(rand);

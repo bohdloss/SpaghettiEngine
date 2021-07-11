@@ -309,8 +309,4 @@ public class Material extends Asset {
 	protected void unload0() {
 	}
 
-	@Override
-	protected void reset0() {
-	}
-
 }

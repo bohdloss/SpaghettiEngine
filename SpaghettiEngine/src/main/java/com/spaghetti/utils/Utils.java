@@ -14,8 +14,7 @@ import org.lwjgl.assimp.AIString;
 import org.lwjgl.assimp.Assimp;
 import org.lwjgl.openal.AL;
 import org.lwjgl.openal.AL10;
-import org.lwjgl.openal.AL11;
-import org.lwjgl.openal.ALC11;
+import org.lwjgl.openal.ALC10;
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL30;
@@ -76,30 +75,31 @@ public final class Utils {
 			status = stream.read(buffer, read, amount - read);
 			read += status;
 		}
-		if(status == -1) {
+		if (status == -1) {
 			read += 1;
 		}
 		return read;
 	}
 
-	public static int effectiveReadTimeout(InputStream stream, byte[] buffer, int offset, int amount, long timeout) throws IOException {
+	public static int effectiveReadTimeout(InputStream stream, byte[] buffer, int offset, int amount, long timeout)
+			throws IOException {
 		long time = System.currentTimeMillis();
 		int read = offset, status = 0;
 		while (read < amount && status != -1) {
 			status = stream.read(buffer, read, amount - read);
 			read += status;
-			if(System.currentTimeMillis() > time + timeout && timeout != 0) {
+			if (System.currentTimeMillis() > time + timeout && timeout != 0) {
 				throw new IllegalStateException("Read timeout of " + timeout + " ms reached");
 			}
 		}
-		if(status == -1) {
+		if (status == -1) {
 			read += 1;
 		}
 		return read;
 	}
-	
+
 	public static int effectiveRead(InputStream stream, ByteBuffer buffer, int offset, int amount) throws IOException {
-		if(buffer.hasArray()) {
+		if (buffer.hasArray()) {
 			int read = effectiveRead(stream, buffer.array(), buffer.position() + offset, amount);
 			buffer.position(buffer.position() + amount);
 			return read;
@@ -110,14 +110,14 @@ public final class Utils {
 				status = stream.read(arr, read, amount - read);
 				read += status;
 			}
-			if(status == -1) {
+			if (status == -1) {
 				read += 1;
 			}
 			buffer.put(arr, 0, amount);
 			return read;
 		}
 	}
-	
+
 	public static boolean close(Closeable closeable) {
 		try {
 			closeable.close();
@@ -171,7 +171,7 @@ public final class Utils {
 		}
 		return hash;
 	}
-	
+
 	public static int intHash(String str) {
 		int hash = 13464481;
 
@@ -189,7 +189,7 @@ public final class Utils {
 		}
 		return hash;
 	}
-	
+
 	public static short shortHash(String str) {
 		short hash = 14951;
 
@@ -198,7 +198,7 @@ public final class Utils {
 		}
 		return hash;
 	}
-	
+
 	public static short shortHash(byte[] mem, int offset, int size) {
 		short hash = 14951;
 
@@ -207,15 +207,16 @@ public final class Utils {
 		}
 		return hash;
 	}
-	
+
 	// TODO Temporary, remove later
 	static int num;
+
 	public static void alError() {
-		if(num >= 10) {
+		if (num >= 10) {
 			System.exit(0);
 		}
 		int error = AL10.alGetError();
-		if(error == AL11.AL_NO_ERROR) {
+		if (error == AL10.AL_NO_ERROR) {
 			return;
 		}
 		String error_str = "OpenAL error detected: ";
@@ -254,28 +255,28 @@ public final class Utils {
 	}
 
 	public static void alcError(long deviceHandle) {
-		if(num >= 10) {
+		if (num >= 10) {
 			System.exit(0);
 		}
-		int error = ALC11.alcGetError(deviceHandle);
-		if(error == ALC11.ALC_NO_ERROR) {
+		int error = ALC10.alcGetError(deviceHandle);
+		if (error == ALC10.ALC_NO_ERROR) {
 			return;
 		}
 		String error_str = "OpenALC error detected: ";
 		switch (error) {
-		case ALC11.ALC_INVALID_CONTEXT:
+		case ALC10.ALC_INVALID_CONTEXT:
 			error_str += "ALC_INVALID_CONTEXT";
 			break;
-		case ALC11.ALC_INVALID_DEVICE:
+		case ALC10.ALC_INVALID_DEVICE:
 			error_str += "ALC_INVALID_DEVICE";
 			break;
-		case ALC11.ALC_INVALID_ENUM:
+		case ALC10.ALC_INVALID_ENUM:
 			error_str += "ALC_INVALID_ENUM";
 			break;
-		case ALC11.ALC_INVALID_VALUE:
+		case ALC10.ALC_INVALID_VALUE:
 			error_str += "ALC_INVALID_VALUE";
 			break;
-		case ALC11.ALC_OUT_OF_MEMORY:
+		case ALC10.ALC_OUT_OF_MEMORY:
 			error_str += "ALC_OUT_OF_MEMORY";
 			break;
 		default:
@@ -283,7 +284,7 @@ public final class Utils {
 			break;
 		}
 		error_str += "\n";
-		if(deviceHandle == 0) {
+		if (deviceHandle == 0) {
 			error_str += "WARNING: No valid device handle specified\n";
 		}
 		StackTraceElement[] s = Thread.currentThread().getStackTrace();
@@ -293,10 +294,10 @@ public final class Utils {
 		Logger.error(error_str);
 		num++;
 	}
-	
+
 	public static void glError() {
 		int error = GL11.glGetError();
-		if(error == GL11.GL_NO_ERROR) {
+		if (error == GL11.GL_NO_ERROR) {
 			return;
 		}
 		String error_str = "OpenGL error detected: ";
@@ -369,24 +370,24 @@ public final class Utils {
 	public static Field getPrivateField(Class<?> cls, String name) {
 		try {
 			Field result = null;
-			while(result == null) {
+			while (result == null) {
 				try {
 					// Remove private restrictions
 					result = cls.getDeclaredField(name);
 					result.setAccessible(true);
-					
+
 					// Remove final restrictions
 					Field modifiers = Field.class.getDeclaredField("modifiers");
 					modifiers.setAccessible(true);
 					modifiers.set(result, result.getModifiers() & ~Modifier.FINAL);
-				} catch(NoSuchFieldException nofield) {
+				} catch (NoSuchFieldException nofield) {
 					cls = cls.getSuperclass();
 				}
 			}
 			return result;
-		} catch(Throwable t) {
+		} catch (Throwable t) {
 			throw new RuntimeException("Couldn't obtain field " + cls.getName() + "." + name);
 		}
 	}
-	
+
 }

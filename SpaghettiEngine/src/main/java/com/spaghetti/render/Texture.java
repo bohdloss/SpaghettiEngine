@@ -141,12 +141,4 @@ public class Texture extends Asset {
 		return type;
 	}
 
-	@Override
-	protected void reset0() {
-		buffer = null;
-		width = 0;
-		height = 0;
-		id = -1;
-	}
-
 }

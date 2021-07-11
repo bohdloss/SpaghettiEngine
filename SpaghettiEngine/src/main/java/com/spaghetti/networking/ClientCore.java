@@ -48,35 +48,35 @@ public abstract class ClientCore extends CoreComponent {
 		if (isConnected()) {
 			synchronized (queue_lock) {
 				try {
-					
+
 					flags.firstTime = false;
-					
+
 					// Can write
-					if(worker.canSend()) {
-						
+					if (worker.canSend()) {
+
 						// Write queued special functions
 						functions.forEach(func -> func.execute(worker));
 						functions.clear();
-	
+
 						// Write data about each object that needs an update
 						worker.writeObjectReplication();
-	
+
 						// Send / receive packets
 						worker.send();
-						
+
 					} // write
-					
+
 					// Can read
-					if(worker.canReceive()) {
-						
+					if (worker.canReceive()) {
+
 						// Read incoming packet
 						worker.receive();
-						
+
 						// Parse it
 						worker.parsePacket();
-						
+
 					} // read
-					
+
 				} catch (Throwable t) {
 					internal_clienterror(t, worker, flags.clientId);
 				}
@@ -92,18 +92,18 @@ public abstract class ClientCore extends CoreComponent {
 	// Client interface
 
 	public void queueNetworkFunction(NetworkFunction function) {
-		synchronized(queue_lock) {
+		synchronized (queue_lock) {
 			functions.add(function);
 		}
 	}
-	
+
 	public void queueEvent(GameObject issuer, GameEvent event) {
 		if (event == null) {
 			throw new IllegalArgumentException();
 		}
 		synchronized (queue_lock) {
 			functions.add(client -> {
-				if(!event.skip(client, true)) {
+				if (!event.skip(client, true)) {
 					client.writeGameEvent(issuer, event);
 				}
 			});
@@ -119,7 +119,7 @@ public abstract class ClientCore extends CoreComponent {
 	public void queueRPC(RPC rpc) {
 		synchronized (queue_lock) {
 			functions.add(client -> {
-				if(!rpc.skip(client, true)) {
+				if (!rpc.skip(client, true)) {
 					client.writeRPC(rpc);
 				}
 			});
@@ -215,7 +215,7 @@ public abstract class ClientCore extends CoreComponent {
 		worker.disconnect(); // Reset worker socket
 		// Detach and destroy level
 		Level activeLvl = getGame().getActiveLevel();
-		if(activeLvl != null) {
+		if (activeLvl != null) {
 			activeLvl.destroy();
 			getGame().detachLevel();
 		}
@@ -231,7 +231,7 @@ public abstract class ClientCore extends CoreComponent {
 			worker.send();
 			worker.receive();
 			return worker.readAuthentication();
-		} catch(Throwable t) {
+		} catch (Throwable t) {
 			Logger.error("Handshake error:", t);
 			return false;
 		}

@@ -83,12 +83,4 @@ public class RenderBuffer extends Asset {
 		Utils.glError();
 	}
 
-	@Override
-	protected void reset0() {
-		id = -1;
-		width = 0;
-		height = 0;
-		type = -1;
-	}
-
 }

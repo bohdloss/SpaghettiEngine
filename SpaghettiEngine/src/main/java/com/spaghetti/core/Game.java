@@ -186,7 +186,7 @@ public final class Game {
 
 	// If the provided game instance dies, this instance does too
 	public void depends(Game game) {
-		if(game == null) {
+		if (game == null) {
 			throw new NullPointerException();
 		}
 		if (!dependencies.contains(game)) {
@@ -196,7 +196,7 @@ public final class Game {
 
 	// Reverts the effects of depends()
 	public void not_depends(Game game) {
-		if(game == null) {
+		if (game == null) {
 			throw new NullPointerException();
 		}
 		dependencies.remove(game);
@@ -455,16 +455,10 @@ public final class Game {
 			return true;
 		}
 
-		if (!updNull && updater.stopped()) {
+		if ((!updNull && updater.stopped()) || (!renderNull && renderer.stopped())) {
 			return true;
 		}
-		if (!renderNull && renderer.stopped()) {
-			return true;
-		}
-		if (!clientNull && client.stopped()) {
-			return true;
-		}
-		if (!serverNull && server.stopped()) {
+		if ((!clientNull && client.stopped()) || (!serverNull && server.stopped())) {
 			return true;
 		}
 

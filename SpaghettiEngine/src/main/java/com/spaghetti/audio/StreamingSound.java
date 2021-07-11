@@ -6,17 +6,16 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
 import org.lwjgl.BufferUtils;
-import org.lwjgl.openal.AL11;
-
+import org.lwjgl.openal.AL10;
 import com.spaghetti.interfaces.StreamProvider;
 import com.spaghetti.utils.Logger;
 import com.spaghetti.utils.Utils;
 
 public class StreamingSound extends Sound {
-	
+
 	public static final int NUM_BUFFERS = 4;
 	public static final int BUFFER_SIZE = 65536;
-	
+
 	protected int format;
 	protected int frequency;
 	protected int bps;
@@ -34,87 +33,88 @@ public class StreamingSound extends Sound {
 		this.provider = (StreamProvider) objects[4];
 		this.numbuffers = (int) objects[5];
 		this.buffersize = (int) objects[6];
-		
-		if(format == 0) {
-			format = AL11.AL_FORMAT_MONO8;
+
+		if (format == 0) {
+			format = AL10.AL_FORMAT_MONO8;
 		}
-		if(frequency == 0) {
+		if (frequency == 0) {
 			frequency = 44100;
 		}
-		if(bps == 0) {
+		if (bps == 0) {
 			bps = 8;
 		}
-		if(byteOrder == null) {
+		if (byteOrder == null) {
 			byteOrder = ByteOrder.nativeOrder();
 		}
-		if(numbuffers == 0) {
+		if (numbuffers == 0) {
 			numbuffers = NUM_BUFFERS;
 		}
-		if(buffersize == 0) {
+		if (buffersize == 0) {
 			buffersize = BUFFER_SIZE;
 		}
 	}
-	
-	public void setData(int format, int frequency, int bps, ByteOrder byteOrder, StreamProvider provider, int numbuffers, int buffersize) {
-		this.setData(new Object[] {format, frequency, bps, byteOrder, provider, numbuffers, buffersize});
+
+	public void setData(int format, int frequency, int bps, ByteOrder byteOrder, StreamProvider provider,
+			int numbuffers, int buffersize) {
+		this.setData(new Object[] { format, frequency, bps, byteOrder, provider, numbuffers, buffersize });
 	}
-	
+
 	// Per-source data
 	protected static class StreamingStruct {
-		
+
 		public VolatileSound[] buffers;
 		public int playIndex;
 		public int loadIndex;
 		public InputStream input;
 		public StreamingSound inst;
-		
+
 		public boolean firstTime = true;
 		public boolean finished;
-		
+
 		public StreamingStruct(StreamingSound inst) {
 			this.inst = inst;
 			buffers = new VolatileSound[inst.numbuffers];
-			for(int i = 0; i < buffers.length; i++) {
+			for (int i = 0; i < buffers.length; i++) {
 				buffers[i] = new VolatileSound();
 				buffers[i].setData(inst.format, BufferUtils.createByteBuffer(inst.buffersize), inst.frequency);
 				buffers[i].load();
 			}
 		}
-		
+
 		// Cycle functions
-		
+
 		public void increasePlay() {
 			playIndex++;
-			if(playIndex >= buffers.length) {
+			if (playIndex >= buffers.length) {
 				playIndex = 0;
 			}
 		}
-		
+
 		public void increaseLoad() {
 			loadIndex++;
-			if(loadIndex >= buffers.length) {
+			if (loadIndex >= buffers.length) {
 				loadIndex = 0;
 			}
 		}
-		
+
 		// Get a new stream
 		public boolean resetStream() {
 			try {
 				input = inst.provider.provideStream();
 				return true;
-			} catch(Throwable e) {
+			} catch (Throwable e) {
 				return false;
 			}
 		}
-		
+
 		// Close the stream and ignore errors
 		public void closeStream() {
 			try {
 				input.close();
-			} catch(Throwable e) {
+			} catch (Throwable e) {
 			}
 		}
-		
+
 		// Read a bit of data into the buffer
 		public boolean readStream(VolatileSound buffer) {
 			try {
@@ -122,15 +122,15 @@ public class StreamingSound extends Sound {
 				ByteBuffer data = buffer.getData();
 				data.clear();
 				int read = Utils.effectiveRead(input, data, 0, data.capacity());
-				
+
 				// Reorder bytes
-				if(data.order() != inst.byteOrder) {
+				if (data.order() != inst.byteOrder) {
 					byte[] buf = new byte[inst.bps / 8];
-					while(data.hasRemaining()) {
-						for(int i = 0; i < buf.length; i++) {
+					while (data.hasRemaining()) {
+						for (int i = 0; i < buf.length; i++) {
 							buf[i] = data.get(data.position() + i);
 						}
-						for(int i = 0; i < buf.length; i++) {
+						for (int i = 0; i < buf.length; i++) {
 							data.put(buf[buf.length - i - 1]);
 						}
 					}
@@ -142,10 +142,10 @@ public class StreamingSound extends Sound {
 				return false;
 			}
 		}
-		
+
 		// Dispose of resources
 		public void destroy() {
-			for(VolatileSound sound : buffers) {
+			for (VolatileSound sound : buffers) {
 				sound.unload();
 			}
 			buffers = null;
@@ -154,119 +154,108 @@ public class StreamingSound extends Sound {
 			closeStream();
 			inst = null;
 		}
-		
+
 	}
-	
+
 	@Override
 	protected void load0() {
-		
+
 	}
-	
+
 	@Override
 	protected void unload0() {
 		// Dispose of all structures
 		status.clear();
-		for(Object obj : data.values()) {
-			if(obj == null) {
+		for (Object obj : data.values()) {
+			if (obj == null) {
 				continue;
 			}
 			((StreamingStruct) obj).destroy();
 		}
 		data.clear();
 	}
-	
+
 	@Override
 	public boolean isFilled() {
 		return provider != null;
 	}
 
-	@Override
-	protected void reset0() {
-		format = 0;
-		frequency = 0;
-		bps = 0;
-		byteOrder = null;
-		provider = null;
-		numbuffers = 0;
-		buffersize = 0;
-	}
-	
 	protected StreamingStruct getStruct(SoundSource source) {
 		Object _data = data.get(source);
-		if(_data == null) {
+		if (_data == null) {
 			data.put(source, new StreamingStruct(this));
 		}
 		return (StreamingStruct) data.get(source);
 	}
-	
+
 	protected void destroyStruct(SoundSource source) {
 		StreamingStruct struct = getStruct(source);
 		struct.destroy();
 		data.put(source, null);
 	}
-	
+
 	@Override
 	public void update(SoundSource source) {
 		StreamingStruct structure = getStruct(source);
 		int state = status.get(source);
-		
+
 		// In case the source is playing keep streaming in audio data
-		if(state == PLAYING && !structure.finished) {
-			int processed = AL11.alGetSourcei(source.getSourceId(), AL11.AL_BUFFERS_PROCESSED);
-			
-			if(processed > 0) {
+		if (state == PLAYING && !structure.finished) {
+			int processed = AL10.alGetSourcei(source.getSourceId(), AL10.AL_BUFFERS_PROCESSED);
+
+			if (processed > 0) {
 				// Unqueue processed buffers here
-				for(int i = 0; i < processed; i++) {
+				for (int i = 0; i < processed; i++) {
 					VolatileSound buffer = structure.buffers[structure.playIndex];
-					AL11.alSourceUnqueueBuffers(source.getSourceId(), new int[] {buffer.getId()});
+					AL10.alSourceUnqueueBuffers(source.getSourceId(), new int[] { buffer.getId() });
 					Utils.alError();
-					
+
 					structure.increasePlay();
 				}
-				
+
 				// Then load these buffers with new data and re-queue them
-				for(int i = 0; i < processed; i++) {
+				for (int i = 0; i < processed; i++) {
 					VolatileSound buffer = structure.buffers[structure.loadIndex];
-					if(!structure.readStream(buffer)) {
+					if (!structure.readStream(buffer)) {
 						// We reached the end, raise finished flag
 						structure.finished = true;
 					}
 					buffer.copyData();
-					
-					AL11.alSourceQueueBuffers(source.getSourceId(), buffer.getId());
+
+					AL10.alSourceQueueBuffers(source.getSourceId(), buffer.getId());
 					Utils.alError();
-					
+
 					structure.increaseLoad();
 				}
 			}
 		}
-		
+
 		// Wait for the source to actually finish if the finished flag is on
-		if(structure.finished) {
-			int alstate = AL11.alGetSourcei(source.getSourceId(), AL11.AL_SOURCE_STATE);
+		if (structure.finished) {
+			int alstate = AL10.alGetSourcei(source.getSourceId(), AL10.AL_SOURCE_STATE);
 			Utils.alError();
-			
-			if(alstate == AL11.AL_STOPPED) {
-				
+
+			if (alstate == AL10.AL_STOPPED) {
+
 				// We reached the end, either loop or stop
-				if(source.isSourceLooping()) {
+				if (source.isSourceLooping()) {
 					// Stop the source
-					AL11.alSourceStop(source.getSourceId());
+					AL10.alSourceStop(source.getSourceId());
 					Utils.alError();
-					
+
 					// Remove all buffers
-					for(VolatileSound buffer : structure.buffers) {
-						AL11.alSourceUnqueueBuffers(source.getSourceId(), new int[] {buffer.getId()});
+					for (VolatileSound buffer : structure.buffers) {
+						AL10.alSourceUnqueueBuffers(source.getSourceId(), new int[] { buffer.getId() });
 						Utils.alError();
 					}
-					
+
 					// Reset structure
 					structure.finished = false;
 					structure.firstTime = true;
 					structure.playIndex = 0;
 					structure.loadIndex = 0;
 					structure.closeStream();
-					
+
 					// Force an update
 					status.put(source, Sound.DETACHED);
 					source.play();
@@ -276,52 +265,52 @@ public class StreamingSound extends Sound {
 			}
 		}
 	}
-	
+
 	@Override
 	protected void stateUpdate(SoundSource source) {
 		// Get a structure to work with
 		StreamingStruct structure = getStruct(source);
-		
+
 		// Update based on state
 		int state = status.get(source);
-		switch(state) {
+		switch (state) {
 		case PLAYING:
 			// At first we initialize all buffers
-			if(structure.firstTime) {
+			if (structure.firstTime) {
 				// We need a fresh stream
 				structure.resetStream();
-				
-				for(VolatileSound buffer : structure.buffers) {
+
+				for (VolatileSound buffer : structure.buffers) {
 					// Copy data into buffer
 					structure.readStream(buffer);
 					buffer.copyData();
-					
+
 					// Queue buffer
-					AL11.alSourceQueueBuffers(source.getSourceId(), buffer.getId());
+					AL10.alSourceQueueBuffers(source.getSourceId(), buffer.getId());
 					Utils.alError();
 				}
-				
+
 				structure.firstTime = false;
 			}
-			AL11.alSourcePlay(source.getSourceId());
+			AL10.alSourcePlay(source.getSourceId());
 			Utils.alError();
 			break;
 		case PAUSED:
 			// Simply pause source
-			AL11.alSourcePause(source.getSourceId());
+			AL10.alSourcePause(source.getSourceId());
 			Utils.alError();
 			break;
 		case STOPPED:
 			// Stop source to mark all buffers as queued
-			AL11.alSourceStop(source.getSourceId());
+			AL10.alSourceStop(source.getSourceId());
 			Utils.alError();
-			
+
 			// Unqueue all buffers
-			for(VolatileSound buffer : structure.buffers) {
-				AL11.alSourceUnqueueBuffers(source.getSourceId(), new int[] {buffer.getId()});
+			for (VolatileSound buffer : structure.buffers) {
+				AL10.alSourceUnqueueBuffers(source.getSourceId(), new int[] { buffer.getId() });
 				Utils.alError();
 			}
-			
+
 			// Destroy structure
 			destroyStruct(source);
 			break;
@@ -329,12 +318,12 @@ public class StreamingSound extends Sound {
 	}
 
 	// Getters
-	
+
 	@Override
 	public int getId() {
 		return 0;
 	}
-	
+
 	@Override
 	public int getFormat() {
 		return format;
@@ -349,25 +338,25 @@ public class StreamingSound extends Sound {
 	public int getFrequency() {
 		return frequency;
 	}
-	
+
 	public int getBPS() {
 		return bps;
 	}
-	
+
 	public int getNumBuffers() {
 		return numbuffers;
 	}
-	
+
 	public int getBufferSize() {
 		return buffersize;
 	}
-	
+
 	public ByteOrder getByteOrder() {
 		return byteOrder;
 	}
-	
+
 	public StreamProvider getStreamProvider() {
 		return provider;
 	}
-	
+
 }

@@ -4,7 +4,6 @@ import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
 
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.nio.IntBuffer;
 
 import org.joml.Matrix4d;
@@ -19,12 +18,8 @@ import org.lwjgl.openal.ALCapabilities;
 import org.lwjgl.opengl.GLCapabilities;
 
 import com.spaghetti.assets.AssetManager;
-import com.spaghetti.audio.MicrophoneInputStream;
-import com.spaghetti.audio.SoundSource;
-import com.spaghetti.audio.StreamingSound;
 import com.spaghetti.core.CoreComponent;
 import com.spaghetti.core.GameWindow;
-import com.spaghetti.interfaces.StreamProvider;
 import com.spaghetti.objects.Camera;
 import com.spaghetti.utils.*;
 
@@ -110,7 +105,7 @@ public class RendererCore extends CoreComponent {
 //		source.play();
 //		getGame().getActiveLevel().addObject(source);
 	}
-	
+
 	@Override
 	protected void terminate0() throws Throwable {
 		if (openal) {
@@ -131,14 +126,14 @@ public class RendererCore extends CoreComponent {
 	protected void loopEvents(float delta) throws Throwable {
 		try {
 			GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_STENCIL_BUFFER_BIT);
-			
+
 			if (window.shouldClose()) {
 				getGame().stopAsync();
 			}
-			
+
 			Camera camera = getCamera();
 			if (camera != null) {
-				if(openal) {
+				if (openal) {
 					// Update listener position and velocity
 					Vector3f camerapos = new Vector3f();
 					camera.getWorldPosition(camerapos);
@@ -153,7 +148,7 @@ public class RendererCore extends CoreComponent {
 					AL10.alListener3f(AL10.AL_VELOCITY, cameravel.x, cameravel.y, cameravel.z);
 					camerapos_old.set(camerapos);
 				}
-				
+
 				// Draw level to camera frame buffer
 				camera.render(null, delta);
 
@@ -170,7 +165,7 @@ public class RendererCore extends CoreComponent {
 				defaultShader.use();
 				defaultShader.setProjection(renderMatrix);
 				camera.getFrameBuffer().getColorTexture().use(0);
-				
+
 				sceneRenderer.render();
 			}
 			window.swap();

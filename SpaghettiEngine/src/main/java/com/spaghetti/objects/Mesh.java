@@ -66,7 +66,6 @@ public class Mesh extends GameObject {
 
 	@Override
 	public void writeDataServer(NetworkBuffer buffer) {
-		System.out.println("b");
 		super.writeDataServer(buffer);
 		buffer.putString(true, model == null ? "" : model.getName(), NetworkBuffer.UTF_8);
 		buffer.putString(true, material == null ? "" : material.getName(), NetworkBuffer.UTF_8);
@@ -74,7 +73,6 @@ public class Mesh extends GameObject {
 
 	@Override
 	public void readDataClient(NetworkBuffer buffer) {
-		System.out.println("a");
 		super.readDataClient(buffer);
 		String modelname = buffer.getString(true, NetworkBuffer.UTF_8);
 		String materialname = buffer.getString(true, NetworkBuffer.UTF_8);

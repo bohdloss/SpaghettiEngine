@@ -9,13 +9,12 @@ public class UpdaterCore extends CoreComponent {
 	protected void loopEvents(float delta) throws Throwable {
 		try {
 			if (!getGame().isHeadless()) {
-				getGame().getAssetManager().update();
 				getGame().getInputDispatcher().update();
 			}
 		} catch (Throwable t) {
 			Logger.error("Updater error:", t);
 		}
-			
+
 		try {
 			if (getLevel() != null) {
 				getLevel().update(delta);

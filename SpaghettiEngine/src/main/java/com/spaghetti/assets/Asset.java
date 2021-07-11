@@ -66,18 +66,6 @@ public abstract class Asset {
 
 	public abstract boolean isFilled();
 
-	public final void reset() {
-		try {
-			unload();
-			reset0();
-		} catch (Throwable t) {
-			Logger.error("Error resetting asset " + name, t);
-		}
-	}
-
-	// Revert the effects of setData()
-	protected abstract void reset0();
-
 	public final String getName() {
 		return name;
 	}

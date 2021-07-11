@@ -31,7 +31,7 @@ public class SoundSource extends GameObject {
 		gain = 1;
 		pitch = 1;
 	}
-	
+
 	public SoundSource(Sound sound) {
 		this();
 		this.sound = sound;
@@ -52,12 +52,12 @@ public class SoundSource extends GameObject {
 		}
 		getGame().getRendererDispatcher().quickQueue(() -> {
 			if (id != 0) {
-				AL11.alGetError();
+				AL10.alGetError();
 				AL10.alSourceStop(id);
 				Utils.alError();
 				AL10.alSourcei(id, AL10.AL_LOOPING, 0);
 				Utils.alError();
-				if(sound != null) {
+				if (sound != null) {
 					sound.stop(this);
 				}
 				AL10.alDeleteSources(id);
@@ -79,10 +79,10 @@ public class SoundSource extends GameObject {
 	@Override
 	public void writeDataServer(NetworkBuffer buffer) {
 		super.writeDataServer(buffer);
-		
+
 		// Sound
 		buffer.putString(true, sound == null ? "" : sound.getName(), NetworkBuffer.UTF_8);
-		
+
 		// Variables
 		buffer.putByte((byte) status);
 		buffer.putFloat(gain);
@@ -94,11 +94,11 @@ public class SoundSource extends GameObject {
 	@Override
 	public void readDataClient(NetworkBuffer buffer) {
 		super.readDataClient(buffer);
-		
+
 		// Sound
 		String name = buffer.getString(true, NetworkBuffer.UTF_8);
 		setSound(name.equals("") ? null : getGame().getAssetManager().sound(name));
-		
+
 		// Variables
 		status = buffer.getByte() & 0xFF;
 		gain = buffer.getFloat();
@@ -121,14 +121,14 @@ public class SoundSource extends GameObject {
 
 	@Override
 	public void render(Camera renderer, float delta) {
-		if(sound == null || !sound.valid()) {
+		if (sound == null || !sound.valid()) {
 			return;
 		}
 		if (id == 0) {
 			id = AL10.alGenSources();
 			Utils.alError();
 		}
-		
+
 		// Update position and velocity
 		Vector3f currentpos = new Vector3f();
 		getWorldPosition(currentpos);
@@ -137,14 +137,14 @@ public class SoundSource extends GameObject {
 		currentvel.div(delta / 1000);
 		lastpos.set(currentpos);
 		AL10.alSource3f(id, AL10.AL_POSITION, currentpos.x, currentpos.y, currentpos.z);
-		if(delta != 0) { // Avoid getting Infinity or NaN as velocity
+		if (delta != 0) { // Avoid getting Infinity or NaN as velocity
 			AL10.alSource3f(id, AL10.AL_VELOCITY, currentvel.x, currentvel.y, currentvel.z);
 		}
-		
+
 		// Update properties
 		AL10.alSourcef(id, AL10.AL_GAIN, gain);
 		AL10.alSourcef(id, AL10.AL_PITCH, pitch);
-		
+
 		// Update playing state
 		switch (status) {
 		case PLAYING:
@@ -155,21 +155,21 @@ public class SoundSource extends GameObject {
 			break;
 		case IDLE:
 			sound.stop(this);
-			if(destroyOnStop) {
+			if (destroyOnStop) {
 				destroy();
 				return;
 			}
 			break;
 		}
-		
+
 		// Update the sound then
 		sound.update(this);
 	}
-	
+
 	protected void internal_delete() {
-		
+
 	}
-	
+
 	// Getters and setters
 
 	public int getSourceId() {
@@ -181,11 +181,11 @@ public class SoundSource extends GameObject {
 	}
 
 	public void setSound(Sound buffer) {
-		if(this.sound == buffer) {
+		if (this.sound == buffer) {
 			return;
 		}
-		if(this.sound != null) {
-			if(!getGame().isHeadless()) {
+		if (this.sound != null) {
+			if (!getGame().isHeadless()) {
 				getGame().getRendererDispatcher().quickQueue(() -> {
 					this.sound.stop(this);
 					return null;
@@ -194,7 +194,7 @@ public class SoundSource extends GameObject {
 		}
 		this.sound = buffer;
 	}
-	
+
 	public float getSourceGain() {
 		return gain;
 	}
@@ -227,9 +227,9 @@ public class SoundSource extends GameObject {
 	public void setDestroyOnStop(boolean destroyOnStop) {
 		this.destroyOnStop = looping ? false : destroyOnStop;
 	}
-	
+
 	public int getStatus() {
 		return status;
 	}
-	
+
 }
