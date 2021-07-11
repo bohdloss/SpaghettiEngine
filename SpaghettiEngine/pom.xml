@@ -43,101 +43,13 @@
 	<joml.version>1.10.1</joml.version>
 	<maven.compiler.source>1.8</maven.compiler.source>
 	<maven.compiler.target>1.8</maven.compiler.target>
+	<lwjgl.linuxamd64>natives-linux</lwjgl.linuxamd64>
+	<lwjgl.linuxaarch64>natives-linux-arm64</lwjgl.linuxaarch64>
+	<lwjgl.linuxarm>natives-linux-arm32</lwjgl.linuxarm>
+	<lwjgl.macosamd64>natives-macos</lwjgl.macosamd64>
+	<lwjgl.windowsamd64>natives-windows</lwjgl.windowsamd64>
+	<lwjgl.windowsx86>natives-windows-x86</lwjgl.windowsx86>
 </properties>
-
-	<profiles>
-		<profile>
-			<id>lwjgl-natives-linux-amd64</id>
-			<activation>
-				<os>
-					<family>unix</family>
-					<arch>amd64</arch>
-				</os>
-			</activation>
-			<properties>
-				<lwjgl.natives>natives-linux</lwjgl.natives>
-			</properties>
-		</profile>
-		<profile>
-			<id>lwjgl-natives-linux-aarch64</id>
-			<activation>
-				<os>
-					<family>unix</family>
-					<arch>aarch64</arch>
-				</os>
-			</activation>
-			<properties>
-				<lwjgl.natives>natives-linux-arm64</lwjgl.natives>
-			</properties>
-		</profile>
-		<profile>
-			<id>lwjgl-natives-linux-arm</id>
-			<activation>
-				<os>
-					<family>unix</family>
-					<arch>arm</arch>
-				</os>
-			</activation>
-			<properties>
-				<lwjgl.natives>natives-linux-arm32</lwjgl.natives>
-			</properties>
-		</profile>
-		<profile>
-			<id>lwjgl-natives-linux-arm32</id>
-			<activation>
-				<os>
-					<family>unix</family>
-					<arch>arm32</arch>
-				</os>
-			</activation>
-			<properties>
-				<lwjgl.natives>natives-linux-arm32</lwjgl.natives>
-			</properties>
-		</profile>
-		<profile>
-			<id>lwjgl-natives-macos-amd64</id>
-			<activation>
-				<os>
-					<family>mac</family>
-					<arch>amd64</arch>
-				</os>
-			</activation>
-			<properties>
-				<lwjgl.natives>natives-macos</lwjgl.natives>
-			</properties>
-			<dependencies>
-				<dependency>
-					<groupId>org.lwjgl</groupId>
-					<artifactId>lwjgl-vulkan</artifactId>
-					<classifier>natives-macos</classifier>
-				</dependency>
-			</dependencies>
-		</profile>
-		<profile>
-			<id>lwjgl-natives-windows-amd64</id>
-			<activation>
-				<os>
-					<family>windows</family>
-					<arch>amd64</arch>
-				</os>
-			</activation>
-			<properties>
-				<lwjgl.natives>natives-windows</lwjgl.natives>
-			</properties>
-		</profile>
-		<profile>
-			<id>lwjgl-natives-windows-x86</id>
-			<activation>
-				<os>
-					<family>windows</family>
-					<arch>x86</arch>
-				</os>
-			</activation>
-			<properties>
-				<lwjgl.natives>natives-windows-x86</lwjgl.natives>
-			</properties>
-		</profile>
-	</profiles>
 
 	<dependencyManagement>
 		<dependencies>
@@ -304,160 +216,922 @@
 			<groupId>org.lwjgl</groupId>
 			<artifactId>lwjgl-zstd</artifactId>
 		</dependency>
+		<!--
+			natives-linux
+		-->
 		<dependency>
 			<groupId>org.lwjgl</groupId>
 			<artifactId>lwjgl</artifactId>
-			<classifier>${lwjgl.natives}</classifier>
+			<classifier>natives-linux</classifier>
 		</dependency>
 		<dependency>
 			<groupId>org.lwjgl</groupId>
 			<artifactId>lwjgl-assimp</artifactId>
-			<classifier>${lwjgl.natives}</classifier>
+			<classifier>natives-linux</classifier>
 		</dependency>
 		<dependency>
 			<groupId>org.lwjgl</groupId>
 			<artifactId>lwjgl-bgfx</artifactId>
-			<classifier>${lwjgl.natives}</classifier>
+			<classifier>natives-linux</classifier>
 		</dependency>
 		<dependency>
 			<groupId>org.lwjgl</groupId>
 			<artifactId>lwjgl-glfw</artifactId>
-			<classifier>${lwjgl.natives}</classifier>
+			<classifier>natives-linux</classifier>
 		</dependency>
 		<dependency>
 			<groupId>org.lwjgl</groupId>
 			<artifactId>lwjgl-jemalloc</artifactId>
-			<classifier>${lwjgl.natives}</classifier>
+			<classifier>natives-linux</classifier>
 		</dependency>
 		<dependency>
 			<groupId>org.lwjgl</groupId>
 			<artifactId>lwjgl-libdivide</artifactId>
-			<classifier>${lwjgl.natives}</classifier>
+			<classifier>natives-linux</classifier>
 		</dependency>
 		<dependency>
 			<groupId>org.lwjgl</groupId>
 			<artifactId>lwjgl-llvm</artifactId>
-			<classifier>${lwjgl.natives}</classifier>
+			<classifier>natives-linux</classifier>
 		</dependency>
 		<dependency>
 			<groupId>org.lwjgl</groupId>
 			<artifactId>lwjgl-lmdb</artifactId>
-			<classifier>${lwjgl.natives}</classifier>
+			<classifier>natives-linux</classifier>
 		</dependency>
 		<dependency>
 			<groupId>org.lwjgl</groupId>
 			<artifactId>lwjgl-lz4</artifactId>
-			<classifier>${lwjgl.natives}</classifier>
+			<classifier>natives-linux</classifier>
 		</dependency>
 		<dependency>
 			<groupId>org.lwjgl</groupId>
 			<artifactId>lwjgl-meow</artifactId>
-			<classifier>${lwjgl.natives}</classifier>
+			<classifier>natives-linux</classifier>
 		</dependency>
 		<dependency>
 			<groupId>org.lwjgl</groupId>
 			<artifactId>lwjgl-nanovg</artifactId>
-			<classifier>${lwjgl.natives}</classifier>
+			<classifier>natives-linux</classifier>
 		</dependency>
 		<dependency>
 			<groupId>org.lwjgl</groupId>
 			<artifactId>lwjgl-nfd</artifactId>
-			<classifier>${lwjgl.natives}</classifier>
+			<classifier>natives-linux</classifier>
 		</dependency>
 		<dependency>
 			<groupId>org.lwjgl</groupId>
 			<artifactId>lwjgl-nuklear</artifactId>
-			<classifier>${lwjgl.natives}</classifier>
+			<classifier>natives-linux</classifier>
 		</dependency>
 		<dependency>
 			<groupId>org.lwjgl</groupId>
 			<artifactId>lwjgl-openal</artifactId>
-			<classifier>${lwjgl.natives}</classifier>
+			<classifier>natives-linux</classifier>
 		</dependency>
 		<dependency>
 			<groupId>org.lwjgl</groupId>
 			<artifactId>lwjgl-opengl</artifactId>
-			<classifier>${lwjgl.natives}</classifier>
+			<classifier>natives-linux</classifier>
 		</dependency>
 		<dependency>
 			<groupId>org.lwjgl</groupId>
 			<artifactId>lwjgl-opengles</artifactId>
-			<classifier>${lwjgl.natives}</classifier>
+			<classifier>natives-linux</classifier>
 		</dependency>
 		<dependency>
 			<groupId>org.lwjgl</groupId>
 			<artifactId>lwjgl-openvr</artifactId>
-			<classifier>${lwjgl.natives}</classifier>
+			<classifier>natives-linux</classifier>
 		</dependency>
 		<dependency>
 			<groupId>org.lwjgl</groupId>
 			<artifactId>lwjgl-opus</artifactId>
-			<classifier>${lwjgl.natives}</classifier>
+			<classifier>natives-linux</classifier>
 		</dependency>
 		<dependency>
 			<groupId>org.lwjgl</groupId>
 			<artifactId>lwjgl-par</artifactId>
-			<classifier>${lwjgl.natives}</classifier>
+			<classifier>natives-linux</classifier>
 		</dependency>
 		<dependency>
 			<groupId>org.lwjgl</groupId>
 			<artifactId>lwjgl-remotery</artifactId>
-			<classifier>${lwjgl.natives}</classifier>
+			<classifier>natives-linux</classifier>
 		</dependency>
 		<dependency>
 			<groupId>org.lwjgl</groupId>
 			<artifactId>lwjgl-rpmalloc</artifactId>
-			<classifier>${lwjgl.natives}</classifier>
+			<classifier>natives-linux</classifier>
 		</dependency>
 		<dependency>
 			<groupId>org.lwjgl</groupId>
 			<artifactId>lwjgl-shaderc</artifactId>
-			<classifier>${lwjgl.natives}</classifier>
+			<classifier>natives-linux</classifier>
 		</dependency>
 		<dependency>
 			<groupId>org.lwjgl</groupId>
 			<artifactId>lwjgl-sse</artifactId>
-			<classifier>${lwjgl.natives}</classifier>
+			<classifier>natives-linux</classifier>
 		</dependency>
 		<dependency>
 			<groupId>org.lwjgl</groupId>
 			<artifactId>lwjgl-stb</artifactId>
-			<classifier>${lwjgl.natives}</classifier>
+			<classifier>natives-linux</classifier>
 		</dependency>
 		<dependency>
 			<groupId>org.lwjgl</groupId>
 			<artifactId>lwjgl-tinyexr</artifactId>
-			<classifier>${lwjgl.natives}</classifier>
+			<classifier>natives-linux</classifier>
 		</dependency>
 		<dependency>
 			<groupId>org.lwjgl</groupId>
 			<artifactId>lwjgl-tinyfd</artifactId>
-			<classifier>${lwjgl.natives}</classifier>
+			<classifier>natives-linux</classifier>
 		</dependency>
 		<dependency>
 			<groupId>org.lwjgl</groupId>
 			<artifactId>lwjgl-tootle</artifactId>
-			<classifier>${lwjgl.natives}</classifier>
+			<classifier>natives-linux</classifier>
 		</dependency>
 		<dependency>
 			<groupId>org.lwjgl</groupId>
 			<artifactId>lwjgl-vma</artifactId>
-			<classifier>${lwjgl.natives}</classifier>
+			<classifier>natives-linux</classifier>
 		</dependency>
 		<dependency>
 			<groupId>org.lwjgl</groupId>
 			<artifactId>lwjgl-xxhash</artifactId>
-			<classifier>${lwjgl.natives}</classifier>
+			<classifier>natives-linux</classifier>
 		</dependency>
 		<dependency>
 			<groupId>org.lwjgl</groupId>
 			<artifactId>lwjgl-yoga</artifactId>
-			<classifier>${lwjgl.natives}</classifier>
+			<classifier>natives-linux</classifier>
 		</dependency>
 		<dependency>
 			<groupId>org.lwjgl</groupId>
 			<artifactId>lwjgl-zstd</artifactId>
-			<classifier>${lwjgl.natives}</classifier>
+			<classifier>natives-linux</classifier>
+		</dependency>
+		<!--
+			natives-linux-arm64
+		-->
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl</artifactId>
+			<classifier>natives-linux-arm64</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-assimp</artifactId>
+			<classifier>natives-linux-arm64</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-bgfx</artifactId>
+			<classifier>natives-linux-arm64</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-glfw</artifactId>
+			<classifier>natives-linux-arm64</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-jemalloc</artifactId>
+			<classifier>natives-linux-arm64</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-libdivide</artifactId>
+			<classifier>natives-linux-arm64</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-llvm</artifactId>
+			<classifier>natives-linux-arm64</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-lmdb</artifactId>
+			<classifier>natives-linux-arm64</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-lz4</artifactId>
+			<classifier>natives-linux-arm64</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-meow</artifactId>
+			<classifier>natives-linux-arm64</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-nanovg</artifactId>
+			<classifier>natives-linux-arm64</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-nuklear</artifactId>
+			<classifier>natives-linux-arm64</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-openal</artifactId>
+			<classifier>natives-linux-arm64</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-opengl</artifactId>
+			<classifier>natives-linux-arm64</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-opengles</artifactId>
+			<classifier>natives-linux-arm64</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-opus</artifactId>
+			<classifier>natives-linux-arm64</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-par</artifactId>
+			<classifier>natives-linux-arm64</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-remotery</artifactId>
+			<classifier>natives-linux-arm64</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-rpmalloc</artifactId>
+			<classifier>natives-linux-arm64</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-shaderc</artifactId>
+			<classifier>natives-linux-arm64</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-stb</artifactId>
+			<classifier>natives-linux-arm64</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-tinyexr</artifactId>
+			<classifier>natives-linux-arm64</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-tinyfd</artifactId>
+			<classifier>natives-linux-arm64</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-vma</artifactId>
+			<classifier>natives-linux-arm64</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-xxhash</artifactId>
+			<classifier>natives-linux-arm64</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-yoga</artifactId>
+			<classifier>natives-linux-arm64</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-zstd</artifactId>
+			<classifier>natives-linux-arm64</classifier>
+		</dependency>
+		<!--
+			natives-linux-arm32
+		-->
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl</artifactId>
+			<classifier>natives-linux-arm32</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-assimp</artifactId>
+			<classifier>natives-linux-arm32</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-bgfx</artifactId>
+			<classifier>natives-linux-arm32</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-glfw</artifactId>
+			<classifier>natives-linux-arm32</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-jemalloc</artifactId>
+			<classifier>natives-linux-arm32</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-libdivide</artifactId>
+			<classifier>natives-linux-arm32</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-llvm</artifactId>
+			<classifier>natives-linux-arm32</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-lmdb</artifactId>
+			<classifier>natives-linux-arm32</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-lz4</artifactId>
+			<classifier>natives-linux-arm32</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-nanovg</artifactId>
+			<classifier>natives-linux-arm32</classifier>
+		</dependency>
+		
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-nuklear</artifactId>
+			<classifier>natives-linux-arm32</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-openal</artifactId>
+			<classifier>natives-linux-arm32</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-opengl</artifactId>
+			<classifier>natives-linux-arm32</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-opengles</artifactId>
+			<classifier>natives-linux-arm32</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-opus</artifactId>
+			<classifier>natives-linux-arm32</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-par</artifactId>
+			<classifier>natives-linux-arm32</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-remotery</artifactId>
+			<classifier>natives-linux-arm32</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-rpmalloc</artifactId>
+			<classifier>natives-linux-arm32</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-shaderc</artifactId>
+			<classifier>natives-linux-arm32</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-stb</artifactId>
+			<classifier>natives-linux-arm32</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-tinyexr</artifactId>
+			<classifier>natives-linux-arm32</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-tinyfd</artifactId>
+			<classifier>natives-linux-arm32</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-vma</artifactId>
+			<classifier>natives-linux-arm32</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-xxhash</artifactId>
+			<classifier>natives-linux-arm32</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-yoga</artifactId>
+			<classifier>natives-linux-arm32</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-zstd</artifactId>
+			<classifier>natives-linux-arm32</classifier>
+		</dependency>
+		<!--
+			natives-macos
+		-->
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl</artifactId>
+			<classifier>natives-macos</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-assimp</artifactId>
+			<classifier>natives-macos</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-bgfx</artifactId>
+			<classifier>natives-macos</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-glfw</artifactId>
+			<classifier>natives-macos</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-jemalloc</artifactId>
+			<classifier>natives-macos</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-libdivide</artifactId>
+			<classifier>natives-macos</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-llvm</artifactId>
+			<classifier>natives-macos</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-lmdb</artifactId>
+			<classifier>natives-macos</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-lz4</artifactId>
+			<classifier>natives-macos</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-meow</artifactId>
+			<classifier>natives-macos</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-nanovg</artifactId>
+			<classifier>natives-macos</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-nfd</artifactId>
+			<classifier>natives-macos</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-nuklear</artifactId>
+			<classifier>natives-macos</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-openal</artifactId>
+			<classifier>natives-macos</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-opengl</artifactId>
+			<classifier>natives-macos</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-opengles</artifactId>
+			<classifier>natives-macos</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-openvr</artifactId>
+			<classifier>natives-macos</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-opus</artifactId>
+			<classifier>natives-macos</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-par</artifactId>
+			<classifier>natives-macos</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-remotery</artifactId>
+			<classifier>natives-macos</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-rpmalloc</artifactId>
+			<classifier>natives-macos</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-shaderc</artifactId>
+			<classifier>natives-macos</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-sse</artifactId>
+			<classifier>natives-macos</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-stb</artifactId>
+			<classifier>natives-macos</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-tinyexr</artifactId>
+			<classifier>natives-macos</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-tinyfd</artifactId>
+			<classifier>natives-macos</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-tootle</artifactId>
+			<classifier>natives-macos</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-vma</artifactId>
+			<classifier>natives-macos</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-xxhash</artifactId>
+			<classifier>natives-macos</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-yoga</artifactId>
+			<classifier>natives-macos</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-zstd</artifactId>
+			<classifier>natives-macos</classifier>
+		</dependency>
+		<!--
+			natives-windows
+		-->
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl</artifactId>
+			<classifier>natives-windows</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-assimp</artifactId>
+			<classifier>natives-windows</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-bgfx</artifactId>
+			<classifier>natives-windows</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-glfw</artifactId>
+			<classifier>natives-windows</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-jemalloc</artifactId>
+			<classifier>natives-windows</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-libdivide</artifactId>
+			<classifier>natives-windows</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-llvm</artifactId>
+			<classifier>natives-windows</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-lmdb</artifactId>
+			<classifier>natives-windows</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-lz4</artifactId>
+			<classifier>natives-windows</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-meow</artifactId>
+			<classifier>natives-windows</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-nanovg</artifactId>
+			<classifier>natives-windows</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-nfd</artifactId>
+			<classifier>natives-windows</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-nuklear</artifactId>
+			<classifier>natives-windows</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-openal</artifactId>
+			<classifier>natives-windows</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-opengl</artifactId>
+			<classifier>natives-windows</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-opengles</artifactId>
+			<classifier>natives-windows</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-openvr</artifactId>
+			<classifier>natives-windows</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-opus</artifactId>
+			<classifier>natives-windows</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-par</artifactId>
+			<classifier>natives-windows</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-remotery</artifactId>
+			<classifier>natives-windows</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-rpmalloc</artifactId>
+			<classifier>natives-windows</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-shaderc</artifactId>
+			<classifier>natives-windows</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-sse</artifactId>
+			<classifier>natives-windows</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-stb</artifactId>
+			<classifier>natives-windows</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-tinyexr</artifactId>
+			<classifier>natives-windows</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-tinyfd</artifactId>
+			<classifier>natives-windows</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-tootle</artifactId>
+			<classifier>natives-windows</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-vma</artifactId>
+			<classifier>natives-windows</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-xxhash</artifactId>
+			<classifier>natives-windows</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-yoga</artifactId>
+			<classifier>natives-windows</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-zstd</artifactId>
+			<classifier>natives-windows</classifier>
+		</dependency>
+		<!--
+			natives-windows-x86
+		-->
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl</artifactId>
+			<classifier>natives-windows-x86</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-assimp</artifactId>
+			<classifier>natives-windows-x86</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-bgfx</artifactId>
+			<classifier>natives-windows-x86</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-glfw</artifactId>
+			<classifier>natives-windows-x86</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-jemalloc</artifactId>
+			<classifier>natives-windows-x86</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-libdivide</artifactId>
+			<classifier>natives-windows-x86</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-llvm</artifactId>
+			<classifier>natives-windows-x86</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-lmdb</artifactId>
+			<classifier>natives-windows-x86</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-lz4</artifactId>
+			<classifier>natives-windows-x86</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-meow</artifactId>
+			<classifier>natives-windows-x86</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-nanovg</artifactId>
+			<classifier>natives-windows-x86</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-nfd</artifactId>
+			<classifier>natives-windows-x86</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-nuklear</artifactId>
+			<classifier>natives-windows-x86</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-openal</artifactId>
+			<classifier>natives-windows-x86</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-opengl</artifactId>
+			<classifier>natives-windows-x86</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-opengles</artifactId>
+			<classifier>natives-windows-x86</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-openvr</artifactId>
+			<classifier>natives-windows-x86</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-opus</artifactId>
+			<classifier>natives-windows-x86</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-par</artifactId>
+			<classifier>natives-windows-x86</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-remotery</artifactId>
+			<classifier>natives-windows-x86</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-rpmalloc</artifactId>
+			<classifier>natives-windows-x86</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-shaderc</artifactId>
+			<classifier>natives-windows-x86</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-sse</artifactId>
+			<classifier>natives-windows-x86</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-stb</artifactId>
+			<classifier>natives-windows-x86</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-tinyexr</artifactId>
+			<classifier>natives-windows-x86</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-tinyfd</artifactId>
+			<classifier>natives-windows-x86</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-tootle</artifactId>
+			<classifier>natives-windows-x86</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-vma</artifactId>
+			<classifier>natives-windows-x86</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-xxhash</artifactId>
+			<classifier>natives-windows-x86</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-yoga</artifactId>
+			<classifier>natives-windows-x86</classifier>
+		</dependency>
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-zstd</artifactId>
+			<classifier>natives-windows-x86</classifier>
+		</dependency>
+		
+		
+		
+		
+		
+		
+		
+		
+		<dependency>
+			<groupId>org.lwjgl</groupId>
+			<artifactId>lwjgl-vulkan</artifactId>
+			<classifier>natives-macos</classifier>
 		</dependency>
 		<dependency>
 			<groupId>org.joml</groupId>
