@@ -12,7 +12,6 @@ import com.spaghetti.input.Controller;
 import com.spaghetti.interfaces.*;
 import com.spaghetti.objects.Camera;
 import com.spaghetti.utils.FunctionDispatcher;
-import com.spaghetti.utils.GameOptions;
 import com.spaghetti.utils.Logger;
 
 public abstract class NetworkConnection {
@@ -123,6 +122,7 @@ public abstract class NetworkConnection {
 	public boolean forceReplication;
 	public boolean reliable;
 	protected boolean ping;
+	public boolean goodbye;
 
 	// Player info
 	public GameObject player;
@@ -135,10 +135,8 @@ public abstract class NetworkConnection {
 
 	public NetworkConnection(CoreComponent parent) {
 		this.parent = parent;
-		this.w_buffer = new NetworkBuffer(this,
-				Game.getGame().getOptions().getOption(GameOptions.PREFIX + "networkbuffer"));
-		this.r_buffer = new NetworkBuffer(this,
-				Game.getGame().getOptions().getOption(GameOptions.PREFIX + "networkbuffer"));
+		this.w_buffer = new NetworkBuffer(this, Game.getGame().getOptions().getEngineOption("networkbuffer"));
+		this.r_buffer = new NetworkBuffer(this, Game.getGame().getOptions().getEngineOption("networkbuffer"));
 
 		cls_rules = ClassReplicationRule.rules.get(parent.getGame());
 		if (cls_rules == null) {
@@ -599,6 +597,9 @@ public abstract class NetworkConnection {
 					invalid_privilege(opcode);
 				}
 				readObjectDestruction(level);
+				break;
+			case Opcode.GOODBYE:
+				readGoodbye();
 				break;
 			}
 		}
@@ -1191,6 +1192,16 @@ public abstract class NetworkConnection {
 
 	public void handlePing() {
 		ping = true;
+	}
+
+	public void writeGoodbye() {
+		w_buffer.clear();
+		w_buffer.putByte(Opcode.GOODBYE);
+		goodbye = true;
+	}
+
+	public void readGoodbye() {
+		goodbye = true;
 	}
 
 	// Utility methods

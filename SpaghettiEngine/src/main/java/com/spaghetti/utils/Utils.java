@@ -25,6 +25,12 @@ public final class Utils {
 	private Utils() {
 	}
 
+	/**
+	 * Sleeps for the given amount of {@code ms} a and catches the
+	 * InterruptedException
+	 * 
+	 * @param ms Amount of milliseconds to sleep for
+	 */
 	public static void sleep(long ms) {
 		try {
 			Thread.sleep(ms);
@@ -33,12 +39,25 @@ public final class Utils {
 		}
 	}
 
+	/**
+	 * Waits until the current time is equal or greater than {@code time}
+	 * 
+	 * @param time The time until which to wait
+	 */
 	public static void sleepUntil(long time) {
 		while (System.currentTimeMillis() < time) {
 			sleep(0);
 		}
 	}
 
+	/**
+	 * Sleeps for the given amount of {@code ms} and {@code nanos} and catches the
+	 * InterruptedException
+	 * 
+	 * @param ms    Amount of milliseconds to sleep for
+	 * @param nanos Amount of nanosecond to sleep for in addition to the
+	 *              milliseconds
+	 */
 	public static void sleep(long ms, int nanos) {
 		try {
 			Thread.sleep(ms, nanos);
@@ -47,6 +66,12 @@ public final class Utils {
 		}
 	}
 
+	/**
+	 * Converts a BufferedImage into an OpenGL-compatible ByteBuffer
+	 * 
+	 * @param img The image to convert
+	 * @return The converted byte buffer
+	 */
 	public static ByteBuffer parseImage(BufferedImage img) {
 		int w = img.getWidth();
 		int h = img.getHeight();
@@ -69,6 +94,19 @@ public final class Utils {
 		return pixels;
 	}
 
+	/**
+	 * Keeps reading from the given {@code stream}, until {@code amount} bytes have
+	 * been read, the end of the stream is reached or an exception is thrown by the
+	 * {@code stream}, starting at the given {@code offset} in the {@code buffer}
+	 * 
+	 * @param stream The stream to read data from
+	 * @param buffer The buffer in which to read the data
+	 * @param offset The offset in the buffer at which to start writing data
+	 * @param amount The amount of bytes to be read from the stream
+	 * @return The number of bytes actually read, in case the end of the stream is
+	 *         reached
+	 * @throws IOException
+	 */
 	public static int effectiveRead(InputStream stream, byte[] buffer, int offset, int amount) throws IOException {
 		int read = offset, status = 0;
 		while (read < amount && status != -1) {
@@ -81,6 +119,22 @@ public final class Utils {
 		return read;
 	}
 
+	/**
+	 * Keeps reading from the given {@code stream}, until {@code amount} bytes have
+	 * been read, the end of the stream is reached, an exception is thrown by the
+	 * {@code stream} or {@code timeout} milliseconds have passed since the method
+	 * invocation, starting at the given {@code offset} in the {@code buffer}
+	 * 
+	 * @param stream  The stream to read data from
+	 * @param buffer  The buffer in which to read the data
+	 * @param offset  The offset in the buffer at which to start writing data
+	 * @param amount  The amount of bytes to be read from the stream
+	 * @param timeout The timeout in milliseconds after which the operation will be
+	 *                interrupted
+	 * @return The number of bytes actually read, in case the end of the stream is
+	 *         reached
+	 * @throws IOException
+	 */
 	public static int effectiveReadTimeout(InputStream stream, byte[] buffer, int offset, int amount, long timeout)
 			throws IOException {
 		long time = System.currentTimeMillis();
@@ -98,6 +152,21 @@ public final class Utils {
 		return read;
 	}
 
+	/**
+	 * Keeps reading from the given {@code stream}, until {@code amount} bytes have
+	 * been read, the end of the stream is reached or an exception is thrown by the
+	 * {@code stream}, starting at {@code offset + buffer.position()} in the
+	 * {@code buffer}
+	 * 
+	 * @param stream The stream to read data from
+	 * @param buffer The buffer in which to read the data
+	 * @param offset The offset that will be added to the buffer's position at which
+	 *               to start writing data
+	 * @param amount The amount of bytes to be read from the stream
+	 * @return The number of bytes actually read, in case the end of the stream is
+	 *         reached
+	 * @throws IOException
+	 */
 	public static int effectiveRead(InputStream stream, ByteBuffer buffer, int offset, int amount) throws IOException {
 		if (buffer.hasArray()) {
 			int read = effectiveRead(stream, buffer.array(), buffer.position() + offset, amount);
@@ -118,6 +187,12 @@ public final class Utils {
 		}
 	}
 
+	/**
+	 * Closes a Closeable interface and catches any exception
+	 * 
+	 * @param closeable The closeable interface
+	 * @return {@code false} if an exception was thrown, {@code true} otherwise
+	 */
 	public static boolean close(Closeable closeable) {
 		try {
 			closeable.close();
@@ -127,6 +202,12 @@ public final class Utils {
 		}
 	}
 
+	/**
+	 * Closes a Socket's input stream and catches any exception
+	 * 
+	 * @param socket The Socket whose input stream to close
+	 * @return {@code false} if an exception was thrown, {@code true} otherwise
+	 */
 	public static boolean socketCloseInput(Socket socket) {
 		try {
 			socket.shutdownInput();
@@ -136,6 +217,12 @@ public final class Utils {
 		}
 	}
 
+	/**
+	 * Closes a Socket's output stream and catches any exception
+	 * 
+	 * @param socket The Socket whose output stream to close
+	 * @return {@code false} if an exception was thrown, {@code true} otherwise
+	 */
 	public static boolean socketCloseOutput(Socket socket) {
 		try {
 			socket.shutdownOutput();
@@ -145,15 +232,37 @@ public final class Utils {
 		}
 	}
 
+	/**
+	 * Returns the boolean value of the bit at {@code pos} index in the {@code num}
+	 * 
+	 * @param num The number whose bit is to extract
+	 * @param pos The index at which to extract the bit
+	 * @return The extracted bit in boolean form
+	 */
 	public static boolean bitAt(int num, int pos) {
 		return (num & (1 << pos)) != 0;
 	}
 
+	/**
+	 * Changes the bit at index {@code pos} inside of {@code num} to the value of
+	 * {@code newval}, and returns the resulting edited {@code num}
+	 * 
+	 * @param num    The number to edit
+	 * @param pos    The index at which to change the bit
+	 * @param newval The new value to change the bit to
+	 * @return The edit version of {@code num}
+	 */
 	public static int bitAt(int num, int pos, boolean newval) {
 		int mask = newval ? (1 << pos) : ~(1 << pos);
 		return newval ? (num | mask) : (num & mask);
 	}
 
+	/**
+	 * Hashes the given string into a {@code long} value
+	 * 
+	 * @param str The string to hash
+	 * @return The hash
+	 */
 	public static long longHash(String str) {
 		long hash = 1125899906842597L;
 
@@ -163,6 +272,15 @@ public final class Utils {
 		return hash;
 	}
 
+	/**
+	 * Hashes the given byte array into a {@code long} value, only accounting for
+	 * the bytes starting from {@code offset} until {@code offset + size}
+	 * 
+	 * @param mem    The byte array to hash
+	 * @param offset The offset at which to start calculating the hash
+	 * @param size   The amount of bytes to hash after the {@code offset}
+	 * @return The hash
+	 */
 	public static long longHash(byte[] mem, int offset, int size) {
 		long hash = 1125899906842597L;
 
@@ -172,6 +290,12 @@ public final class Utils {
 		return hash;
 	}
 
+	/**
+	 * Hashes the given string into an {@code int} value
+	 * 
+	 * @param str The string to hash
+	 * @return The hash
+	 */
 	public static int intHash(String str) {
 		int hash = 13464481;
 
@@ -181,6 +305,15 @@ public final class Utils {
 		return hash;
 	}
 
+	/**
+	 * Hashes the given byte array into an {@code int} value, only accounting for
+	 * the bytes starting from {@code offset} until {@code offset + size}
+	 * 
+	 * @param mem    The byte array to hash
+	 * @param offset The offset at which to start calculating the hash
+	 * @param size   The amount of bytes to hash after the {@code offset}
+	 * @return The hash
+	 */
 	public static int intHash(byte[] mem, int offset, int size) {
 		int hash = 13464481;
 
@@ -190,6 +323,12 @@ public final class Utils {
 		return hash;
 	}
 
+	/**
+	 * Hashes the given string into a {@code short} value
+	 * 
+	 * @param str The string to hash
+	 * @return The hash
+	 */
 	public static short shortHash(String str) {
 		short hash = 14951;
 
@@ -199,6 +338,15 @@ public final class Utils {
 		return hash;
 	}
 
+	/**
+	 * Hashes the given byte array into a {@code short} value, only accounting for
+	 * the bytes starting from {@code offset} until {@code offset + size}
+	 * 
+	 * @param mem    The byte array to hash
+	 * @param offset The offset at which to start calculating the hash
+	 * @param size   The amount of bytes to hash after the {@code offset}
+	 * @return The hash
+	 */
 	public static short shortHash(byte[] mem, int offset, int size) {
 		short hash = 14951;
 
@@ -211,6 +359,12 @@ public final class Utils {
 	// TODO Temporary, remove later
 	static int num;
 
+	/**
+	 * Retrieves the last OpenAL error and prints the stack trace in the console
+	 * <p>
+	 * The usage of this function is recommended after every OpenAL call for good
+	 * practice
+	 */
 	public static void alError() {
 		if (num >= 10) {
 			System.exit(0);
@@ -254,6 +408,16 @@ public final class Utils {
 		num++;
 	}
 
+	/**
+	 * Retrieves the last OpenALC error in the {@code deviceHandle} device and
+	 * prints the stack trace in the console
+	 * <p>
+	 * The usage of this function is recommended after every OpenALC call for good
+	 * practice
+	 * 
+	 * @param deviceHandle The handle to the OpenALC device from which to retrieve
+	 *                     the error code
+	 */
 	public static void alcError(long deviceHandle) {
 		if (num >= 10) {
 			System.exit(0);
@@ -295,6 +459,12 @@ public final class Utils {
 		num++;
 	}
 
+	/**
+	 * Retrieves the last OpenGL error and prints the stack trace in the console
+	 * <p>
+	 * The usage of this function is recommended after every OpenGL call for good
+	 * practice
+	 */
 	public static void glError() {
 		int error = GL11.glGetError();
 		if (error == GL11.GL_NO_ERROR) {
@@ -343,6 +513,12 @@ public final class Utils {
 		Logger.error(error_str);
 	}
 
+	/**
+	 * Retrieves the last Assimp error and prints the stack trace in the console
+	 * <p>
+	 * The usage of this function is recommended after every major Assimp call for
+	 * good practice
+	 */
 	public static void aiError() {
 		String error = Assimp.aiGetErrorString();
 		if (error == null || error.length() == 0) {
@@ -356,6 +532,12 @@ public final class Utils {
 		Logger.error(error_str);
 	}
 
+	/**
+	 * Converts an AIString to a standard java String
+	 * 
+	 * @param string The Assimp string to convert
+	 * @return The converted string
+	 */
 	public static String getAssimpString(AIString string) {
 		ByteBuffer buf = string.data();
 		if (buf.hasArray()) {
@@ -367,6 +549,20 @@ public final class Utils {
 		}
 	}
 
+	/**
+	 * Obtains a private field with the given {@code name} from the given
+	 * {@code cls} and if not found, the superclass of {@code cls} will be searched,
+	 * and so on iteratively.<br>
+	 * Once the field is found, {@code private/protected} and {@code final}
+	 * restrictions are removed from it, then it is returned
+	 * <p>
+	 * This method will throw a RuntimeException if the field couldn't be obtained
+	 * because of some exception, or if the field does not exist
+	 * 
+	 * @param cls  The class to start searching for the field
+	 * @param name The name of the field to search for
+	 * @return The Field
+	 */
 	public static Field getPrivateField(Class<?> cls, String name) {
 		try {
 			Field result = null;

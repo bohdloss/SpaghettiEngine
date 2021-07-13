@@ -147,6 +147,13 @@ public abstract class ClientCore extends CoreComponent {
 	// Internal functions
 
 	protected void internal_clienterror(Throwable t, NetworkConnection client, long clientId) {
+		// If the goodbye flag is on, it means we can ignore errors and perform
+		// disconnection
+		if (client.goodbye) {
+			internal_disconnect(false);
+			return;
+		}
+
 		// Socket error, just reconnect
 		Logger.error("Exception occurred, attempting reconnection", t);
 		String ip = client.getRemoteIp();
@@ -154,7 +161,7 @@ public abstract class ClientCore extends CoreComponent {
 		boolean status = false;
 		for (int attemtps = 0; attemtps < reconnectAttempts; attemtps++) {
 			Utils.sleep(1000);
-			if (internal_connect(ip, port)) {
+			if (internal_connect(ip, port, false)) {
 				status = true;
 				break;
 			}
@@ -170,7 +177,11 @@ public abstract class ClientCore extends CoreComponent {
 	}
 
 	protected boolean internal_connect(String ip, int port) {
-		if (isConnected()) {
+		return internal_connect(ip, port, true);
+	}
+
+	protected boolean internal_connect(String ip, int port, boolean disconnectFirst) {
+		if (isConnected() && disconnectFirst) {
 			Logger.warning("Already connected, disconnecting first");
 			internal_disconnect();
 		}
@@ -178,12 +189,13 @@ public abstract class ClientCore extends CoreComponent {
 			worker.connect(ip, port); // Perform connection
 
 			// Server handshake
-			if (!internal_handshake(worker)) {
+			if (!internal_handshake()) {
 				Logger.warning("Server handshake failed");
 				internal_disconnect();
 				return false;
 			} else {
 				joinHandler.handleJoin(true, worker); // Handle joining server
+				worker.goodbye = false;
 				flags.firstTime = true;
 				getGame().getEventDispatcher().raiseEvent(null, new OnClientConnect(worker, flags.clientId));
 			}
@@ -206,13 +218,23 @@ public abstract class ClientCore extends CoreComponent {
 	}
 
 	protected boolean internal_disconnect() {
+		return internal_disconnect(true);
+	}
+
+	protected boolean internal_disconnect(boolean sendGoodbye) {
 		if (!isConnected()) {
 			return true;
 		}
 		String remoteIp = getRemoteIp();
 		int remotePort = getRemotePort();
+
+		// Say goodbye to the server
 		flags.firstTime = false;
+		if (sendGoodbye) {
+			internal_goodbye();
+		}
 		worker.disconnect(); // Reset worker socket
+
 		// Detach and destroy level
 		Level activeLvl = getGame().getActiveLevel();
 		if (activeLvl != null) {
@@ -225,7 +247,7 @@ public abstract class ClientCore extends CoreComponent {
 		return true;
 	}
 
-	protected boolean internal_handshake(NetworkConnection client) {
+	protected boolean internal_handshake() {
 		try {
 			worker.writeAuthentication();
 			worker.send();
@@ -234,6 +256,18 @@ public abstract class ClientCore extends CoreComponent {
 		} catch (Throwable t) {
 			Logger.error("Handshake error:", t);
 			return false;
+		}
+	}
+
+	protected void internal_goodbye() {
+		try {
+			worker.writeGoodbye();
+			while (!worker.canSend()) {
+				Utils.sleep(1);
+			}
+			worker.send();
+		} catch (Throwable t) {
+			Logger.error("Goodbye error:", t);
 		}
 	}
 

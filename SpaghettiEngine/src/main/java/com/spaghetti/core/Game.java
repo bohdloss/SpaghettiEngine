@@ -22,21 +22,16 @@ public final class Game {
 	// Support for multiple instances of the engine
 	// in the same java process
 	protected volatile static ArrayList<Game> games = new ArrayList<>();
-	protected volatile static HashMap<Long, Integer> links = new HashMap<>();
+	protected volatile static HashMap<Long, Game> links = new HashMap<>();
 	protected volatile static Handler handler;
 
-	static {
-		init();
-	}
-
 	private static void init() {
-		if (handler != null) {
-			handler.stop = true;
-		}
-		handler = new Handler();
-		handler.start();
-		while (handler.dispatcher == null) {
-			Utils.sleep(1);
+		if (handler == null) {
+			handler = new Handler();
+			handler.start();
+			while (handler.dispatcher == null) {
+				Utils.sleep(1);
+			}
 		}
 	}
 
@@ -67,25 +62,10 @@ public final class Game {
 		}
 	}
 
-	// Free the main thread
-	public static void idle() {
-		handler.stopOnNoActivity = true;
-	}
-
 	// Static Thread-based methods
 
 	public static Game getGame() {
-		Long id = Thread.currentThread().getId();
-		Integer index = links.get(id);
-		if (index != null) {
-			if (index >= 0 && index < games.size()) {
-				Game game = games.get(index);
-				if (game != null && !game.isStopped()) {
-					return game;
-				}
-			}
-		}
-		return null;
+		return links.get(Thread.currentThread().getId());
 	}
 
 	// Global variables
@@ -138,6 +118,9 @@ public final class Game {
 		if (updater == null && (client != null || server != null)) {
 			throw new IllegalArgumentException("Cannot have a client or a server without an updater in a Game");
 		}
+
+		// Possibly initialize HANDLER and GLFW
+		init();
 
 		// Initialize Handler hints
 		games.add(this);
@@ -207,7 +190,7 @@ public final class Game {
 	public void registerThread(Thread t) {
 		long id = t.getId();
 		if (links.get(id) == null) {
-			links.put(id, index);
+			links.put(id, this);
 		}
 	}
 
@@ -217,7 +200,7 @@ public final class Game {
 
 	public void unregisterThread(Thread t) {
 		long id = t.getId();
-		if (links.get(id) != null && links.get(id) == index) {
+		if (links.get(id) != null && links.get(id) == this) {
 			links.remove(id);
 		}
 	}
@@ -236,7 +219,7 @@ public final class Game {
 		starting = true;
 		// Allocate asset manager
 		if (assetManager != null) {
-			assetManager.loadAssetSheet(options.getOption(GameOptions.PREFIX + "assetsheet"));
+			assetManager.loadAssetSheet(options.getEngineOption("assetsheet"));
 		}
 
 		// First start all threads
@@ -573,6 +556,30 @@ public final class Game {
 
 	public void detachController() {
 		clientState.detachController();
+	}
+
+	public void setEngineOption(String name, Object option) {
+		options.setEngineOption(name, option);
+	}
+
+	public Object ngetEngineOption(String name) {
+		return options.ngetEngineOption(name);
+	}
+
+	public <T> T getEngineOption(String name) {
+		return options.<T>getEngineOption(name);
+	}
+
+	public void setOption(String name, Object option) {
+		options.setOption(name, option);
+	}
+
+	public Object ngetOption(String name) {
+		return options.ngetOption(name);
+	}
+
+	public <T> T getOption(String name) {
+		return options.<T>getOption(name);
 	}
 
 }

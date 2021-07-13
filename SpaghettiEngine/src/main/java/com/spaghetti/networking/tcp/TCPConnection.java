@@ -1,12 +1,10 @@
 package com.spaghetti.networking.tcp;
 
 import java.io.IOException;
-import java.io.InputStream;
-import java.io.OutputStream;
 import java.net.InetSocketAddress;
-import java.net.Socket;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
+import java.nio.channels.SocketChannel;
 
 import com.spaghetti.core.CoreComponent;
 import com.spaghetti.networking.NetworkBuffer;
@@ -16,9 +14,10 @@ import com.spaghetti.utils.Utils;
 
 public class TCPConnection extends NetworkConnection {
 
-	protected Socket socket;
+	protected SocketChannel socket;
 	protected static final int HEADER_SIZE = Integer.BYTES + Short.BYTES;
 	protected ByteBuffer packet_header;
+	protected ByteBuffer[] composite = new ByteBuffer[2];
 
 	public TCPConnection(CoreComponent parent) {
 		super(parent);
@@ -33,11 +32,12 @@ public class TCPConnection extends NetworkConnection {
 	}
 
 	@Override
-	public void connect(Object socket) {
-		if (socket == null || ((Socket) socket).isClosed()) {
+	public void connect(Object obj) {
+		SocketChannel socket = (SocketChannel) obj;
+		if (socket == null || !socket.isOpen()) {
 			throw new IllegalArgumentException("Invalid socket provided");
 		}
-		this.socket = (Socket) socket;
+		this.socket = socket;
 		ping = true;
 		str_cache.clear();
 		w_buffer.clear();
@@ -46,7 +46,10 @@ public class TCPConnection extends NetworkConnection {
 
 	@Override
 	public void connect(String ip, int port) throws UnknownHostException, IOException {
-		connect(new Socket(ip, port));
+		SocketChannel socket = SocketChannel.open();
+		socket.connect(new InetSocketAddress(ip, port));
+		socket.configureBlocking(false);
+		connect(socket);
 	}
 
 	@Override
@@ -61,19 +64,30 @@ public class TCPConnection extends NetworkConnection {
 
 	@Override
 	public void send() throws Throwable {
+		// Timeout
+		final long timeout = 5000;
+		final long begin = System.currentTimeMillis();
+
 		// Ensure end instruction to avoid errors
 		w_buffer.putByte(Opcode.END);
+		w_buffer.flip();
+		int length = w_buffer.getLimit();
 
-		OutputStream os = socket.getOutputStream();
-		int length = w_buffer.getPosition();
-
-		// Write header and body packet data
+		// Write header
 		packet_header.clear();
 		packet_header.putInt(length);
 		packet_header.putShort(Utils.shortHash(w_buffer.asArray(), 0, length));
-		os.write(packet_header.array());
-		os.write(w_buffer.asArray(), 0, length);
-		os.flush();
+		packet_header.flip();
+
+		composite[0] = packet_header;
+		composite[1] = w_buffer.getRaw();
+
+		while (w_buffer.getFreeSpace() > 0) {
+			socket.write(composite, 0, composite.length);
+			if (System.currentTimeMillis() > begin + timeout) {
+				throw new IllegalStateException(timeout + " ms timeout reached while writing");
+			}
+		}
 
 		// Reset state
 		w_buffer.clear();
@@ -83,20 +97,35 @@ public class TCPConnection extends NetworkConnection {
 
 	@Override
 	public void receive() throws Throwable {
-		InputStream is = socket.getInputStream();
+		// Timeout
+		final long timeout = 5000;
+		final long begin = System.currentTimeMillis();
 
-		// Set timeout to not read forever
-		final int timeout = Integer.MAX_VALUE;
-		socket.setSoTimeout(timeout);
-
-		// Read header info and then body of packet
-		Utils.effectiveReadTimeout(is, packet_header.array(), 0, HEADER_SIZE, timeout);
+		// Read header info
+		packet_header.clear();
+		packet_header.limit(HEADER_SIZE);
+		while (packet_header.remaining() > 0) {
+			socket.read(packet_header);
+			if (System.currentTimeMillis() > begin + timeout) {
+				throw new IllegalStateException(timeout + " ms timeout reached while reading");
+			}
+		}
 		packet_header.clear();
 		int length = packet_header.getInt();
 		short checksum = packet_header.getShort();
-		Utils.effectiveReadTimeout(is, r_buffer.asArray(), 0, length, timeout);
 
-		// Check checksum against read data
+		// Read packet body
+		r_buffer.clear();
+		r_buffer.setLimit(length);
+		while (r_buffer.getFreeSpace() > 0) {
+			socket.read(r_buffer.getRaw());
+			if (System.currentTimeMillis() > begin + timeout) {
+				throw new IllegalStateException(timeout + " ms timeout reached while reading");
+			}
+		}
+		r_buffer.clear();
+
+		// Validate checksum
 		if (checksum != Utils.shortHash(r_buffer.asArray(), 0, length)) {
 			throw new IllegalStateException("Packet checksum and content do not match");
 		}
@@ -110,30 +139,50 @@ public class TCPConnection extends NetworkConnection {
 
 	@Override
 	public boolean isConnected() {
-		return socket != null && !socket.isClosed() && ping;
+		return socket != null && socket.isOpen() && ping;
 	}
 
 	@Override
 	public String getRemoteIp() {
-		InetSocketAddress address = (InetSocketAddress) socket.getRemoteSocketAddress();
+		InetSocketAddress address;
+		try {
+			address = (InetSocketAddress) socket.getRemoteAddress();
+		} catch (IOException e) {
+			throw new RuntimeException("Error getting remote ip", e);
+		}
 		return address.getAddress().getHostAddress();
 	}
 
 	@Override
 	public int getRemotePort() {
-		InetSocketAddress address = (InetSocketAddress) socket.getRemoteSocketAddress();
+		InetSocketAddress address;
+		try {
+			address = (InetSocketAddress) socket.getRemoteAddress();
+		} catch (IOException e) {
+			throw new RuntimeException("Error getting remote port", e);
+		}
 		return address.getPort();
 	}
 
 	@Override
 	public String getLocalIp() {
-		InetSocketAddress address = (InetSocketAddress) socket.getLocalSocketAddress();
+		InetSocketAddress address;
+		try {
+			address = (InetSocketAddress) socket.getLocalAddress();
+		} catch (IOException e) {
+			throw new RuntimeException("Error getting local ip", e);
+		}
 		return address.getAddress().getHostAddress();
 	}
 
 	@Override
 	public int getLocalPort() {
-		InetSocketAddress address = (InetSocketAddress) socket.getLocalSocketAddress();
+		InetSocketAddress address;
+		try {
+			address = (InetSocketAddress) socket.getLocalAddress();
+		} catch (IOException e) {
+			throw new RuntimeException("Error getting local port", e);
+		}
 		return address.getPort();
 	}
 

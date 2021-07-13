@@ -281,11 +281,18 @@ public abstract class ServerCore extends CoreComponent {
 	}
 
 	protected void clientError(Throwable error, long clientId) {
+		NetworkConnection client = clients.get(clientId);
+		ClientFlags clientFlags = flags.get(clientId);
+
+		// If the goodbye flag is set, ignore errors and kick
+		if (client.goodbye) {
+			internal_kick(clientId, false);
+			return;
+		}
+
 		Logger.error("Exception occurred in client " + clientId, error);
 
 		if (!_increaseDisconnections(clientId)) {
-			NetworkConnection client = clients.get(clientId);
-			ClientFlags clientFlags = flags.get(clientId);
 
 			clientFlags.await = true;
 			client.disconnect();
@@ -300,9 +307,16 @@ public abstract class ServerCore extends CoreComponent {
 	}
 
 	protected boolean internal_kick(long id) {
+		return internal_kick(id, true);
+	}
+
+	protected boolean internal_kick(long id, boolean sendGoodbye) {
 		NetworkConnection worker = clients.remove(id);
 		if (worker == null) {
 			return false;
+		}
+		if (sendGoodbye) {
+			internal_goodbye(worker);
 		}
 		worker.destroy();
 		_increaseDisconnections(id);
@@ -526,6 +540,18 @@ public abstract class ServerCore extends CoreComponent {
 		} catch (Throwable t) {
 			Logger.error("Handshake error:", t);
 			return false;
+		}
+	}
+
+	protected void internal_goodbye(NetworkConnection client) {
+		try {
+			client.writeGoodbye();
+			while (!client.canSend()) {
+				Utils.sleep(1);
+			}
+			client.send();
+		} catch (Throwable t) {
+			Logger.error("Goodbye error:", t);
 		}
 	}
 

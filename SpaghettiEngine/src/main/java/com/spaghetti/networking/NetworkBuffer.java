@@ -365,7 +365,7 @@ public final class NetworkBuffer {
 	}
 
 	public int getFreeSpace() {
-		return getSize() - getUsedSpace();
+		return buffer.remaining();
 	}
 
 	public int getPosition() {
@@ -417,6 +417,10 @@ public final class NetworkBuffer {
 
 	public void setByteOrder(ByteOrder order) {
 		buffer.order(order);
+	}
+
+	public ByteBuffer getRaw() {
+		return buffer;
 	}
 
 }

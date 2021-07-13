@@ -10,18 +10,14 @@ import com.spaghetti.utils.ResourceLoader;
 
 public class JarFileIO {
 
-	private static AIFileIO instance;
 	private static final String PREFIX = "[Assimp JAR Loader] ";
 
-	public static AIFileIO getInstance() {
-		if (instance != null) {
-			return instance;
-		}
-
+	public static synchronized AIFileIO getInstance() {
 		AIFileIO inst = AIFileIO.create();
 		if (inst == null || inst.address() == 0) {
 			return null;
 		}
+
 		// Define file system functions
 		inst.OpenProc((pFileIO, fileName, openMode) -> {
 			String filename_str = MemoryUtil.memUTF8(fileName);
@@ -87,7 +83,6 @@ public class JarFileIO {
 			file.SeekProc().free();
 		});
 
-		instance = inst;
 		return inst;
 	}
 

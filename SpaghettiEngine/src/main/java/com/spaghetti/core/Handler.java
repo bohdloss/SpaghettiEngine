@@ -9,7 +9,6 @@ import com.spaghetti.utils.Utils;
 public final class Handler extends Thread {
 
 	protected boolean stop;
-	protected boolean stopOnNoActivity;
 	protected FunctionDispatcher dispatcher;
 
 	public Handler() {
@@ -48,14 +47,13 @@ public final class Handler extends Thread {
 					}
 
 					// Detect if all games are stopped
-					// and if the stopOnNoActivity flag
-					// is on then end this thread;
-					if (!game.isStopped() && game.isInit()) {
+					// and then end this thread
+					if (!game.isStopped()) {
 						found = true;
 					}
 				}
 
-				if (!found && stopOnNoActivity) {
+				if (!found) {
 					stop = true;
 				}
 			} catch (Throwable t) {
@@ -65,6 +63,7 @@ public final class Handler extends Thread {
 		if (!GraphicsEnvironment.isHeadless()) {
 			GLFW.glfwTerminate();
 		}
+		Game.handler = null;
 	}
 
 }

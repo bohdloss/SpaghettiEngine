@@ -13,19 +13,11 @@ import com.spaghetti.utils.*;
 
 public final class GameWindow {
 
-	// Static m_fields and methods
-
-	public static int defaultWidth = 400, defaultHeight = 400;
-	public static boolean defaultFullscreen;
-	public static int defaultMinimumWidth = 100, defaultMinimumHeight = 100;
-	public static int defaultMaximumWidth = 800, defaultMaximumHeight = 800;
-	public static boolean defaultResizable = true;
-
 	public static void pollEvents() {
 		GLFW.glfwPollEvents();
 	}
 
-	// Instance m_fields and methods
+	// Instance fields and methods
 
 	protected String title;
 	protected boolean fullscreen;
@@ -47,15 +39,6 @@ public final class GameWindow {
 
 	public GameWindow(String title) {
 		this.title = title == null ? "Spaghetti game" : title;
-		this.fullscreen = defaultFullscreen;
-		this.minWidth = defaultMinimumWidth;
-		this.minHeight = defaultMinimumHeight;
-		this.maxWidth = defaultMaximumWidth;
-		this.maxHeight = defaultMaximumHeight;
-		this.width = defaultWidth;
-		this.height = defaultHeight;
-		this.iwidth = width;
-		this.iheight = height;
 	}
 
 	public GameWindow() {
@@ -69,6 +52,17 @@ public final class GameWindow {
 			if (source == null || source.getRenderer() == null) {
 				throw new UnsupportedOperationException();
 			}
+
+			// Retrieve options
+			this.fullscreen = game.getEngineOption("defaultfullscreen");
+			this.minWidth = game.getEngineOption("defaultminimumwidth");
+			this.minHeight = game.getEngineOption("defaultminimumheight");
+			this.maxWidth = game.getEngineOption("defaultmaximumwidth");
+			this.maxHeight = game.getEngineOption("defaultmaximumheight");
+			this.width = game.getEngineOption("defaultwidth");
+			this.height = game.getEngineOption("defaultheight");
+			this.iwidth = width;
+			this.iheight = height;
 
 			// GLFW native window initialization
 

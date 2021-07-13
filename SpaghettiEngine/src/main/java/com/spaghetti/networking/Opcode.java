@@ -32,4 +32,6 @@ public final class Opcode {
 	public static final byte OBJECTTREE = (byte) 16;
 	public static final byte OBJECTDESTROY = (byte) 17;
 
+	public static final byte GOODBYE = (byte) 18;
+
 }

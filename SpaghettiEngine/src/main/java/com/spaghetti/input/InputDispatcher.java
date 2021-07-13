@@ -95,64 +95,48 @@ public class InputDispatcher {
 	// Fire events to listeners
 
 	protected void fireMouseEvent(MouseEvent event, int button, boolean pressed, float scroll, int x, int y) {
-		switch (event) {
-		case BUTTONCHANGE:
-			if (pressed) {
-				listeners.forEach(listener -> {
-					try {
-						listener.onMouseButtonPressed(button, x, y);
-					} catch (Throwable t) {
-						Logger.error("Error dispatching input event", t);
+		try {
+			switch (event) {
+			case BUTTONCHANGE:
+				if (pressed) {
+					for (Controllable c : listeners) {
+						c.onMouseButtonPressed(button, x, y);
 					}
-				});
-			} else {
-				listeners.forEach(listener -> {
-					try {
-						listener.onMouseButtonReleased(button, x, y);
-					} catch (Throwable t) {
-						Logger.error("Error dispatching input event", t);
+				} else {
+					for (Controllable c : listeners) {
+						c.onMouseButtonReleased(button, x, y);
 					}
-				});
+				}
+				break;
+			case MOVE:
+				for (Controllable c : listeners) {
+					c.onMouseMove(x, y);
+				}
+				break;
+			case SCROLL:
+				for (Controllable c : listeners) {
+					c.onMouseScroll(scroll, x, y);
+				}
+				break;
 			}
-			break;
-		case MOVE:
-			listeners.forEach(listener -> {
-				try {
-					listener.onMouseMove(x, y);
-				} catch (Throwable t) {
-					Logger.error("Error dispatching input event", t);
-				}
-			});
-			break;
-		case SCROLL:
-			listeners.forEach(listener -> {
-				try {
-					listener.onMouseScroll(scroll, x, y);
-				} catch (Throwable t) {
-					Logger.error("Error dispatching input event", t);
-				}
-			});
-			break;
+		} catch (Throwable t) {
+			Logger.error("Error dispatching mouse event", t);
 		}
 	}
 
 	protected void fireKeyEvent(int key, boolean pressed) {
-		if (pressed) {
-			listeners.forEach(listener -> {
-				try {
-					listener.onKeyPressed(key, x, y);
-				} catch (Throwable t) {
-					Logger.error("Error dispatching input event", t);
+		try {
+			if (pressed) {
+				for (Controllable c : listeners) {
+					c.onKeyPressed(key, x, y);
 				}
-			});
-		} else {
-			listeners.forEach(listener -> {
-				try {
-					listener.onKeyReleased(key, x, y);
-				} catch (Throwable t) {
-					Logger.error("Error dispatching input event", t);
+			} else {
+				for (Controllable c : listeners) {
+					c.onKeyReleased(key, x, y);
 				}
-			});
+			}
+		} catch (Throwable t) {
+			Logger.error("Error dispatching key event", t);
 		}
 	}
 

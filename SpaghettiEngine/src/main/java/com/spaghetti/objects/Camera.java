@@ -90,7 +90,7 @@ public class Camera extends GameObject {
 
 	protected void checkTarget() {
 		if (renderTarget == null) {
-			Vector2i res = getGame().getOptions().getOption(GameOptions.PREFIX + "resolution");
+			Vector2i res = getGame().getEngineOption("resolution");
 			renderTarget = new FrameBuffer(res.x, res.y);
 			updateValues();
 		}

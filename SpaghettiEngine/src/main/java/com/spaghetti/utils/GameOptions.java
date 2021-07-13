@@ -12,70 +12,90 @@ public class GameOptions {
 
 	protected final Game game;
 
-	public static final String PREFIX = "spaghetti.";
-	protected HashMap<String, Object> options = new HashMap<>();
+	public static final String PREFIX = "com.spaghetti.";
+	protected final HashMap<String, Object> options = new HashMap<>();
 
 	public GameOptions(Game game) {
 		this.game = game;
 
-		findResolution();
-		findStopTimeout();
-		findAssetSheetLocation();
-		findNetworkBufferSize();
-	}
-
-	protected void findResolution() {
+		// Find the resolution
 		Vector2i resolution = new Vector2i();
-
-		if ("true".equals(System.getProperty("java.awt.headless"))) {
-			return;
+		if (!"true".equalsIgnoreCase(System.getProperty("java.awt.headless"))) {
+			try {
+				Dimension dimension = Toolkit.getDefaultToolkit().getScreenSize();
+				resolution.x = dimension.width;
+				resolution.y = dimension.height;
+			} catch (Throwable t) {
+				resolution.x = 1;
+				resolution.y = 1;
+			}
 		}
+		setEngineOption("resolution", resolution);
+		setEngineOption("stoptimeout", 10000l); // 10 s
+		setEngineOption("assetsheet", "/res/main.txt");
+		setEngineOption("networkbuffer", 1000 * 256); // 256 KB
 
-		try {
-
-			Dimension dimension = Toolkit.getDefaultToolkit().getScreenSize();
-			resolution.x = dimension.width;
-			resolution.y = dimension.height;
-
-		} catch (Throwable t) {
-		}
-
-		options.put(PREFIX + "resolution", resolution);
-
-	}
-
-	protected void findStopTimeout() {
-		options.put(PREFIX + "stoptimeout", 10000l); // 10 s
-	}
-
-	protected void findAssetSheetLocation() {
-		options.put(PREFIX + "assetsheet", "/res/main.txt");
-	}
-
-	protected void findNetworkBufferSize() {
-		options.put(PREFIX + "networkbuffer", 1000 * 1000 * 10); // B * KB * MB = 10 MB
+		// Game window
+		setEngineOption("defaultwidth", 400);
+		setEngineOption("defaultheight", 400);
+		setEngineOption("defaultfullscreen", false);
+		setEngineOption("defaultminimumwidth", 100);
+		setEngineOption("defaultminimumheight", 100);
+		setEngineOption("defaultmaximumwidth", resolution.x);
+		setEngineOption("defaultmaximumheight", resolution.x);
+		setEngineOption("defaultresizable", true);
 	}
 
 	// Public getters and setters
 
+	public static void ssetEngineOption(String name, Object value) {
+		Game.getGame().getOptions().setEngineOption(name, value);
+	}
+
+	public static Object sngetEngineOption(String name) {
+		return Game.getGame().getOptions().ngetEngineOption(name);
+	}
+
+	public static <T> T sgetEngineOption(String name) {
+		return Game.getGame().getOptions().<T>getEngineOption(name);
+	}
+
+	public static void ssetOption(String name, Object value) {
+		Game.getGame().getOptions().setOption(name, value);
+	}
+
+	public static Object sngetOption(String name) {
+		return Game.getGame().getOptions().ngetOption(name);
+	}
+
+	public static <T> T sgetOption(String name) {
+		return Game.getGame().getOptions().<T>getOption(name);
+	}
+
+	public void setEngineOption(String name, Object value) {
+		options.put(PREFIX + name, value);
+	}
+
+	public Object ngetEngineOption(String name) {
+		return options.get(PREFIX + name);
+	}
+
+	@SuppressWarnings("unchecked")
+	public <T> T getEngineOption(String name) {
+		return (T) options.get(PREFIX + name);
+	}
+
 	public void setOption(String name, Object value) {
-		if (name.startsWith(PREFIX) && !options.containsKey(name)) {
-			throw new IllegalArgumentException();
-		}
 		options.put(name, value);
 	}
 
 	public Object ngetOption(String name) {
-		Object get = options.get(name);
-		if (get == null) {
-			Logger.warning("Non-existant game option \"" + name + "\" requested");
-		}
-		return get;
+		return options.get(name);
 	}
 
 	@SuppressWarnings("unchecked")
 	public <T> T getOption(String name) {
-		return (T) ngetOption(name);
+		return (T) options.get(name);
 	}
 
 }
