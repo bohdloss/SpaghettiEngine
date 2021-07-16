@@ -60,6 +60,8 @@ public class PlayerController extends Controller {
 			Vector3f pos = new Vector3f();
 			player.getWorldPosition(pos);
 			player.setWorldPosition(pos.x + x, pos.y + y, pos.z);
+
+//			rb.applyForce(x, y );
 		}
 	}
 

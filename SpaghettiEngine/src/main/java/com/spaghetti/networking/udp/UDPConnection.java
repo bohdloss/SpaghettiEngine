@@ -1,26 +1,24 @@
-package com.spaghetti.networking.tcp;
+package com.spaghetti.networking.udp;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
-
 import com.spaghetti.core.CoreComponent;
 import com.spaghetti.networking.NetworkBuffer;
 import com.spaghetti.networking.NetworkConnection;
 import com.spaghetti.networking.Opcode;
 import com.spaghetti.utils.Utils;
 
-public class TCPConnection extends NetworkConnection {
+public class UDPConnection extends NetworkConnection {
 
 	protected SocketChannel socket;
 	protected static final int HEADER_SIZE = Integer.BYTES + Short.BYTES;
 	protected ByteBuffer packet_header;
 	protected ByteBuffer[] composite = new ByteBuffer[2];
-	protected long timeout;
 
-	public TCPConnection(CoreComponent parent) {
+	public UDPConnection(CoreComponent parent) {
 		super(parent);
 		packet_header = ByteBuffer.allocate(HEADER_SIZE);
 		packet_header.order(NetworkBuffer.ORDER);
@@ -43,7 +41,6 @@ public class TCPConnection extends NetworkConnection {
 		str_cache.clear();
 		w_buffer.clear();
 		r_buffer.clear();
-		timeout = getGame().getEngineOption("networktimeout");
 	}
 
 	@Override
@@ -67,6 +64,7 @@ public class TCPConnection extends NetworkConnection {
 	@Override
 	public void send() throws Throwable {
 		// Timeout
+		final long timeout = 5000;
 		final long begin = System.currentTimeMillis();
 
 		// Ensure end instruction to avoid errors
@@ -99,6 +97,7 @@ public class TCPConnection extends NetworkConnection {
 	@Override
 	public void receive() throws Throwable {
 		// Timeout
+		final long timeout = 5000;
 		final long begin = System.currentTimeMillis();
 
 		// Read header info

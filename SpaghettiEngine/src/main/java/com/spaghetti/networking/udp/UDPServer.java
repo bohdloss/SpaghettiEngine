@@ -1,4 +1,4 @@
-package com.spaghetti.networking.tcp;
+package com.spaghetti.networking.udp;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
@@ -10,7 +10,7 @@ import com.spaghetti.networking.NetworkConnection;
 import com.spaghetti.networking.ServerCore;
 import com.spaghetti.utils.Utils;
 
-public class TCPServer extends ServerCore {
+public class UDPServer extends ServerCore {
 
 	// Server object
 	ServerSocketChannel server;
@@ -61,7 +61,7 @@ public class TCPServer extends ServerCore {
 
 	@Override
 	protected NetworkConnection internal_initworker() {
-		return new TCPConnection(this);
+		return new UDPConnection(this);
 	}
 
 	// Getters
