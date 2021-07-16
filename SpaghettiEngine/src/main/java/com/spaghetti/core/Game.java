@@ -1,6 +1,5 @@
 package com.spaghetti.core;
 
-import java.lang.reflect.InvocationTargetException;
 import java.util.*;
 
 import com.spaghetti.assets.AssetManager;
@@ -102,47 +101,22 @@ public final class Game {
 	private final boolean hasAutority;
 
 	// Constructors using custom classes
-	public Game(Class<? extends UpdaterCore> updaterClass, Class<? extends RendererCore> rendererClass,
-			Class<? extends ClientCore> clientClass, Class<? extends ServerCore> serverClass,
+	public Game(UpdaterCore updater, RendererCore renderer, ClientCore client, ServerCore server,
 			Class<? extends EventDispatcher> eventDispatcherClass, Class<? extends GameOptions> gameOptionsClass,
 			Class<? extends AssetManager> assetManagerClass, Class<? extends InputDispatcher> inputDispatcherClass,
-			Class<? extends ClientState> clientStateClass) {
+			Class<? extends ClientState> clientStateClass) throws Throwable {
 		// Sanity checks
-		if (clientClass != null && serverClass != null) {
+		if (client != null && server != null) {
 			throw new IllegalArgumentException("Cannot have both a client and a server in a Game");
 		}
-		if (serverClass != null && rendererClass != null) {
+		if (server != null && renderer != null) {
 			throw new IllegalArgumentException("Cannot have both a server and a renderer in a Game");
 		}
-		if (updaterClass == null && rendererClass == null) {
+		if (updater == null && renderer == null) {
 			throw new IllegalArgumentException("At least an updater or a renderer is required in a Game");
 		}
-		if (updaterClass == null && (clientClass != null || serverClass != null)) {
+		if (updater == null && (client != null || server != null)) {
 			throw new IllegalArgumentException("Cannot have a client or a server without an updater in a Game");
-		}
-
-		// Initialize cores
-		try {
-			if (clientClass != null) {
-				this.client = clientClass.getConstructor().newInstance();
-			}
-			if (serverClass != null) {
-				this.server = serverClass.getConstructor().newInstance();
-			}
-			if (updaterClass != null) {
-				this.updater = updaterClass.getConstructor().newInstance();
-			}
-			if (rendererClass != null) {
-				this.renderer = rendererClass.getConstructor().newInstance();
-			}
-		} catch (InstantiationException e) {
-			throw new RuntimeException("Error initializing a core: class is abstract", e);
-		} catch (InvocationTargetException e) {
-			throw new RuntimeException("Error initializing a core: exception in constructor", e);
-		} catch (NoSuchMethodException e) {
-			throw new RuntimeException("Error initializing a core: empty constructor is not defined", e);
-		} catch (IllegalAccessException e) {
-			throw new RuntimeException("Error initializing a core: constructor is private", e);
 		}
 
 		// Possibly initialize HANDLER and GLFW
@@ -179,21 +153,11 @@ public final class Game {
 		}
 
 		// Initialize global variables
-		try {
-			this.eventDispatcher = eventDispatcherClass.getConstructor(Game.class).newInstance(this);
-			this.options = gameOptionsClass.getConstructor(Game.class).newInstance(this);
-			this.assetManager = assetManagerClass.getConstructor(Game.class).newInstance(this);
-			this.inputDispatcher = inputDispatcherClass.getConstructor(Game.class).newInstance(this);
-			this.clientState = clientStateClass.getConstructor(Game.class).newInstance(this);
-		} catch (InstantiationException e) {
-			throw new RuntimeException("Error initializing an object: class is abstract", e);
-		} catch (InvocationTargetException e) {
-			throw new RuntimeException("Error initializing an object: exception in constructor", e);
-		} catch (NoSuchMethodException e) {
-			throw new RuntimeException("Error initializing an object: empty constructor is not defined", e);
-		} catch (IllegalAccessException e) {
-			throw new RuntimeException("Error initializing an object: constructor is private", e);
-		}
+		this.eventDispatcher = eventDispatcherClass.getConstructor(Game.class).newInstance(this);
+		this.options = gameOptionsClass.getConstructor(Game.class).newInstance(this);
+		this.assetManager = assetManagerClass.getConstructor(Game.class).newInstance(this);
+		this.inputDispatcher = inputDispatcherClass.getConstructor(Game.class).newInstance(this);
+		this.clientState = clientStateClass.getConstructor(Game.class).newInstance(this);
 
 		// Cache booleans
 		this.isHeadless = renderer == null;
@@ -246,7 +210,7 @@ public final class Game {
 	}
 
 	// Start all child threads
-	public void begin() {
+	public void begin() throws Throwable {
 		if (stopped || init || starting || stopping) {
 			return;
 		}

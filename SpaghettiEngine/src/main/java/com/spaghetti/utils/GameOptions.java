@@ -30,21 +30,20 @@ public class GameOptions {
 				resolution.y = 1;
 			}
 		}
-		setEngineOption("resolution", new Vector2i(resolution));
-		setEngineOption("renderresolution", new Vector2i(resolution));
+		setEngineOption("resolution", resolution);
 		setEngineOption("stoptimeout", 10000l); // 10 s
 		setEngineOption("assetsheet", "/res/main.txt");
+		setEngineOption("networkbuffer", 1000 * 256); // 256 KB
 
 		// Game window
-		setEngineOption("windowsize", new Vector2i(400, 400));
-		setEngineOption("windowminimumsize", new Vector2i(100, 100));
-		setEngineOption("windowmaximumsize", new Vector2i(resolution));
-		setEngineOption("windowfullscreen", true);
-		setEngineOption("windowresizable", true);
-
-		// Networking
-		setEngineOption("networkbuffer", 1000 * 256); // 256 KB
-		setEngineOption("networktimeout", 5000l);
+		setEngineOption("defaultwidth", 400);
+		setEngineOption("defaultheight", 400);
+		setEngineOption("defaultfullscreen", false);
+		setEngineOption("defaultminimumwidth", 100);
+		setEngineOption("defaultminimumheight", 100);
+		setEngineOption("defaultmaximumwidth", resolution.x);
+		setEngineOption("defaultmaximumheight", resolution.x);
+		setEngineOption("defaultresizable", true);
 	}
 
 	// Public getters and setters

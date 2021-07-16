@@ -89,9 +89,6 @@ public abstract class CoreComponent extends Thread {
 	}
 
 	public final void start(Game source) {
-		if (this.source != null && this.source != source) {
-			throw new IllegalStateException("Error: attempted to start core multiple times in different games");
-		}
 		this.source = source;
 		start();
 	}

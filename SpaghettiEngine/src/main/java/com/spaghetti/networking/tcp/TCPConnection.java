@@ -18,7 +18,6 @@ public class TCPConnection extends NetworkConnection {
 	protected static final int HEADER_SIZE = Integer.BYTES + Short.BYTES;
 	protected ByteBuffer packet_header;
 	protected ByteBuffer[] composite = new ByteBuffer[2];
-	protected long timeout;
 
 	public TCPConnection(CoreComponent parent) {
 		super(parent);
@@ -43,7 +42,6 @@ public class TCPConnection extends NetworkConnection {
 		str_cache.clear();
 		w_buffer.clear();
 		r_buffer.clear();
-		timeout = getGame().getEngineOption("networktimeout");
 	}
 
 	@Override
@@ -67,6 +65,7 @@ public class TCPConnection extends NetworkConnection {
 	@Override
 	public void send() throws Throwable {
 		// Timeout
+		final long timeout = 5000;
 		final long begin = System.currentTimeMillis();
 
 		// Ensure end instruction to avoid errors
@@ -99,6 +98,7 @@ public class TCPConnection extends NetworkConnection {
 	@Override
 	public void receive() throws Throwable {
 		// Timeout
+		final long timeout = 5000;
 		final long begin = System.currentTimeMillis();
 
 		// Read header info

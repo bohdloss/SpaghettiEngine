@@ -676,7 +676,6 @@ public abstract class NetworkConnection {
 	// Serialization of level
 	public void writeLevelStructure() {
 		Level level = getLevel();
-		reliable = true;
 
 		// Write metadata
 		w_buffer.putByte(Opcode.LEVEL);
@@ -779,7 +778,6 @@ public abstract class NetworkConnection {
 	}
 
 	public void writeObjectTree(GameObject object) {
-		reliable = true;
 		w_buffer.putByte(Opcode.OBJECTTREE);
 		w_buffer.putInt(object.getParent() == null ? -1 : object.getParent().getId());
 		writeObjectStructure(object);
@@ -809,7 +807,6 @@ public abstract class NetworkConnection {
 		if (noReplicate(object.getClass())) {
 			return;
 		}
-		reliable = true;
 		w_buffer.putByte(Opcode.OBJECTDESTROY);
 		w_buffer.putBoolean(false); // Component flag
 		w_buffer.putInt(object.getId());
@@ -819,7 +816,6 @@ public abstract class NetworkConnection {
 		if (noReplicate(component.getClass())) {
 			return;
 		}
-		reliable = true;
 		w_buffer.putByte(Opcode.OBJECTDESTROY);
 		w_buffer.putBoolean(true); // Component flag
 		w_buffer.putInt(component.getId());
@@ -1012,9 +1008,6 @@ public abstract class NetworkConnection {
 			// Sending this event is not allowed in this context!
 			return;
 		}
-		if (reliableCls(event.getClass())) {
-			reliable = true;
-		}
 		w_buffer.putByte(Opcode.GAMEEVENT);
 		w_buffer.putInt(issuer == null ? -1 : issuer.getId());
 
@@ -1060,7 +1053,6 @@ public abstract class NetworkConnection {
 
 	// Authentication related
 	public boolean writeAuthentication() {
-		reliable = true;
 		if (authenticator == null) {
 			authenticator = new DefaultAuthenticator();
 		}
@@ -1153,9 +1145,6 @@ public abstract class NetworkConnection {
 	}
 
 	public void writeRPCResponse(RPC rpc) {
-		if (reliableCls(rpc.getClass())) {
-			reliable = true;
-		}
 		if (rpc.hasReturnValue()) {
 			w_buffer.putByte(Opcode.RPC_RESPONSE);
 			w_buffer.putInt(rpc.getId());
@@ -1173,7 +1162,7 @@ public abstract class NetworkConnection {
 
 		if (!rpc.hasReturnValue()) {
 			f_rpcready.set(rpc, true);
-			throw new IllegalStateException("RPC " + rpc.getClass().getName() + " sent void instead of a return value");
+			throw new IllegalStateException("RPC " + rpc.getClass().getName() + " sent a return value instead of void");
 		}
 
 		rpc.readReturn(r_buffer);
@@ -1188,7 +1177,7 @@ public abstract class NetworkConnection {
 
 		if (rpc.hasReturnValue()) {
 			f_rpcready.set(rpc, true);
-			throw new IllegalStateException("RPC " + rpc.getClass().getName() + " sent a return value instead of void");
+			throw new IllegalStateException("RPC " + rpc.getClass().getName() + " sent void instead of a return value");
 		}
 
 		f_rpcerror.set(rpc, error);

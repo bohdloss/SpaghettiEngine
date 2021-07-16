@@ -644,7 +644,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 	// Override for more precise control
 	public boolean getReplicateFlag() {
 		boolean flag = internal_getflag(REPLICATE);
-		internal_setflag(REPLICATE, false);
+//		internal_setflag(REPLICATE, false);
 		return flag;
 	}
 

@@ -48,7 +48,7 @@ public class TCPServer extends ServerCore {
 			SocketChannel socket = (SocketChannel) object;
 			InetSocketAddress addr;
 			addr = (InetSocketAddress) socket.getRemoteAddress();
-			return Utils.longHash(addr.getHostName() + ":" + addr.getPort());
+			return Utils.longHash(addr.getHostName());// + ":" + addr.getPort());
 		} catch (IOException e) {
 			throw new RuntimeException("IOException occurred while getting remote socket address", e);
 		}
