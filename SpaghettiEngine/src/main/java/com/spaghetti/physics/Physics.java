@@ -114,7 +114,7 @@ public final class Physics extends GameObject {
 	// Interfaces
 
 	@Override
-	public void commonUpdate(float delta) {
+	public void serverUpdate(float delta) {
 		solve(delta);
 	}
 

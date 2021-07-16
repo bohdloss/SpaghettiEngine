@@ -20,7 +20,7 @@ public final class GameWindow {
 	// Instance fields and methods
 
 	protected String title;
-	protected boolean fullscreen;
+	protected boolean fullscreen, resizable;
 	protected GLFWImage icon, iconSmall;
 	protected long id;
 	protected boolean visible;
@@ -54,13 +54,19 @@ public final class GameWindow {
 			}
 
 			// Retrieve options
-			this.fullscreen = game.getEngineOption("defaultfullscreen");
-			this.minWidth = game.getEngineOption("defaultminimumwidth");
-			this.minHeight = game.getEngineOption("defaultminimumheight");
-			this.maxWidth = game.getEngineOption("defaultmaximumwidth");
-			this.maxHeight = game.getEngineOption("defaultmaximumheight");
-			this.width = game.getEngineOption("defaultwidth");
-			this.height = game.getEngineOption("defaultheight");
+			boolean fullscreen = game.getEngineOption("windowfullscreen");
+			boolean resizable = game.getEngineOption("windowresizable");
+
+			Vector2i size = game.getEngineOption("windowsize");
+			Vector2i size_min = game.getEngineOption("windowminimumsize");
+			Vector2i size_max = game.getEngineOption("windowmaximumsize");
+
+			this.width = size.x;
+			this.height = size.y;
+			this.minWidth = size_min.x;
+			this.minHeight = size_min.y;
+			this.maxWidth = size_max.x;
+			this.maxHeight = size_max.y;
 			this.iwidth = width;
 			this.iheight = height;
 
@@ -110,6 +116,7 @@ public final class GameWindow {
 			center();
 			GLFW.glfwSetWindowSizeLimits(id, minWidth, minHeight, maxWidth, maxHeight);
 			setFullscreen(fullscreen);
+			setResizable(resizable);
 			return null;
 		});
 	}
@@ -138,6 +145,22 @@ public final class GameWindow {
 
 	public int getHeight() {
 		return height;
+	}
+
+	public void setResizable(boolean resizable) {
+		quickQueue(() -> {
+			if (this.resizable != resizable) {
+				this.resizable = resizable;
+			} else {
+				return null;
+			}
+			GLFW.glfwSetWindowAttrib(id, GLFW.GLFW_RESIZABLE, resizable ? GLFW.GLFW_TRUE : GLFW.GLFW_FALSE);
+			return null;
+		});
+	}
+
+	public boolean isResizable() {
+		return resizable;
 	}
 
 	public void setWidth(int width) {
@@ -356,7 +379,14 @@ public final class GameWindow {
 	}
 
 	public boolean isFocused() {
-		return GLFW.glfwGetWindowAttrib(id, GLFW.GLFW_FOCUSED) == 1;
+		return GLFW.glfwGetWindowAttrib(id, GLFW.GLFW_FOCUSED) == GLFW.GLFW_TRUE;
+	}
+
+	public void requestFocus() {
+		quickQueue(() -> {
+			GLFW.glfwRequestWindowAttention(id);
+			return null;
+		});
 	}
 
 	public boolean isFullscreen() {
@@ -368,9 +398,8 @@ public final class GameWindow {
 			long funcId = Game.handler.dispatcher.queue(action);
 			return async ? null : Game.handler.dispatcher.waitReturnValue(funcId);
 		} catch (Throwable t) {
-			t.printStackTrace();
+			throw new RuntimeException(t);
 		}
-		return null;
 	}
 
 	public boolean isAsync() {
