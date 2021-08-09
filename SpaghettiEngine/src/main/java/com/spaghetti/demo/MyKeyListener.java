@@ -1,18 +1,18 @@
 package com.spaghetti.demo;
 
 import com.spaghetti.core.Game;
-import com.spaghetti.input.Keys;
-import com.spaghetti.interfaces.Controllable;
+import com.spaghetti.input.Keyboard;
+import com.spaghetti.interfaces.InputListener;
 
-public class MyKeyListener implements Controllable {
+public class MyKeyListener implements InputListener {
 
 	@Override
 	public void onKeyPressed(int key, int x, int y) {
 		switch (key) {
-		case Keys.T:
+		case Keyboard.T:
 			Game.getGame().getClient().disconnect();
 			break;
-		case Keys.P:
+		case Keyboard.P:
 			Game.getGame().getClient().connect("localhost", 9018);
 			break;
 		}
@@ -29,7 +29,7 @@ public class MyKeyListener implements Controllable {
 	}
 
 	@Override
-	public void onMouseScroll(float scroll, int x, int y) {
+	public void onMouseScroll(float xscroll, float yscroll, int x, int y) {
 
 	}
 

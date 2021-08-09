@@ -1,6 +1,6 @@
 package com.spaghetti.interfaces;
 
-public interface Controllable {
+public interface InputListener {
 
 	// When a key changes its state
 	public void onKeyPressed(int key, int x, int y);
@@ -10,7 +10,7 @@ public interface Controllable {
 	// When the mouse changes its state
 	public void onMouseMove(int x, int y);
 
-	public void onMouseScroll(float scroll, int x, int y);
+	public void onMouseScroll(float xscroll, float yscroll, int x, int y);
 
 	public void onMouseButtonPressed(int button, int x, int y);
 

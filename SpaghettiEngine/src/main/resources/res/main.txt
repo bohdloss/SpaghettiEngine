@@ -1,6 +1,8 @@
 // aaaaa
 texture coolness /res/cool_image.jpg
 material aaa coolness defaultSP
+texture t_character /res/character.png
+material m_character t_character defaultSP
 // apple
 texture apple_color /res/apple/apple.png
 material apple_mat apple_color defaultSP

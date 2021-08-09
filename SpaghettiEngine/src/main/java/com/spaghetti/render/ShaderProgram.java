@@ -155,6 +155,7 @@ public final class ShaderProgram extends Asset {
 			return locations.get(name);
 		} else {
 			// Find the location and cache it
+			GL11.glGetError();
 			int loc = GL20.glGetUniformLocation(id, name);
 			Utils.glError();
 			if (loc == -1) {

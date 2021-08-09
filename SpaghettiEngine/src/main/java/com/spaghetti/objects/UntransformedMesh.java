@@ -2,7 +2,6 @@ package com.spaghetti.objects;
 
 import org.joml.Matrix4f;
 import org.joml.Vector3f;
-
 import com.spaghetti.interfaces.ToClient;
 import com.spaghetti.render.Material;
 import com.spaghetti.render.Model;

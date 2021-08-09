@@ -74,7 +74,6 @@ public class ClientState {
 		if (activeController == null) {
 			return;
 		}
-		game.getInputDispatcher().unregisterListener(activeController);
 		activeController = null;
 	}
 
@@ -85,7 +84,6 @@ public class ClientState {
 		if (activeController != null) {
 			detachController();
 		}
-		game.getInputDispatcher().registerListener(controller);
 		this.activeController = controller;
 	}
 

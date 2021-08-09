@@ -103,7 +103,7 @@ public abstract class ClientCore extends CoreComponent {
 		}
 		synchronized (queue_lock) {
 			functions.add(client -> {
-				if (!event.skip(client, true)) {
+				if (!event.needsReplication(client)) {
 					client.writeGameEvent(issuer, event);
 				}
 			});
@@ -116,11 +116,11 @@ public abstract class ClientCore extends CoreComponent {
 		}
 	}
 
-	public void queueRPC(RPC rpc) {
+	public void queueRPC(RemoteProcedure rpc) {
 		synchronized (queue_lock) {
 			functions.add(client -> {
 				if (!rpc.skip(client, true)) {
-					client.writeRPC(rpc);
+					client.writeRemoteProcedure(rpc);
 				}
 			});
 		}
@@ -293,7 +293,7 @@ public abstract class ClientCore extends CoreComponent {
 		return worker.getLocalPort();
 	}
 
-	public NetworkConnection getWorker() {
+	public NetworkConnection getConnection() {
 		return worker;
 	}
 

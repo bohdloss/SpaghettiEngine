@@ -3,9 +3,11 @@ package com.spaghetti.events;
 import java.util.HashMap;
 
 import com.spaghetti.core.Game;
+import com.spaghetti.interfaces.Replicable;
+import com.spaghetti.networking.NetworkBuffer;
 import com.spaghetti.networking.NetworkConnection;
 
-public abstract class GameEvent {
+public abstract class GameEvent implements Replicable {
 
 	private static final HashMap<Integer, Integer> staticId = new HashMap<>();
 
@@ -56,8 +58,25 @@ public abstract class GameEvent {
 	}
 
 	// Override this to mask out certain clients / servers
-	public boolean skip(NetworkConnection target, boolean isClient) {
-		return false;
+	@Override
+	public boolean needsReplication(NetworkConnection target) {
+		return true;
+	}
+	
+	@Override
+	public void writeDataServer(NetworkBuffer buffer) {
 	}
 
+	@Override
+	public void readDataServer(NetworkBuffer buffer) {
+	}
+
+	@Override
+	public void writeDataClient(NetworkBuffer buffer) {
+	}
+
+	@Override
+	public void readDataClient(NetworkBuffer buffer) {
+	}
+	
 }

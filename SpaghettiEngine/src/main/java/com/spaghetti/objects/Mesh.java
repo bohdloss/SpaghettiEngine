@@ -13,6 +13,8 @@ public class Mesh extends GameObject {
 
 	protected Model model;
 	protected Material material;
+	protected boolean projectionCaching = true;
+	protected boolean visible = true;
 
 	public Mesh(Model model, Material material) {
 		this.model = model;
@@ -25,7 +27,7 @@ public class Mesh extends GameObject {
 
 	@Override
 	public void render(Camera renderer, float delta) {
-		if (material != null && model != null) {
+		if (material != null && model != null && visible) {
 
 			// Gather transform data
 			Vector3f position = new Vector3f();
@@ -36,7 +38,7 @@ public class Mesh extends GameObject {
 			getWorldScale(scale);
 
 			// Transform matrix
-			Matrix4f matrix = renderer.getProjection();
+			Matrix4f matrix = renderer.getProjection(projectionCaching);
 			matrix.translate(position);
 			matrix.rotateXYZ(rotation);
 			matrix.scale(scale);
@@ -52,16 +54,32 @@ public class Mesh extends GameObject {
 		return model;
 	}
 
-	public Material getMaterial() {
-		return material;
-	}
-
 	public void setModel(Model model) {
 		this.model = model;
 	}
 
+	public Material getMaterial() {
+		return material;
+	}
+
 	public void setMaterial(Material material) {
 		this.material = material;
+	}
+
+	public boolean isProjectionCaching() {
+		return projectionCaching;
+	}
+
+	public void setProjectionCaching(boolean projectionCaching) {
+		this.projectionCaching = projectionCaching;
+	}
+
+	public boolean isVisible() {
+		return visible;
+	}
+
+	public void setVisible(boolean visible) {
+		this.visible = visible;
 	}
 
 	@Override
@@ -69,6 +87,8 @@ public class Mesh extends GameObject {
 		super.writeDataServer(buffer);
 		buffer.putString(true, model == null ? "" : model.getName(), NetworkBuffer.UTF_8);
 		buffer.putString(true, material == null ? "" : material.getName(), NetworkBuffer.UTF_8);
+		buffer.putBoolean(projectionCaching);
+		buffer.putBoolean(visible);
 	}
 
 	@Override
@@ -78,6 +98,8 @@ public class Mesh extends GameObject {
 		String materialname = buffer.getString(true, NetworkBuffer.UTF_8);
 		this.model = modelname.equals("") ? null : getGame().getAssetManager().model(modelname);
 		this.material = materialname.equals("") ? null : getGame().getAssetManager().material(materialname);
+		this.projectionCaching = buffer.getBoolean();
+		this.visible = buffer.getBoolean();
 	}
 
 }

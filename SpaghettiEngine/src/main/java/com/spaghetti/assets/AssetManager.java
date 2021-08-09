@@ -334,19 +334,18 @@ public class AssetManager {
 					try {
 						// Lock the asset
 						synchronized (asset) {
-
 							// Fill asset
 							fillAsset(asset);
-
-							// Queue native loading
-							FunctionDispatcher dispatcher = game.getRendererDispatcher();
-							long func = dispatcher.queue(() -> {
-								loadNative(asset);
-								return null;
-							});
-							dispatcher.waitReturnValue(func);
-							Logger.info("[loadAssetLazy] Loaded " + name);
 						}
+							
+						// Queue native loading
+						FunctionDispatcher dispatcher = game.getRendererDispatcher();
+						long func = dispatcher.queue(() -> {
+							loadNative(asset);
+							return null;
+						});
+						dispatcher.waitReturnValue(func);
+						Logger.info("[loadAssetLazy] Loaded " + name);
 					} catch (Throwable t) {
 						Logger.error("[loadAssetLazy] Error loading " + asset.type + " " + asset.name, t);
 					}

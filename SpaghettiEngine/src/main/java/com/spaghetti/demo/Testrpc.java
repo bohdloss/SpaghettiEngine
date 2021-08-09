@@ -5,7 +5,7 @@ import com.spaghetti.networking.*;
 import com.spaghetti.utils.Logger;
 
 @ToClient
-public class Testrpc extends RPC {
+public class Testrpc extends RemoteProcedure {
 
 	@Override
 	protected ClassInterpreter<?>[] getArgInterpreters() {

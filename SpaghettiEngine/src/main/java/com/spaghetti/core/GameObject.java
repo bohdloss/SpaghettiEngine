@@ -11,6 +11,7 @@ import org.joml.Vector3f;
 import com.spaghetti.events.GameEvent;
 import com.spaghetti.interfaces.*;
 import com.spaghetti.networking.NetworkBuffer;
+import com.spaghetti.networking.NetworkConnection;
 import com.spaghetti.objects.Camera;
 import com.spaghetti.utils.Logger;
 import com.spaghetti.utils.Utils;
@@ -20,8 +21,8 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 
 	// Hierarchy and utility
 
-	private static final Field c_owner;
-	private static final Method c_setflag;
+	private static final Field c_owner = Utils.getPrivateField(GameComponent.class, "owner");
+	private static final Method c_setflag = Utils.getPrivateMethod(GameComponent.class, "internal_setflag", int.class, boolean.class);
 	private static HashMap<Integer, Integer> staticId = new HashMap<>();
 
 	private static final synchronized int newId() {
@@ -34,22 +35,6 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		return new Random().nextInt();
 	}
 
-	static {
-		Field owner = null;
-		Method setflag = null;
-
-		try {
-			owner = GameComponent.class.getDeclaredField("owner");
-			owner.setAccessible(true);
-			setflag = GameComponent.class.getDeclaredMethod("internal_setflag", int.class, boolean.class);
-			setflag.setAccessible(true);
-		} catch (Throwable t) {
-		}
-
-		c_owner = owner;
-		c_setflag = setflag;
-	}
-
 	// Instance methods and fields
 
 	// O is attached flag
@@ -60,6 +45,8 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 	public static final int DELETE = 2;
 	// 3 is replicate flag
 	public static final int REPLICATE = 3;
+	// 4 is initialized flag
+	public static final int INITIALIZED = 4;
 
 	private final Object flags_lock = new Object();
 	private int flags;
@@ -139,7 +126,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		children.put(object.id, object);
 		object.internal_setflag(ATTACHED, true);
 		if (isGloballyAttached()) {
-			object.internal_begin();
+			object.onbegin_forward();
 		}
 	}
 
@@ -178,7 +165,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		if (isGloballyAttached()) {
 			level.c_ordered.put(component.getId(), component);
 			try {
-				component.onBeginPlay();
+				component.onbegin_check();
 			} catch (Throwable t) {
 				Logger.error("Error occurred in component", t);
 			}
@@ -391,13 +378,14 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		if (object != null) {
 			if (isGloballyAttached()) {
 				// Trigger end
-				object.internal_end();
+				object.onend_forward();
 				// Remove from level
 				level.o_ordered.remove(id);
 			}
 
 			// Remove from list, set flags
 			object.parent = null;
+			object.level = null;
 			children.remove(id);
 			object.internal_setflag(ATTACHED, false);
 
@@ -425,7 +413,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 			if (isGloballyAttached()) {
 				// Trigger end
 				try {
-					component.onEndPlay();
+					component.onend_check();
 				} catch (Throwable t) {
 					Logger.error("Error occurred in component", t);
 				}
@@ -509,15 +497,10 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		if (isDestroyed()) {
 			return;
 		}
-		internal_destroy();
+		ondestroy_forward();
 	}
 
-	private final void destroySimple() {
-		try {
-			onDestroy();
-		} catch (Throwable t) {
-			Logger.error("Error occurred in object", t);
-		}
+	private final void destroy_finalize() {
 		if (parent == null) {
 			if (level != null) {
 				level.removeObject(id);
@@ -525,61 +508,66 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		} else {
 			parent.removeChild(id);
 		}
+		try {
+			onDestroy();
+		} catch (Throwable t) {
+			Logger.error("Error occurred in object", t);
+		}
 		level = null;
 		parent = null;
 		internal_setflag(DESTROYED, true);
 	}
 
-	protected final void internal_begin() {
+	protected final void onbegin_forward() {
 		try {
-			onBeginPlay();
+			onbegin_check();
 		} catch (Throwable t) {
 			Logger.error("Error occurred in object", t);
 		}
 		for (Object obj : components.values().toArray()) {
 			GameComponent component = (GameComponent) obj;
 			try {
-				component.onBeginPlay();
+				component.onbegin_check();
 			} catch (Throwable t) {
 				Logger.error("Error occurred in component", t);
 			}
 		}
 		for (Object obj : children.values().toArray()) {
 			GameObject object = (GameObject) obj;
-			object.internal_begin();
+			object.onbegin_forward();
 		}
 	}
 
-	protected final void internal_end() {
+	protected final void onend_forward() {
 		for (Object obj : children.values().toArray()) {
 			GameObject object = (GameObject) obj;
-			object.internal_end();
+			object.onend_check();
 		}
 		for (Object obj : components.values().toArray()) {
 			GameComponent component = (GameComponent) obj;
 			try {
-				component.onEndPlay();
+				component.onend_check();
 			} catch (Throwable t) {
 				Logger.error("Error occurred in component", t);
 			}
 		}
 		try {
-			onEndPlay();
+			onend_check();
 		} catch (Throwable t) {
 			Logger.error("Error occurred in component", t);
 		}
 	}
 
-	protected final void internal_destroy() {
+	protected final void ondestroy_forward() {
 		for (Object obj : children.values().toArray()) {
 			GameObject child = (GameObject) obj;
-			child.internal_destroy();
+			child.ondestroy_forward();
 		}
 		for (Object obj : components.values().toArray()) {
 			GameComponent component = (GameComponent) obj;
 			component.destroy();
 		}
-		destroySimple();
+		destroy_finalize();
 	}
 
 	// Getters
@@ -641,8 +629,13 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		return true;
 	}
 
+	public final boolean isInitialized() {
+		return internal_getflag(INITIALIZED);
+	}
+	
 	// Override for more precise control
-	public boolean getReplicateFlag() {
+	@Override
+	public boolean needsReplication(NetworkConnection connection) {
 		boolean flag = internal_getflag(REPLICATE);
 		internal_setflag(REPLICATE, false);
 		return flag;
@@ -656,10 +649,25 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 
 	// Position getters
 
+	public final Vector3f getRelativePosition() {
+		return new Vector3f().set(relativePosition);
+	}
+	
 	public final void getRelativePosition(Vector3f pointer) {
 		pointer.set(relativePosition);
 	}
 
+	public final Vector3f getWorldPosition() {
+		Vector3f vec = new Vector3f();
+		
+		GameObject last = this;
+		while (last != null) {
+			vec.add(last.relativePosition);
+			last = last.parent;
+		}
+		return vec;
+	}
+	
 	public final void getWorldPosition(Vector3f pointer) {
 		pointer.zero();
 
@@ -772,10 +780,25 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 
 	// Scale getters
 
+	public final Vector3f getRelativeScale() {
+		return new Vector3f().set(relativeScale);
+	}
+	
 	public final void getRelativeScale(Vector3f pointer) {
 		pointer.set(relativeScale);
 	}
 
+	public final Vector3f getWorldScale() {
+		Vector3f vec = new Vector3f().set(1);
+		
+		GameObject last = this;
+		while (last != null) {
+			vec.mul(last.relativeScale);
+			last = last.parent;
+		}
+		return vec;
+	}
+	
 	public final void getWorldScale(Vector3f pointer) {
 		pointer.set(1);
 
@@ -888,10 +911,25 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 
 	// Rotation getters
 
+	public final Vector3f getRelativeRotation() {
+		return new Vector3f().set(relativeRotation);
+	}
+	
 	public final void getRelativeRotation(Vector3f pointer) {
 		pointer.set(relativeRotation);
 	}
 
+	public final Vector3f getWorldRotation() {
+		Vector3f vec = new Vector3f();
+		
+		GameObject last = this;
+		while (last != null) {
+			vec.add(last.relativeRotation);
+			last = last.parent;
+		}
+		return vec;
+	}
+	
 	public final void getWorldRotation(Vector3f pointer) {
 		pointer.zero();
 
@@ -1004,6 +1042,20 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 
 	// Interface methods
 
+	private final void onbegin_check() {
+		if(!internal_getflag(INITIALIZED)) {
+			onBeginPlay();
+			internal_setflag(INITIALIZED, true);
+		}
+	}
+	
+	private final void onend_check() {
+		if(internal_getflag(INITIALIZED)) {
+			onEndPlay();
+			internal_setflag(INITIALIZED, false);
+		}
+	}
+	
 	protected void onBeginPlay() {
 	}
 
@@ -1034,27 +1086,42 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		});
 	}
 
+	/**
+	 * WARNING: NONE of the code in this method
+	 * should EVER try to interact with render code
+	 * or other objects that require an opngGL context
+	 * as it will trigger errors or, in the worst
+	 * scenario, a SIGSEGV signal (Segmentation fault)
+	 * shutting down the entire server
+	 * (Which might even be a dedicated server as a whole)
+	 * 
+	 * @param delta
+	 */
 	protected void serverUpdate(float delta) {
-		// WARNING: NONE of the code in this method
-		// should EVER try to interact with render code
-		// or other objects that require an opngGL context
-		// as it will trigger errors or, in the worst
-		// scenario, a SIGSEGV signal (Segmentation fault)
-		// shutting down the entire server
-		// (Which might even be a dedicated server as a whole)
+		
 	}
 
+	/**
+	 * Here doing such things may still cause
+	 * exceptions or weird and hard to debug errors
+	 * so by design it is best not to include such
+	 * code in update methods
+	 * 
+	 * @param delta
+	 */
 	protected void clientUpdate(float delta) {
-		// Here doing such things may still cause
-		// exceptions or weird and hard to debug errors
-		// so by design it is best not to include such
-		// code in update methods
+		
 	}
 
+	/**
+	 * Happens on both server and client regardless
+	 * So follow all the warnings reported on the serverUpdate
+	 * method plus the ones on clientUpdate
+	 * 
+	 * @param delta
+	 */
 	protected void commonUpdate(float delta) {
-		// Happens on both server and client regardless
-		// So follow all the warnings reported on the serverUpdate
-		// method plus the ones on clientUpdate
+		
 	}
 
 	@Override

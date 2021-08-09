@@ -1,15 +1,14 @@
 package com.spaghetti.utils;
 
-import java.awt.image.BufferedImage;
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.lang.reflect.Modifier;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 
-import org.lwjgl.BufferUtils;
 import org.lwjgl.assimp.AIString;
 import org.lwjgl.assimp.Assimp;
 import org.lwjgl.openal.AL;
@@ -20,6 +19,12 @@ import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL30;
 import org.lwjgl.opengl.GL45;
 
+/**
+ * Utils is a namespace for common useful functions
+ * 
+ * @author bohdloss
+ *
+ */
 public final class Utils {
 
 	private Utils() {
@@ -64,34 +69,6 @@ public final class Utils {
 		} catch (InterruptedException e) {
 			e.printStackTrace();
 		}
-	}
-
-	/**
-	 * Converts a BufferedImage into an OpenGL-compatible ByteBuffer
-	 * 
-	 * @param img The image to convert
-	 * @return The converted byte buffer
-	 */
-	public static ByteBuffer parseImage(BufferedImage img) {
-		int w = img.getWidth();
-		int h = img.getHeight();
-
-		// Prepare for copy
-		int pixels_raw[] = new int[w * h * 4];
-		pixels_raw = img.getRGB(0, 0, w, h, null, 0, w);
-		ByteBuffer pixels = BufferUtils.createByteBuffer(w * h * 4);
-
-		// Copy data into a byte w_buffer
-		for (int pixel : pixels_raw) {
-			pixels.put((byte) ((pixel >> 16) & 0xFF)); // Red
-			pixels.put((byte) ((pixel >> 8) & 0xFF)); // Green
-			pixels.put((byte) ((pixel) & 0xFF)); // Blue
-			pixels.put((byte) ((pixel >> 24) & 0xFF)); // Alpha
-		}
-
-		pixels.flip();
-
-		return pixels;
 	}
 
 	/**
@@ -582,8 +559,63 @@ public final class Utils {
 			}
 			return result;
 		} catch (Throwable t) {
-			throw new RuntimeException("Couldn't obtain field " + cls.getName() + "." + name);
+			throw new RuntimeException("Couldn't obtain field " + cls.getName() + "." + name, t);
+		}
+	}
+	
+	/**
+	 * Obtains a private method with the given {@code name} and {@code arguments} vararg from the given
+	 * {@code cls} and if not found, the superclass of {@code cls} will be searched,
+	 * and so on iteratively.<br>
+	 * Once the method is found, {@code private/protected}
+	 * restrictions are removed from it, then it is returned
+	 * <p>
+	 * This method will throw a RuntimeException if the field couldn't be obtained
+	 * because of some exception, or if the field does not exist
+	 * 
+	 * @param cls  The class to start searching for the method
+	 * @param name The name of the method to search for
+	 * @param arguments The argument types the method accepts
+	 * @return The Method
+	 */
+	public static Method getPrivateMethod(Class<?> cls, String name, Class<?>...arguments) {
+		try {
+			Method result = null;
+			while (result == null) {
+				try {
+					// Remove private restrictions
+					result = cls.getDeclaredMethod(name, arguments);
+					result.setAccessible(true);
+				} catch (NoSuchMethodException nofield) {
+					cls = cls.getSuperclass();
+				}
+			}
+			return result;
+		} catch (Throwable t) {
+			throw new RuntimeException("Couldn't obtain method " + cls.getName() + "." + name, t);
 		}
 	}
 
+	/**
+	 * Prints the current thread stack trace in a similar way as {@link Throwable#printStackTrace()} does
+	 */
+	public static void printStackTrace() {
+		StackTraceElement[] stack = Thread.currentThread().getStackTrace();
+		StringBuilder trace = new StringBuilder();
+		for(int i = 2; i < stack.length; i++) {
+			trace.append(stack[i].getClassName());
+			trace.append('.');
+			trace.append(stack[i].getMethodName());
+			trace.append('(');
+			trace.append(stack[i].getFileName());
+			trace.append(':');
+			trace.append(stack[i].getLineNumber());
+			trace.append(')');
+			if(i != stack.length - 1) {
+				trace.append('\n');
+			}
+		}
+		Logger.info(trace.toString());
+	}
+	
 }

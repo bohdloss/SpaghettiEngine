@@ -22,6 +22,8 @@ public class SingleplayerDemo {
 		int width = (int) (resolution.x * 0.7f);
 		int height = (int) (resolution.y * 0.7f);
 
+		game.setEngineOption("windowfullscreen", false);
+
 		Vector2i size = game.getEngineOption("windowsize");
 		size.x = width;
 		size.y = height;

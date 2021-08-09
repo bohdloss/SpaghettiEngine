@@ -18,20 +18,17 @@ public class InputDispatcher {
 	protected final Game game;
 
 	protected GameWindow window;
-	public float scroll;
+	public float xscroll, yscroll;
 	protected int x, y;
 	protected boolean[] mouseButtons;
 	protected boolean[] keyboardButtons;
-	protected ArrayList<Controllable> listeners;
+	protected ArrayList<InputListener> listeners;
 
 	public InputDispatcher(Game game) {
 		this.game = game;
 		this.window = game.getRenderer() == null ? null : game.getWindow();
 
 		// Initialize variables
-		scroll = 0;
-		x = 0;
-		y = 0;
 		mouseButtons = new boolean[GLFW.GLFW_MOUSE_BUTTON_LAST];
 		keyboardButtons = new boolean[GLFW.GLFW_KEY_LAST];
 		listeners = new ArrayList<>();
@@ -49,26 +46,26 @@ public class InputDispatcher {
 			x = pointer.x;
 			y = pointer.y;
 			if (CMath.inrange(pointer.x, 0, window.getWidth()) && CMath.inrange(pointer.y, 0, window.getHeight())) {
-				fireMouseEvent(MouseEvent.MOVE, 0, false, 0, x, y);
+				fireMouseEvent(MouseEvent.MOVE, 0, false);
 			}
 		}
 
 		// Fire mouse scroll events
 		// the scroll variable is set by the window itself
-		if (scroll != 0) {
-			float s = scroll;
-			scroll = 0;
-			fireMouseEvent(MouseEvent.SCROLL, 0, false, s, x, y);
+		if (xscroll != 0 || yscroll != 0) {
+			fireMouseEvent(MouseEvent.SCROLL, 0, false);
+			xscroll = 0;
+			yscroll = 0;
 		}
 
-		for (int i = 0; i < mouseButtons.length; i++) {
+		for (int i = Mouse.FIRST; i < mouseButtons.length; i++) {
 
 			// Update mouse buttons
 			if (i < mouseButtons.length) {
 				boolean current = window.mouseDown(i);
 
 				if (current != mouseButtons[i]) {
-					fireMouseEvent(MouseEvent.BUTTONCHANGE, i, current, 0, x, y);
+					fireMouseEvent(MouseEvent.BUTTONCHANGE, i, current);
 				}
 
 				mouseButtons[i] = current;
@@ -76,7 +73,7 @@ public class InputDispatcher {
 
 		}
 
-		for (int i = 0; i < keyboardButtons.length; i++) {
+		for (int i = Keyboard.FIRST; i < keyboardButtons.length; i++) {
 
 			// Update keyboard keys
 			if (i < keyboardButtons.length) {
@@ -94,28 +91,28 @@ public class InputDispatcher {
 
 	// Fire events to listeners
 
-	protected void fireMouseEvent(MouseEvent event, int button, boolean pressed, float scroll, int x, int y) {
+	protected void fireMouseEvent(MouseEvent event, int button, boolean pressed) {
 		try {
 			switch (event) {
 			case BUTTONCHANGE:
 				if (pressed) {
-					for (Controllable c : listeners) {
+					for (InputListener c : listeners) {
 						c.onMouseButtonPressed(button, x, y);
 					}
 				} else {
-					for (Controllable c : listeners) {
+					for (InputListener c : listeners) {
 						c.onMouseButtonReleased(button, x, y);
 					}
 				}
 				break;
 			case MOVE:
-				for (Controllable c : listeners) {
+				for (InputListener c : listeners) {
 					c.onMouseMove(x, y);
 				}
 				break;
 			case SCROLL:
-				for (Controllable c : listeners) {
-					c.onMouseScroll(scroll, x, y);
+				for (InputListener c : listeners) {
+					c.onMouseScroll(xscroll, yscroll, x, y);
 				}
 				break;
 			}
@@ -127,11 +124,11 @@ public class InputDispatcher {
 	protected void fireKeyEvent(int key, boolean pressed) {
 		try {
 			if (pressed) {
-				for (Controllable c : listeners) {
+				for (InputListener c : listeners) {
 					c.onKeyPressed(key, x, y);
 				}
 			} else {
-				for (Controllable c : listeners) {
+				for (InputListener c : listeners) {
 					c.onKeyReleased(key, x, y);
 				}
 			}
@@ -142,7 +139,7 @@ public class InputDispatcher {
 
 	// Register listeners
 
-	public synchronized void registerListener(Controllable listener) {
+	public synchronized void registerListener(InputListener listener) {
 		if (listener == null) {
 			Logger.warning("Attempted to register null input listener");
 			return;
@@ -152,7 +149,7 @@ public class InputDispatcher {
 		}
 	}
 
-	public synchronized void unregisterListener(Controllable listener) {
+	public synchronized void unregisterListener(InputListener listener) {
 		listeners.remove(listener);
 	}
 

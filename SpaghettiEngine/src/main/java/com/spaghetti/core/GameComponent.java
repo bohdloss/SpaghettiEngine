@@ -5,10 +5,12 @@ import java.util.Random;
 
 import com.spaghetti.interfaces.*;
 import com.spaghetti.networking.NetworkBuffer;
+import com.spaghetti.networking.NetworkConnection;
+import com.spaghetti.objects.Camera;
 import com.spaghetti.utils.Logger;
 import com.spaghetti.utils.Utils;
 
-public abstract class GameComponent implements Updatable, Replicable {
+public abstract class GameComponent implements Updatable, Renderable, Replicable {
 
 	private static HashMap<Integer, Integer> staticId = new HashMap<>();
 
@@ -42,6 +44,8 @@ public abstract class GameComponent implements Updatable, Replicable {
 	public static final int DELETE = 2;
 	// 3 is replicate flag
 	public static final int REPLICATE = 3;
+	// 4 is initialized flag
+	public static final int INITIALIZED = 4;
 
 	private final Object flags_lock = new Object();
 	private int flags;
@@ -55,6 +59,20 @@ public abstract class GameComponent implements Updatable, Replicable {
 
 	// Interfaces
 
+	protected final void onbegin_check() {
+		if(!internal_getflag(INITIALIZED)) {
+			onBeginPlay();
+			internal_setflag(INITIALIZED, true);
+		}
+	}
+	
+	protected final void onend_check() {
+		if(internal_getflag(INITIALIZED)) {
+			onEndPlay();
+			internal_setflag(INITIALIZED, false);
+		}
+	}
+	
 	protected void onBeginPlay() {
 	}
 
@@ -80,6 +98,10 @@ public abstract class GameComponent implements Updatable, Replicable {
 	public void readDataClient(NetworkBuffer buffer) {
 	}
 
+	@Override
+	public void render(Camera renderer, float delta) {
+	}
+	
 	// All of the warnings from GameObject's
 	// update methods apply here as well
 	@Override
@@ -104,7 +126,7 @@ public abstract class GameComponent implements Updatable, Replicable {
 
 	// Hierarchy methods
 
-	public final void destroy() {
+	public final synchronized void destroy() {
 		if (isDestroyed()) {
 			return;
 		}
@@ -150,9 +172,16 @@ public abstract class GameComponent implements Updatable, Replicable {
 		return owner != null && owner.isGloballyAttached();
 	}
 
+	public final boolean isInitialized() {
+		return internal_getflag(INITIALIZED);
+	}
+	
 	// Override for more precise control
-	public boolean getReplicateFlag() {
-		return internal_getflag(ATTACHED);
+	@Override
+	public boolean needsReplication(NetworkConnection connection) {
+		boolean flag = internal_getflag(REPLICATE);
+		internal_setflag(REPLICATE, false);
+		return flag;
 	}
 
 	protected final void setReplicateFlag(boolean flag) {

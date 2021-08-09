@@ -4,9 +4,9 @@ import org.lwjgl.glfw.GLFW;
 
 import com.spaghetti.core.Game;
 
-public final class Buttons {
+public final class Mouse {
 
-	private Buttons() {
+	private Mouse() {
 	}
 
 	// Auto generated code
@@ -24,6 +24,7 @@ public final class Buttons {
 	public static final int RIGHT = GLFW.GLFW_MOUSE_BUTTON_RIGHT;
 	public static final int MIDDLE = GLFW.GLFW_MOUSE_BUTTON_MIDDLE;
 
+	public static final int FIRST = GLFW.GLFW_MOUSE_BUTTON_1;
 	public static final int LAST = GLFW.GLFW_MOUSE_BUTTON_LAST;
 
 	public static boolean buttonpressed(int button) {

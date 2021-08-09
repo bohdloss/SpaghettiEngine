@@ -4,6 +4,7 @@ import java.awt.GraphicsEnvironment;
 
 import org.lwjgl.glfw.GLFW;
 import com.spaghetti.utils.FunctionDispatcher;
+import com.spaghetti.utils.GLFWException;
 import com.spaghetti.utils.Utils;
 
 public final class Handler extends Thread {
@@ -19,6 +20,9 @@ public final class Handler extends Thread {
 	public void run() {
 		if (!GraphicsEnvironment.isHeadless()) {
 			GLFW.glfwInit();
+			GLFW.glfwSetErrorCallback((error, description) -> {
+				throw new GLFWException(error, description);
+			});
 		}
 		dispatcher = new FunctionDispatcher();
 		while (!stop) {

@@ -1,5 +1,6 @@
 package com.spaghetti.demo;
 
+import com.spaghetti.demo.player.Player;
 import com.spaghetti.interfaces.JoinHandler;
 import com.spaghetti.networking.NetworkConnection;
 import com.spaghetti.objects.Camera;
@@ -12,7 +13,7 @@ public class MyJoinHandler implements JoinHandler {
 			worker.player = new Player();
 			worker.getLevel().addObject(worker.player);
 			worker.player_camera = worker.player.getChild(Camera.class);
-			worker.player_controller = worker.player.getComponent(PlayerController.class);
+//			worker.player_controller = worker.player.getComponent(Controller.class);
 		}
 	}
 

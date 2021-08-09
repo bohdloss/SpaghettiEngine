@@ -248,4 +248,8 @@ public final class CMath {
 		return a < b ? a : b;
 	}
 
+	public static boolean equals(float a, float b, float delta) {
+		return diff(a, b) <= delta;
+	}
+
 }

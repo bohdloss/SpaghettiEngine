@@ -41,7 +41,7 @@ public class ClassReplicationRule {
 		}
 
 		// Determine replication type
-		ReplicationType reptype = ReplicationType.TOCLIENT;
+		ReplicationType reptype;
 		if (target.getAnnotation(ToServer.class) != null) {
 			reptype = ReplicationType.TOSERVER;
 		} else if (target.getAnnotation(ToClient.class) != null) {

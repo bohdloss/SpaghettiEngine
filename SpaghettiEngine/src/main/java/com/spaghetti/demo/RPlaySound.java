@@ -9,13 +9,13 @@ import com.spaghetti.interfaces.ClassInterpreter;
 import com.spaghetti.interfaces.ToServer;
 import com.spaghetti.networking.DefaultInterpreters;
 import com.spaghetti.networking.NetworkConnection;
-import com.spaghetti.networking.RPC;
+import com.spaghetti.networking.RemoteProcedure;
 import com.spaghetti.objects.Mesh;
 import com.spaghetti.render.Material;
 import com.spaghetti.render.Model;
 
 @ToServer
-public class RPlaySound extends RPC {
+public class RPlaySound extends RemoteProcedure {
 
 	@Override
 	protected ClassInterpreter<?>[] getArgInterpreters() {

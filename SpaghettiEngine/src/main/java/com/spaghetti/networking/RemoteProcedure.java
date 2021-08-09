@@ -5,20 +5,20 @@ import java.util.concurrent.ThreadLocalRandom;
 
 import com.spaghetti.core.*;
 import com.spaghetti.interfaces.ClassInterpreter;
-import com.spaghetti.interfaces.RPCCallback;
+import com.spaghetti.interfaces.RemoteProcedureCallback;
 import com.spaghetti.utils.Logger;
 import com.spaghetti.utils.Utils;
 
-public abstract class RPC {
+public abstract class RemoteProcedure {
 
-	protected static final HashMap<Integer, RPC> rpcs = new HashMap<>();
+	protected static final HashMap<Integer, RemoteProcedure> rpcs = new HashMap<>();
 	protected static final ThreadLocalRandom random = ThreadLocalRandom.current();
 
-	public static void save(RPC rpc) {
+	public static void save(RemoteProcedure rpc) {
 		rpcs.put(rpc.getId(), rpc);
 	}
 
-	public static RPC get(int id) {
+	public static RemoteProcedure get(int id) {
 		return rpcs.remove(id);
 	}
 
@@ -29,7 +29,7 @@ public abstract class RPC {
 	private final boolean hasResponse = hasResponse();
 	private final ClassInterpreter<?> retInterpreter = getReturnInterpreter();
 	private Object retVal;
-	private RPCCallback callback;
+	private RemoteProcedureCallback callback;
 
 	private volatile int id;
 	private volatile boolean ready;
@@ -43,7 +43,7 @@ public abstract class RPC {
 		return error ? null : retVal;
 	}
 
-	public final RPC call(Object... args) {
+	public final RemoteProcedure call(Object... args) {
 		if (args.length != argAmount) {
 			throw new IllegalArgumentException(args.length + " arguments provided, expected " + argAmount);
 		}
@@ -79,7 +79,7 @@ public abstract class RPC {
 		}
 	}
 
-	public final RPC execute(NetworkConnection worker) {
+	public final RemoteProcedure execute(NetworkConnection worker) {
 		try {
 			retVal = execute0(worker.getGame().isClient(), worker, args);
 			error = false;
@@ -143,31 +143,31 @@ public abstract class RPC {
 		return hasResponse;
 	}
 
-	public final RPC setCallback(RPCCallback callback) {
+	public final RemoteProcedure setCallback(RemoteProcedureCallback callback) {
 		this.callback = callback;
 		return this;
 	}
 
-	public final RPC executeReturnCallback() {
+	public final RemoteProcedure executeReturnCallback() {
 		if (callback == null) {
 			return this;
 		}
 		try {
 			callback.receiveReturnValue(this, retVal, error, false);
 		} catch (Throwable t) {
-			Logger.error("Error occurred in RPC return callback", t);
+			Logger.error("Error occurred in RemoteProcedure return callback", t);
 		}
 		return this;
 	}
 
-	public final RPC executeAckCallback() {
+	public final RemoteProcedure executeAckCallback() {
 		if (callback == null) {
 			return this;
 		}
 		try {
 			callback.receiveReturnValue(this, null, error, true);
 		} catch (Throwable t) {
-			Logger.error("Error occurred in RPC ack callback", t);
+			Logger.error("Error occurred in RemoteProcedure ack callback", t);
 		}
 		return this;
 	}

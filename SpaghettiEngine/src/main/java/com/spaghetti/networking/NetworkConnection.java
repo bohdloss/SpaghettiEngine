@@ -3,7 +3,6 @@ package com.spaghetti.networking;
 import java.lang.reflect.*;
 import java.util.ArrayList;
 import java.util.HashMap;
-import java.util.Map.Entry;
 
 import com.spaghetti.core.*;
 import com.spaghetti.events.EventDispatcher;
@@ -13,6 +12,7 @@ import com.spaghetti.interfaces.*;
 import com.spaghetti.objects.Camera;
 import com.spaghetti.utils.FunctionDispatcher;
 import com.spaghetti.utils.Logger;
+import com.spaghetti.utils.Utils;
 
 public abstract class NetworkConnection {
 
@@ -27,81 +27,32 @@ public abstract class NetworkConnection {
 
 	// Static data
 	protected static final Identity IDENTITY = new Identity();
-	protected static final Field f_oid, f_cid, f_eid, f_rpcid;
-	protected static final Field f_modifiers;
-	protected static final Method me_osetflag, me_csetflag, me_ogetflag, me_cgetflag;
-	protected static final Field f_rpcready, f_rpcerror;
+	
+	// "Id" fields
+	protected static final Field f_oid = Utils.getPrivateField(GameObject.class, "id");
+	protected static final Field f_cid = Utils.getPrivateField(GameComponent.class, "id");
+	protected static final Field f_eid = Utils.getPrivateField(GameEvent.class, "id");
+	protected static final Field f_rpcid = Utils.getPrivateField(RemoteProcedure.class, "id");
+	
+	// Flag management methods
+	protected static final Method me_osetflag = Utils.getPrivateMethod(GameObject.class, "internal_setflag", int.class, boolean.class);
+	protected static final Method me_csetflag = Utils.getPrivateMethod(GameComponent.class, "internal_setflag", int.class, boolean.class);
+	protected static final Method me_ogetflag = Utils.getPrivateMethod(GameObject.class, "internal_getflag", int.class);
+	protected static final Method me_cgetflag = Utils.getPrivateMethod(GameComponent.class, "internal_getflag", int.class);
+	
+	// RemoteProcedure related
+	protected static final Field f_rpcready = Utils.getPrivateField(RemoteProcedure.class, "ready");
+	protected static final Field f_rpcerror = Utils.getPrivateField(RemoteProcedure.class, "error");
 
+	// Cache
 	protected static final HashMap<String, Class<?>> m_clss = new HashMap<>();
 	protected static final HashMap<Class<?>, Constructor<? extends GameObject>> m_oconstrs = new HashMap<>();
 	protected static final HashMap<Class<?>, Constructor<? extends GameComponent>> m_cconstrs = new HashMap<>();
 	protected static final HashMap<Class<?>, Constructor<? extends GameEvent>> m_econstrs = new HashMap<>();
-	protected static final HashMap<Class<?>, Constructor<? extends RPC>> m_rpcconstrs = new HashMap<>();
+	protected static final HashMap<Class<?>, Constructor<? extends RemoteProcedure>> m_rpcconstrs = new HashMap<>();
 	protected static final HashMap<Class<?>, Field[]> m_fields = new HashMap<>();
 	protected static final HashMap<Class<?>, Boolean> m_noreplicate = new HashMap<>();
 	protected static final HashMap<Class<?>, Boolean> m_reliable = new HashMap<>();
-
-	// Overcome some java access limitations
-	static {
-		Field oid = null;
-		Field cid = null;
-		Field eid = null;
-		Field rpcid = null;
-
-		Method osetflag = null;
-		Method csetflag = null;
-		Method ogetflag = null;
-		Method cgetflag = null;
-
-		Field modifiers = null;
-
-		Field rpcready = null;
-		Field rpcerror = null;
-
-		try {
-			oid = GameObject.class.getDeclaredField("id");
-			oid.setAccessible(true);
-			cid = GameComponent.class.getDeclaredField("id");
-			cid.setAccessible(true);
-			eid = GameEvent.class.getDeclaredField("id");
-			eid.setAccessible(true);
-			rpcid = RPC.class.getDeclaredField("id");
-			rpcid.setAccessible(true);
-
-			osetflag = GameObject.class.getDeclaredMethod("internal_setflag", int.class, boolean.class);
-			osetflag.setAccessible(true);
-			csetflag = GameComponent.class.getDeclaredMethod("internal_setflag", int.class, boolean.class);
-			csetflag.setAccessible(true);
-			ogetflag = GameObject.class.getDeclaredMethod("internal_getflag", int.class);
-			ogetflag.setAccessible(true);
-			cgetflag = GameComponent.class.getDeclaredMethod("internal_getflag", int.class);
-			cgetflag.setAccessible(true);
-
-			modifiers = Field.class.getDeclaredField("modifiers");
-			modifiers.setAccessible(true);
-
-			rpcready = RPC.class.getDeclaredField("ready");
-			rpcready.setAccessible(true);
-			rpcerror = RPC.class.getDeclaredField("error");
-			rpcerror.setAccessible(true);
-		} catch (Throwable e) {
-		}
-
-		f_oid = oid;
-		f_cid = cid;
-		f_eid = eid;
-		f_rpcid = rpcid;
-
-		me_osetflag = osetflag;
-		me_csetflag = csetflag;
-		me_ogetflag = ogetflag;
-		me_cgetflag = cgetflag;
-
-		f_modifiers = modifiers;
-
-		f_rpcready = rpcready;
-		f_rpcerror = rpcerror;
-	}
 
 	// Member data
 
@@ -116,7 +67,6 @@ public abstract class NetworkConnection {
 	protected Authenticator authenticator;
 	protected HashMap<Class<?>, ClassReplicationRule> cls_rules;
 	protected HashMap<Field, FieldReplicationRule> field_rules;
-	protected final HashMap<String, ClassInterpreter<?>> interpreters = new HashMap<>();
 
 	// Flags
 	public boolean forceReplication;
@@ -151,20 +101,6 @@ public abstract class NetworkConnection {
 			FieldReplicationRule.rules.put(parent.getGame(), hm);
 			field_rules = hm;
 		}
-
-		registerInterpreters();
-	}
-
-	protected void registerInterpreters() {
-		interpreters.putAll(DefaultInterpreters.interpreters);
-	}
-
-	public <T> void registerInterpreter(Class<T> cls, ClassInterpreter<T> interpreter) {
-		interpreters.put(cls.getName(), interpreter);
-	}
-
-	public <T> void unregisterInterpreter(Class<T> cls) {
-		interpreters.remove(cls.getName());
 	}
 
 	public void destroy() {
@@ -277,9 +213,9 @@ public abstract class NetworkConnection {
 				try {
 					constructor = cls.getConstructor();
 					constructor.setAccessible(true);
-					m_rpcconstrs.put(cls, (Constructor<? extends RPC>) constructor);
+					m_rpcconstrs.put(cls, (Constructor<? extends RemoteProcedure>) constructor);
 				} catch (NoSuchMethodException e) {
-					Logger.error("Class " + cls.getName() + " must provide a default RPC constructor");
+					Logger.error("Class " + cls.getName() + " must provide a default RemoteProcedure constructor");
 					throw e;
 				}
 			}
@@ -298,17 +234,6 @@ public abstract class NetworkConnection {
 		return value;
 	}
 
-	protected static Field[] fields(Class<?> cls) {
-		Field[] fields_ = m_fields.get(cls);
-		if (fields_ == null) {
-			synchronized (m_fields) {
-				fields_ = gatherReplicable(cls);
-				m_fields.put(cls, fields_);
-			}
-		}
-		return fields_;
-	}
-
 	protected static boolean reliableCls(Class<?> cls) {
 		Boolean res = m_reliable.get(cls);
 		if (res == null) {
@@ -318,50 +243,6 @@ public abstract class NetworkConnection {
 			}
 		}
 		return res;
-	}
-
-	protected static Field[] gatherReplicable(Class<?> cls) {
-		ArrayList<Field> list = null;
-		try {
-			// This method assumes cls extends GameObject, GameComponent or GameEvent
-
-			list = new ArrayList<>();
-
-			// Gather all declared fields from super classes
-			Class<?> current = cls;
-			do {
-				for (Field field : current.getDeclaredFields()) {
-					if (field.getAnnotation(Replicate.class) != null) {
-						list.add(field);
-					}
-				}
-				current = current.getSuperclass();
-			} while (current != null);
-
-			// Remove any restriction from gathered fields
-			for (Field field : list) {
-				field.setAccessible(true);
-
-				f_modifiers.set(field, field.getModifiers() & ~Modifier.FINAL);
-			}
-
-		} catch (Throwable t) {
-			// Catch all exceptions for simplicity
-			t.printStackTrace();
-		}
-
-		// Array must always be in the same order to work
-		// regardless of the platform
-		list.sort((field1, field2) -> field1.getName().compareTo(field2.getName()));
-		list.sort((field1, field2) -> field1.getDeclaringClass().getName()
-				.compareTo(field2.getDeclaringClass().getName()));
-
-		// Cast to Field[]
-		Field[] result = new Field[list.size()];
-		for (int i = 0; i < list.size(); i++) {
-			result[i] = list.get(i);
-		}
-		return result;
 	}
 
 	protected boolean test_writeClass(Object obj) {
@@ -380,14 +261,8 @@ public abstract class NetworkConnection {
 		return rule.testRead();
 	}
 
-	protected boolean test_needReplication(boolean gameobject, Object obj) {
-		boolean val;
-		if (gameobject) {
-			val = ((GameObject) obj).getReplicateFlag();
-		} else {
-			val = ((GameComponent) obj).getReplicateFlag();
-		}
-		return val || forceReplication;
+	protected boolean test_needReplication(Replicable replicable) {
+		return replicable.needsReplication(this) || forceReplication;
 	}
 
 	protected boolean test_writeField(Field field) {
@@ -406,62 +281,7 @@ public abstract class NetworkConnection {
 		return rule.testRead();
 	}
 
-	// Internal utility functions for serializing certain classes or data types
-	protected void writeField(Field field, Object obj) {
-		try {
-			Class<?> type = field.getType();
-			Object read_object = field.get(obj);
-			ClassInterpreter<?> interpreter = interpreters.get(type.getName());
-			if (interpreter != null) {
-				interpreter.writeClassGeneric(read_object, w_buffer);
-			} else {
-				for (Entry<String, ClassInterpreter<?>> entry : interpreters.entrySet()) {
-					try {
-						Class<?> cls = Class.forName(entry.getKey());
-						if (cls.isAssignableFrom(type)) {
-							entry.getValue().writeClassGeneric(read_object, w_buffer);
-							break;
-						}
-					} catch (ClassNotFoundException e) {
-					}
-				}
-			}
-		} catch (IllegalAccessException e) {
-		}
-	}
-
-	protected void readField(Field field, Object obj) {
-		try {
-			Class<?> type = field.getType();
-			Object read_object = field.get(obj);
-			Object write_object = null;
-			ClassInterpreter<?> interpreter = interpreters.get(type.getName());
-			if (interpreter != null) {
-				write_object = interpreter.readClassGeneric(read_object, r_buffer);
-			} else {
-				for (Entry<String, ClassInterpreter<?>> entry : interpreters.entrySet()) {
-					try {
-						Class<?> cls = Class.forName(entry.getKey());
-						if (cls.isAssignableFrom(type)) {
-							write_object = entry.getValue().readClassGeneric(read_object, r_buffer);
-							break;
-						}
-					} catch (ClassNotFoundException e) {
-					}
-				}
-			}
-			field.set(obj, write_object);
-		} catch (IllegalAccessException e) {
-		}
-	}
-
-	protected void writeObjectCustom(GameObject obj) {
-		// Here we write fields flagged with @Replicate in GameObjects
-		for (Field field : fields(obj.getClass())) {
-			if (test_writeField(field)) {
-				writeField(field, obj);
-			}
-		}
+	protected void writeReplicable(Replicable obj) {
 		if (getGame().isClient()) {
 			obj.writeDataClient(w_buffer);
 		} else {
@@ -469,59 +289,11 @@ public abstract class NetworkConnection {
 		}
 	}
 
-	protected void readObjectCustom(GameObject obj) {
-		// Here we read fields flagged with @Replicate in GameObjects
-		for (Field field : fields(obj.getClass())) {
-			if (test_readField(field)) {
-				readField(field, obj);
-			}
-		}
+	protected void readReplicable(Replicable obj) {
 		if (getGame().isClient()) {
 			obj.readDataClient(r_buffer);
 		} else {
 			obj.readDataServer(r_buffer);
-		}
-	}
-
-	protected void writeComponentCustom(GameComponent comp) {
-		// Here we write fields flagged with @Replicate in GameComponents
-		for (Field field : fields(comp.getClass())) {
-			if (test_writeField(field)) {
-				writeField(field, comp);
-			}
-		}
-		if (getGame().isClient()) {
-			comp.writeDataClient(w_buffer);
-		} else {
-			comp.writeDataServer(w_buffer);
-		}
-	}
-
-	protected void readComponentCustom(GameComponent comp) {
-		// Here we read fields flagged with @Replicate in GameComponents
-		for (Field field : fields(comp.getClass())) {
-			if (test_readField(field)) {
-				readField(field, comp);
-			}
-		}
-		if (getGame().isClient()) {
-			comp.writeDataClient(w_buffer);
-		} else {
-			comp.writeDataServer(w_buffer);
-		}
-	}
-
-	protected void writeEventCustom(GameEvent event) {
-		// Here we write fields flagged with @Replicate in GameEvents
-		for (Field field : fields(event.getClass())) {
-			writeField(field, event);
-		}
-	}
-
-	protected void readEventCustom(GameEvent event) {
-		// Here we read fields flagged with @Replicate in GameEvents
-		for (Field field : fields(event.getClass())) {
-			readField(field, event);
 		}
 	}
 
@@ -578,10 +350,10 @@ public abstract class NetworkConnection {
 				handlePing();
 				break;
 			case Opcode.RPC:
-				readRPC();
+				readRemoteProcedure();
 				break;
 			case Opcode.RPC_RESPONSE:
-				readRPCResponse();
+				readRemoteProcedureResponse();
 				break;
 			case Opcode.RPC_ACKNOWLEDGEMENT:
 				readRPCAcknowledgement();
@@ -605,6 +377,19 @@ public abstract class NetworkConnection {
 		}
 	}
 
+	// Update custom level replication data
+	public void writeLevelReplication(Level level) {
+		if(!test_needReplication(level) || !test_writeClass(level)) {
+			return;
+		}
+		
+		
+	}
+	
+	public void readLevelReplication(Level level) {
+		
+	}
+	
 	// Quick update on objects that need it
 	public void writeObjectReplication() {
 		Level level = getLevel();
@@ -612,12 +397,12 @@ public abstract class NetworkConnection {
 
 		// Write objects
 		level.forEachActualObject((id, object) -> {
-			if (test_writeClass(object) && test_needReplication(true, object)) {
+			if (test_writeClass(object) && test_needReplication(object)) {
 				w_buffer.putByte(Opcode.ITEM);
 				w_buffer.putInt(object.getId());
 				int pos = w_buffer.getPosition();
 				w_buffer.skip(Short.BYTES); // Allocate memory for skip destination
-				writeObjectCustom(object);
+				writeReplicable(object);
 				int off = w_buffer.getPosition() - (pos + Short.BYTES);
 				w_buffer.putShortAt(pos, (short) off); // Write destination
 			}
@@ -626,12 +411,12 @@ public abstract class NetworkConnection {
 
 		// Write components
 		level.forEachComponent((id, component) -> {
-			if (test_writeClass(component) && test_needReplication(false, component)) {
+			if (test_writeClass(component) && test_needReplication(component)) {
 				w_buffer.putByte(Opcode.ITEM);
 				w_buffer.putInt(component.getId());
 				int pos = w_buffer.getPosition();
 				w_buffer.skip(Short.BYTES); // Allocate memory for skip destination
-				writeComponentCustom(component);
+				writeReplicable(component);
 				int off = w_buffer.getPosition() - (pos + Short.BYTES);
 				w_buffer.putShortAt(pos, (short) off); // Write destination
 			}
@@ -654,7 +439,7 @@ public abstract class NetworkConnection {
 				r_buffer.skip(skip);
 				continue;
 			}
-			readObjectCustom(object);
+			readReplicable(object);
 		}
 
 		// Read components
@@ -669,7 +454,7 @@ public abstract class NetworkConnection {
 				r_buffer.skip(skip);
 				continue;
 			}
-			readComponentCustom(component);
+			readReplicable(component);
 		}
 	}
 
@@ -738,19 +523,36 @@ public abstract class NetworkConnection {
 
 		GameObject object = level.getObject(id);
 		if (object == null) {
-			// Build and add the object if not present
+			// Retrieve the class and check if it is valid
 			Class<?> objclass = cls(clazz);
 			if (!GameObject.class.isAssignableFrom(objclass)) {
 				throw new IllegalStateException("Invalid object class");
 			}
+
+			// Build a new instance of it
 			object = (GameObject) o_constr(objclass).newInstance();
+
+			// Set the id
 			f_oid.set(object, id);
+
+			// Register the object using the updater thread
 			if (parent == null) {
-				level.addObject(object);
+				// Add to level directly if it has no parent
+				final GameObject object_copy = object;
+				getGame().getUpdaterDispatcher().quickQueue(() -> {
+					level.addObject(object_copy);
+					return null;
+				});
 			} else {
-				parent.addChild(object);
+				// Add to appropriate parent instead
+				final GameObject object_copy = object;
+				getGame().getUpdaterDispatcher().quickQueue(() -> {
+					parent.addChild(object_copy);
+					return null;
+				});
 			}
 		}
+		// Remove DELETE flag, used later when checking for out-dated objects
 		me_osetflag.invoke(object, GameObject.DELETE, false);
 
 		// Check for item flag
@@ -760,19 +562,31 @@ public abstract class NetworkConnection {
 
 			GameComponent component = object.getComponent(comp_id);
 			if (component == null) {
-				// Build and add the component if not present
+				// Retrieve the component class and check if it is valid
 				Class<?> compclass = cls(comp_clazz);
 				if (!GameComponent.class.isAssignableFrom(compclass)) {
 					throw new IllegalStateException("Invalid component class");
 				}
+
+				// Build a new instance of it
 				component = (GameComponent) c_constr(compclass).newInstance();
+
+				// Set id
 				f_cid.set(component, comp_id);
-				object.addComponent(component);
+
+				// Add the component to its owner using the updater thread
+				final GameObject object_copy = object;
+				final GameComponent component_copy = component;
+				getGame().getUpdaterDispatcher().quickQueue(() -> {
+					object_copy.addComponent(component_copy);
+					return null;
+				});
 			}
+			// Again, used later to check for invalid components
 			me_csetflag.invoke(component, GameComponent.DELETE, false);
 		}
 
-		// Check for item flag on children
+		// Recursively perform this on all children
 		while (r_buffer.getByte() == Opcode.ITEM) {
 			readObjectStructure(level, object);
 		}
@@ -914,7 +728,7 @@ public abstract class NetworkConnection {
 
 	// Serialization of single objects / components
 	public void writeObject(GameObject obj) {
-		if (!test_writeClass(obj) || !test_needReplication(true, obj)) {
+		if (!test_writeClass(obj) || !test_needReplication(obj)) {
 			return;
 		}
 		w_buffer.putByte(Opcode.GAMEOBJECT);
@@ -922,7 +736,7 @@ public abstract class NetworkConnection {
 		w_buffer.skip(Integer.BYTES);
 		w_buffer.putInt(obj.getId());
 		// Let the object write custom data
-		writeObjectCustom(obj);
+		writeReplicable(obj);
 		int dest = w_buffer.getPosition();
 		w_buffer.putIntAt(pos, dest);
 	}
@@ -946,11 +760,11 @@ public abstract class NetworkConnection {
 			return;
 		}
 		// Read back custom data from object
-		readObjectCustom(obj);
+		readReplicable(obj);
 	}
 
 	public void writeComponent(GameComponent comp) {
-		if (!test_writeClass(comp) || test_needReplication(false, comp)) {
+		if (!test_writeClass(comp) || test_needReplication(comp)) {
 			return;
 		}
 		w_buffer.putByte(Opcode.GAMECOMPONENT);
@@ -958,7 +772,7 @@ public abstract class NetworkConnection {
 		w_buffer.skip(Integer.BYTES);
 		w_buffer.putInt(comp.getId());
 		// Let the component write custom data
-		writeComponentCustom(comp);
+		writeReplicable(comp);
 		int dest = w_buffer.getPosition();
 		w_buffer.putIntAt(pos, dest);
 	}
@@ -982,7 +796,7 @@ public abstract class NetworkConnection {
 			return;
 		}
 		// Read back custom data from component
-		readComponentCustom(comp);
+		readReplicable(comp);
 	}
 
 	// Related to events and intentions
@@ -1020,7 +834,7 @@ public abstract class NetworkConnection {
 
 		w_buffer.putString(event.getClass().getName());
 		w_buffer.putInt(event.getId());
-		writeEventCustom(event);
+		writeReplicable(event);
 	}
 
 	public void readGameEvent() throws InstantiationException, InvocationTargetException, NoSuchMethodException,
@@ -1045,7 +859,7 @@ public abstract class NetworkConnection {
 			f_eid.set(event, event_id);
 			EventDispatcher event_dispatcher = getGame().getEventDispatcher();
 			FunctionDispatcher func_dispatcher = getGame().getUpdaterDispatcher();
-			readEventCustom(event);
+			readReplicable(event);
 			event.setFrom(getGame().isClient() ? GameEvent.SERVER : GameEvent.CLIENT);
 
 			func_dispatcher.queue(() -> {
@@ -1085,42 +899,42 @@ public abstract class NetworkConnection {
 	}
 
 	// Remote procedure calls related
-	public void writeRPC(RPC rpc) {
-		if (!test_writeClass(rpc)) {
+	public void writeRemoteProcedure(RemoteProcedure rp) {
+		if (!test_writeClass(rp)) {
 			return;
 		}
-		if (reliableCls(rpc.getClass())) {
+		if (reliableCls(rp.getClass())) {
 			reliable = true;
 		}
-		RPC.save(rpc);
+		RemoteProcedure.save(rp);
 
 		w_buffer.putByte(Opcode.RPC);
-		w_buffer.putInt(rpc.getId());
-		w_buffer.putString(true, rpc.getClass().getName(), NetworkBuffer.UTF_8);
-		rpc.writeArgs(w_buffer);
+		w_buffer.putInt(rp.getId());
+		w_buffer.putString(true, rp.getClass().getName(), NetworkBuffer.UTF_8);
+		rp.writeArgs(w_buffer);
 	}
 
-	public void readRPC() throws ClassNotFoundException, InstantiationException, IllegalArgumentException,
+	public void readRemoteProcedure() throws ClassNotFoundException, InstantiationException, IllegalArgumentException,
 			InvocationTargetException, NoSuchMethodException {
 		try {
 			// Gather data and perform some checks
 			int id = r_buffer.getInt();
 			String clazz = r_buffer.getString(true, NetworkBuffer.UTF_8);
 			Class<?> cls = cls(clazz);
-			if (!RPC.class.isAssignableFrom(cls)) {
-				throw new IllegalStateException("Invalid RPC class");
+			if (!RemoteProcedure.class.isAssignableFrom(cls)) {
+				throw new IllegalStateException("Invalid RemoteProcedure class");
 			}
-			RPC rpc = (RPC) rpc_constr(cls).newInstance();
-			rpc.readArgs(r_buffer);
-			f_rpcid.set(rpc, id);
-			if (!test_readClass(rpc)) {
+			RemoteProcedure rp = (RemoteProcedure) rpc_constr(cls).newInstance();
+			rp.readArgs(r_buffer);
+			f_rpcid.set(rp, id);
+			if (!test_readClass(rp)) {
 				return;
 			}
 
-			// Dispatch RPC execution to the updater thread
+			// Dispatch RemoteProcedure execution to the updater thread
 			getGame().getUpdaterDispatcher().queue(() -> {
 				// Execute
-				rpc.execute(this);
+				rp.execute(this);
 
 				// Queue the function to write the callback
 				CoreComponent core = getCore();
@@ -1132,7 +946,7 @@ public abstract class NetworkConnection {
 
 						// Only in this specific client
 						if (client == this) {
-							client.writeRPCResponse(rpc);
+							client.writeRemoteProcedureResponse(rp);
 						}
 					});
 				} else {
@@ -1142,7 +956,7 @@ public abstract class NetworkConnection {
 
 						// Only in this specific client
 						if (client == this) {
-							client.writeRPCResponse(rpc);
+							client.writeRemoteProcedureResponse(rp);
 						}
 					});
 				}
@@ -1152,7 +966,7 @@ public abstract class NetworkConnection {
 		}
 	}
 
-	public void writeRPCResponse(RPC rpc) {
+	public void writeRemoteProcedureResponse(RemoteProcedure rpc) {
 		if (reliableCls(rpc.getClass())) {
 			reliable = true;
 		}
@@ -1167,13 +981,13 @@ public abstract class NetworkConnection {
 		}
 	}
 
-	public void readRPCResponse() throws Throwable {
+	public void readRemoteProcedureResponse() throws Throwable {
 		int id = r_buffer.getInt();
-		RPC rpc = RPC.get(id);
+		RemoteProcedure rpc = RemoteProcedure.get(id);
 
 		if (!rpc.hasReturnValue()) {
 			f_rpcready.set(rpc, true);
-			throw new IllegalStateException("RPC " + rpc.getClass().getName() + " sent void instead of a return value");
+			throw new IllegalStateException("RemoteProcedure " + rpc.getClass().getName() + " sent void instead of a return value");
 		}
 
 		rpc.readReturn(r_buffer);
@@ -1183,12 +997,12 @@ public abstract class NetworkConnection {
 
 	public void readRPCAcknowledgement() throws Throwable {
 		int id = r_buffer.getInt();
-		RPC rpc = RPC.get(id);
+		RemoteProcedure rpc = RemoteProcedure.get(id);
 		boolean error = r_buffer.getBoolean();
 
 		if (rpc.hasReturnValue()) {
 			f_rpcready.set(rpc, true);
-			throw new IllegalStateException("RPC " + rpc.getClass().getName() + " sent a return value instead of void");
+			throw new IllegalStateException("RemoteProcedure " + rpc.getClass().getName() + " sent a return value instead of void");
 		}
 
 		f_rpcerror.set(rpc, error);
@@ -1239,11 +1053,12 @@ public abstract class NetworkConnection {
 		} catch (Throwable t) {
 		}
 		Logger.error("Full buffer log:");
-		String dump = new String();
+		StringBuilder dump = new StringBuilder();
 		for (int i = 0; i < buffer.getLimit(); i++) {
-			dump += (buffer.asArray()[i] & 0xFF) + (i == buffer.getLimit() - 1 ? "" : ".");
+			dump.append(buffer.asArray()[i] & 0xFF);
+			dump.append(i == buffer.getLimit() - 1 ? "" : ".");
 		}
-		Logger.error(dump);
+		Logger.error(dump.toString());
 	}
 
 	protected void recursive_flag(GameObject obj, boolean exclusive) {

@@ -18,11 +18,13 @@ public class Camera extends GameObject {
 	protected float scale;
 	protected float fov = 10;
 	protected float targetRatio = 16 / 9; // 16:9 resolution
+	protected boolean usePosition = true, useRotation;
 
 	// Cache
 	protected Matrix4f projection = new Matrix4f();
 	protected Matrix4f cache = new Matrix4f();
 	protected Matrix4f view = new Matrix4f();
+	protected Matrix4f precalculated = new Matrix4f();
 
 	// OpenGL data
 	protected int width, height;
@@ -73,12 +75,47 @@ public class Camera extends GameObject {
 		}
 	}
 
+	protected void onBeginFrame() {
+		precalculated.set(projection);
+		precalculated.scale(scale, scale, 1);
+
+		if (useRotation) {
+			Vector3f rot = new Vector3f();
+			getWorldRotation(rot);
+			precalculated.rotateXYZ(-rot.x, -rot.y, -rot.z);
+		}
+		if (usePosition) {
+			Vector3f pos = new Vector3f();
+			getWorldPosition(pos);
+			precalculated.translate(-pos.x, -pos.y, -pos.z);
+		}
+	}
+
+	protected void onEndFrame() {
+	}
+
 	public Matrix4f getProjection() {
-		Vector3f vecC = new Vector3f();
-		getWorldPosition(vecC);
-		cache.set(projection);
-		cache.scale(scale, scale, 1);
-		cache.translate(-vecC.x, -vecC.y, -vecC.z);
+		return getProjection(true);
+	}
+
+	public Matrix4f getProjection(boolean useCache) {
+		if (useCache) {
+			cache.set(precalculated);
+		} else {
+			cache.set(projection);
+			cache.scale(scale, scale, 1);
+
+			if (useRotation) {
+				Vector3f rot = new Vector3f();
+				getWorldRotation(rot);
+				cache.rotateXYZ(-rot.x, -rot.y, -rot.z);
+			}
+			if (usePosition) {
+				Vector3f pos = new Vector3f();
+				getWorldPosition(pos);
+				cache.translate(-pos.x, -pos.y, -pos.z);
+			}
+		}
 		return cache;
 	}
 
@@ -167,6 +204,8 @@ public class Camera extends GameObject {
 		clearColor = buffer.getBoolean();
 		clearDepth = buffer.getBoolean();
 		clearStencil = buffer.getBoolean();
+		usePosition = buffer.getBoolean();
+		useRotation = buffer.getBoolean();
 		calcScale();
 	}
 
@@ -177,6 +216,8 @@ public class Camera extends GameObject {
 		buffer.putBoolean(clearColor);
 		buffer.putBoolean(clearDepth);
 		buffer.putBoolean(clearStencil);
+		buffer.putBoolean(usePosition);
+		buffer.putBoolean(useRotation);
 	}
 
 	@Override
@@ -194,12 +235,22 @@ public class Camera extends GameObject {
 			GL11.glClear(GL11.GL_STENCIL_BUFFER_BIT);
 		}
 
-		// Render
+		// Pre-frame trigger
+		onBeginFrame();
+
+		// Render frame
 		getLevel().forEachActualObject((id, component) -> {
 			if (!Camera.class.isAssignableFrom(component.getClass())) {
 				component.render(this, delta);
 			}
 		});
+		getLevel().forEachComponent((id, component) -> {
+			component.render(this, delta);
+		});
+
+		// Post-frame trigger
+		onEndFrame();
+
 		renderTarget.stop();
 	}
 

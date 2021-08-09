@@ -134,7 +134,7 @@ public final class DefaultInterpreters {
 			@Override
 			public Asset readClass(Asset original, NetworkBuffer buffer) {
 				String asset_name = buffer.getString();
-				return asset_name.equals("") ? null : buffer.getWorker().getGame().getAssetManager().custom(asset_name);
+				return asset_name.equals("") ? null : buffer.getConnection().getGame().getAssetManager().custom(asset_name);
 			}
 		});
 

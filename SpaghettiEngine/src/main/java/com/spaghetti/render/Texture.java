@@ -3,12 +3,15 @@ package com.spaghetti.render;
 import java.awt.image.BufferedImage;
 import java.nio.ByteBuffer;
 
+import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL13;
 import org.lwjgl.opengl.GL30;
+import org.lwjgl.system.MemoryUtil;
 
 import com.spaghetti.assets.Asset;
 import com.spaghetti.core.Game;
+import com.spaghetti.utils.ImageUtils;
 import com.spaghetti.utils.Utils;
 
 public class Texture extends Asset {
@@ -32,20 +35,25 @@ public class Texture extends Asset {
 	protected int type, mode;
 	protected ByteBuffer buffer;
 
-	// This can be overridden to easily modify the behaviour of the construction
+	// This can be overridden to easily modify the behavior of the construction
 	// process
 	protected void setParameters(ByteBuffer buffer, int width, int height, int type, int mode) {
+		// Bind
 		GL11.glBindTexture(GL11.GL_TEXTURE_2D, id);
 		Utils.glError();
 
+		// Set mag and min filters
 		GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, mode);
 		Utils.glError();
 		GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, mode);
 		Utils.glError();
 
+		// Set texture data
 		GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, type, width, height, 0, type, GL11.GL_UNSIGNED_BYTE, buffer);
 		Utils.glError();
 
+		// Free buffer
+		MemoryUtil.memFree(buffer);
 	}
 
 	public Texture() {
@@ -69,7 +77,8 @@ public class Texture extends Asset {
 	}
 
 	public Texture(BufferedImage img) {
-		this(Utils.parseImage(img), img.getWidth(), img.getHeight());
+		this(ImageUtils.parseImage(img, BufferUtils.createByteBuffer(img.getWidth() * img.getHeight() * 4)),
+				img.getWidth(), img.getHeight());
 	}
 
 	@Override

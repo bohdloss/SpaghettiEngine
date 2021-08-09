@@ -41,6 +41,10 @@ public final class Logger {
 		for (int i = 0; i < s.length; i++) {
 			res += s[i].toString() + (i == s.length - 1 ? "" : "\n");
 		}
+		if (throwable.getCause() != null) {
+			res += "\nCaused by ";
+			res += exception(throwable.getCause());
+		}
 		return res;
 	}
 

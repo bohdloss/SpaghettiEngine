@@ -1,276 +1,150 @@
 package com.spaghetti.physics;
 
-import org.joml.Vector2f;
-import org.joml.Vector3f;
-
 import com.spaghetti.core.*;
-import com.spaghetti.utils.CMath;
+import com.spaghetti.interfaces.ToClient;
 
-public class RigidBody extends GameComponent {
+@ToClient
+public abstract class RigidBody<VecType, SecVecType> extends GameComponent {
+
+	public static enum BodyType {
+		DYNAMIC, KINEMATIC, STATIC
+	}
+
+	// Data
+	protected BodyType type;
 
 	// Dependencies
-
 	protected Physics physics;
 
-	// Properties
-
-	// Shape
-	protected Shape shape;
-
-	// Coordinates
-	protected Vector2f position = new Vector2f();
-
-	// Velocity
-	protected Vector2f velocity = new Vector2f();
-
-	// Mass
-	protected float mass;
-
-	// Force
-	protected Vector2f force = new Vector2f();
-
-	// Has gravity?
-	protected boolean gravity = true;
-
-	// Ignores physics?
-	protected boolean ignorePhysics;
-
 	public RigidBody() {
+		this(BodyType.DYNAMIC);
 	}
 
-	public RigidBody(Shape shape) {
-		this.shape = shape;
+	public RigidBody(BodyType type) {
+		this.type = type;
 	}
 
-	// Caching data
-	protected Vector3f poscache = new Vector3f();
-	protected Vector3f scalecache = new Vector3f();
-	protected Vector3f rotcache = new Vector3f();
+	// Physics calculation
 
-	protected void gatherCache() {
-		GameObject owner = getOwner();
+	public abstract void solve(float multiplier);
 
-		owner.getWorldPosition(poscache);
-		owner.getWorldScale(scalecache);
-		owner.getWorldRotation(rotcache);
+	// Getters and setters
 
-		position.x = poscache.x;
-		position.y = poscache.y;
-	}
+	// Position / rotation
+	public abstract VecType getPosition(VecType pointer);
+	public abstract void setPosition(VecType position);
 
-	protected void applyPosition() {
-		GameObject owner = getOwner();
+	public abstract SecVecType getRotation(SecVecType pointer);
+	public abstract void setRotation(SecVecType rotation);
 
-		owner.setWorldPosition(position.x, position.y, owner.getWorldZ());
-	}
+	// Forces
+	public abstract VecType getForce(VecType pointer);
+	public abstract void setForce(VecType force);
 
-	// Collision resolving
+	public abstract void applyForce(VecType force);
+	public abstract void applyForceAt(VecType force, VecType applicationPoint);
 
-	public boolean intersects(RigidBody other) {
+	public abstract SecVecType getRotationForce(SecVecType pointer);
 
-		// Find rectangle intersection
+	public abstract void setRotationForce(SecVecType force);
+	public abstract void applyRotationForce(SecVecType force);
 
-		return false;
+	// Acceleration (forces)
+	public abstract VecType getAcceleration(VecType pointer);
+	public abstract void setAcceleration(VecType acceleration);
 
-	}
+	public abstract void applyAcceleration(VecType acceleretion);
+	public abstract void applyAccelerationAt(VecType acceleretion, VecType applicationPoint);
 
-	protected void calculateForces() {
-		if (gravity) {
-			applyAcceleration(physics.gravity);
-		}
-		// Just for fun
-		// everything has gravity
+	public abstract SecVecType getRotationAcceleration(SecVecType pointer);
 
-		for (int i = 0; i < physics.body_count; i++) {
-			RigidBody b = physics.body_list[i];
-			if (b == this) {
-				continue;
-			}
+	public abstract void setRotationAcceleration(SecVecType acceleration);
+	public abstract void applyRotationAcceleration(SecVecType acceleration);
 
-			// Gravitational formula
-			// F = G * ((m1 * m2) / r^2)
-			// G is a constant
+	// Velocities
+	public abstract VecType getVelocity(VecType pointer);
+	public abstract void setVelocity(VecType velocity);
 
-			float r = CMath.distance(position.x, position.y, b.position.x, b.position.y);
-			float force_mod = physics.G * ((mass * b.mass) / (r * r));
+	public abstract void applyImpulse(VecType impulse);
+	public abstract void applyImpulseAt(VecType impulse, VecType applicationPoint);
 
-			// Find the rotated force
+	public abstract void applyVelocity(VecType velocity);
+	public abstract void applyVelocityAt(VecType velocity, VecType applicationPoint);
 
-			float angle = (float) Math.atan2(b.position.y - position.y, b.position.x - position.x);
+	public abstract SecVecType getRotationVelocity(SecVecType pointer);
+	public abstract void setRotationVelocity(SecVecType velocity);
 
-			float force_x = (float) Math.cos(angle) * force_mod;
-			float force_y = (float) Math.sin(angle) * force_mod;
+	public abstract void applyRotationImpulse(SecVecType velocity);
 
-			applyForce(force_x, force_y);
+	public abstract void applyRotationVelocity(SecVecType velocity);
 
-		}
+	// Other
+	public abstract float getMass();
+	public abstract void setMass(float mass);
 
-		// Air friction
-		float friction_x = -velocity.x * physics.AIR_FRICTION;
-		float friction_y = -velocity.y * physics.AIR_FRICTION;
-		applyForce(friction_x, friction_y);
-	}
+	public abstract float getGravityMultiplier();
+	public abstract void setGravityMultiplier(float multiplier);
+	
+	public abstract Shape<VecType> getShape(Shape<VecType> buffer);
+	public abstract void setShape(Shape<VecType> vertices);
 
-	public void solve(float multiplier) {
-		if (ignorePhysics) {
-			return;
-		}
+	public abstract float getFriction();
+	public abstract void setFriction(float friction);
 
-		// Calculate forces
-		// Such as gravity, springs, etc
-		calculateForces();
+	public abstract float getDensity();
+	public abstract void setDensity(float density);
 
-		// F = m * a
-		// Convert force to actual acceleration
-		// a = F / m
+	public abstract float getRestitution();
+	public abstract void setRestitution(float restitution);
 
-		float xaccel = force.x / mass;
-		float yaccel = force.y / mass;
+	public abstract boolean performsCollision();
+	public abstract void setPerformsCollision(boolean perform);
 
-		// Apply the force to the velocity
-		// a = (v2 - v1) / delta
-		// which translates to
-		// v2 = a * delta + v1
+	public abstract boolean canRotate();
+	public abstract void setCanRotate(boolean rotate);
 
-		velocity.x += xaccel * multiplier;
-		velocity.y += yaccel * multiplier;
+	public abstract float getLinearDamping();
+	public abstract void setLinearDamping(float damping);
 
-		// Apply the velocity to the space
-		// same reverse formula
-		// requires collision detection
+	public abstract float getAngularDamping();
+	public abstract void setAngularDamping(float damping);
 
-		position.x += velocity.x * multiplier;
-		position.y += velocity.y * multiplier;
-
-		for (int i = 0; i < physics.body_count; i++) {
-			RigidBody body = physics.body_list[i];
-			if (body == this) {
-				continue;
-			}
-
-			if (intersects(body)) {
-			}
-		}
-
-		// Reset acceleration each frame because
-		// that's how it works IRL (kind of)
-
-		force.zero();
-	}
-
-	// Getters
+	// Interfaces
 
 	public Physics getPhysics() {
 		return physics;
 	}
 
-	public void getPosition(Vector2f pointer) {
-		pointer.set(position);
-	}
-
-	public void getForce(Vector2f pointer) {
-		pointer.set(force);
-	}
-
-	public void getAcceleration(Vector2f pointer) {
-		force.div(mass, pointer);
-	}
-
-	public void getVelocity(Vector2f pointer) {
-		pointer.set(velocity);
-	}
-
-	public float getMass() {
-		return mass;
-	}
-
-	public boolean getGravity() {
-		return gravity;
-	}
-
-	public boolean getIgnorePhysics() {
-		return ignorePhysics;
-	}
-
-	public Shape getShape() {
-		return shape;
-	}
-
-	// Setters
-
-	public void applyForce(float x, float y) {
-		force.add(x, y);
-	}
-
-	public void applyForce(Vector2f vec) {
-		applyForce(vec.x, vec.y);
-	}
-
-	public void applyAcceleration(float x, float y) {
-		force.add(x * mass, y * mass);
-	}
-
-	public void applyAcceleration(Vector2f vec) {
-		applyAcceleration(vec.x, vec.y);
-	}
-
-	public void applyImpulse(float x, float y) {
-		velocity.add(x, y);
-	}
-
-	public void applyImpulse(Vector2f vec) {
-		applyImpulse(vec.x, vec.y);
-	}
-
-	public void setPosition(float x, float y) {
-		position.set(x, y);
-	}
-
-	public void setPosition(Vector2f vec) {
-		setPosition(vec.x, vec.y);
-	}
-
-	public void setMass(float mass) {
-		this.mass = mass;
-	}
-
-	public void setGravity(boolean gravity) {
-		this.gravity = gravity;
-	}
-
-	public void setIgnorePhysics(boolean ignorePhysics) {
-		this.ignorePhysics = ignorePhysics;
-	}
-
-	public void setShape(Shape shape) {
-		this.shape = shape;
-	}
-
-	// Interfaces
+	protected abstract Class<? extends Physics> getPhysicsClass();
 
 	@Override
 	protected void onBeginPlay() {
 		// We need a physics world!
-		physics = getLevel().getObject(Physics.class);
+		physics = getLevel().getObject(getPhysicsClass());
 		if (physics == null) {
-			physics = new Physics();
+			try {
+				physics = getPhysicsClass().newInstance();
+			} catch (InstantiationException | IllegalAccessException e) {
+				throw new RuntimeException(e);
+			}
 			getLevel().addObject(physics);
 		}
-		if (mass == 0) {
-			mass = 10;
-		}
-		physics.addBody(this);
 
-		// Set position based on owner
-		GameObject obj = getOwner();
-		position.x = obj.getRelativeX();
-		position.y = obj.getRelativeY();
-
+		createBody();
 	}
+
+	protected abstract void createBody();
 
 	@Override
 	protected void onEndPlay() {
-		physics.removeBody(this);
+		destroyBody();
 	}
 
+	protected abstract void destroyBody();
+
+	@Override
+	protected void commonUpdate(float delta) {
+		solve(delta);
+	}
+	
 }

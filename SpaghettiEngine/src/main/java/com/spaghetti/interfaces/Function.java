@@ -1,4 +1,4 @@
-package com.spaghetti.utils;
+package com.spaghetti.interfaces;
 
 public interface Function {
 

@@ -24,8 +24,8 @@ public class OnClientDisconnect extends GameEvent {
 	}
 
 	@Override
-	public boolean skip(NetworkConnection worker, boolean isClient) {
-		return true;
+	public boolean needsReplication(NetworkConnection worker) {
+		return false;
 	}
 
 }

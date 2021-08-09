@@ -39,12 +39,18 @@ public class GameOptions {
 		setEngineOption("windowsize", new Vector2i(400, 400));
 		setEngineOption("windowminimumsize", new Vector2i(100, 100));
 		setEngineOption("windowmaximumsize", new Vector2i(resolution));
-		setEngineOption("windowfullscreen", true);
+		setEngineOption("windowfullscreen", false);
 		setEngineOption("windowresizable", true);
+		
+		setEngineOption("debugcontext", true);
+
+		setEngineOption("windowtitle", "Spaghetti game");
+		setEngineOption("windowicon16", "/res/icon16.png");
+		setEngineOption("windowicon32", "/res/icon32.png");
 
 		// Networking
 		setEngineOption("networkbuffer", 1000 * 256); // 256 KB
-		setEngineOption("networktimeout", 5000l);
+		setEngineOption("networktimeout", 50000l);
 	}
 
 	// Public getters and setters

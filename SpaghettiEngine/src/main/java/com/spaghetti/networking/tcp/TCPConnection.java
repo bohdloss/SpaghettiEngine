@@ -10,6 +10,7 @@ import com.spaghetti.core.CoreComponent;
 import com.spaghetti.networking.NetworkBuffer;
 import com.spaghetti.networking.NetworkConnection;
 import com.spaghetti.networking.Opcode;
+import com.spaghetti.utils.Logger;
 import com.spaghetti.utils.Utils;
 
 public class TCPConnection extends NetworkConnection {
@@ -73,7 +74,7 @@ public class TCPConnection extends NetworkConnection {
 		w_buffer.putByte(Opcode.END);
 		w_buffer.flip();
 		int length = w_buffer.getLimit();
-
+		
 		// Write header
 		packet_header.clear();
 		packet_header.putInt(length);
@@ -89,7 +90,8 @@ public class TCPConnection extends NetworkConnection {
 				throw new IllegalStateException(timeout + " ms timeout reached while writing");
 			}
 		}
-
+		Logger.info("Written " + length + " bytes");
+		
 		// Reset state
 		w_buffer.clear();
 		reliable = false;

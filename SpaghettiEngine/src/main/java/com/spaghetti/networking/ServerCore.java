@@ -184,7 +184,7 @@ public abstract class ServerCore extends CoreComponent {
 		}
 		synchronized (queue_lock) {
 			functions.add(client -> {
-				if (!event.skip(client, false)) {
+				if (!event.needsReplication(client)) {
 					client.writeGameEvent(issuer, event);
 				}
 			});
@@ -197,11 +197,11 @@ public abstract class ServerCore extends CoreComponent {
 		}
 	}
 
-	public void queueRPC(RPC rpc) {
+	public void queueRPC(RemoteProcedure rpc) {
 		synchronized (queue_lock) {
 			functions.add(client -> {
 				if (!rpc.skip(client, false)) {
-					client.writeRPC(rpc);
+					client.writeRemoteProcedure(rpc);
 				}
 			});
 		}
@@ -435,8 +435,12 @@ public abstract class ServerCore extends CoreComponent {
 						Logger.warning("Client handshake failed (" + clientId + ")");
 						internal_kick(clientId);
 					} else {
-						joinHandler.handleJoin(false, client);
-						getGame().getEventDispatcher().raiseEvent(null, new OnClientConnect(client, clientId));
+						// Dispatch the operations on the updater thread for synchronization
+						getGame().getUpdaterDispatcher().quickQueue(() -> {
+							joinHandler.handleJoin(false, client);
+							getGame().getEventDispatcher().raiseEvent(null, new OnClientConnect(client, clientId));
+							return null;
+						});
 						clientFlags.firstTime = true;
 						Logger.info("ACCEPTED connection from client (" + clientId + ")");
 						return true;

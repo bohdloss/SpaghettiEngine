@@ -348,7 +348,7 @@ public final class NetworkBuffer {
 
 	// Utility
 
-	public NetworkConnection getWorker() {
+	public NetworkConnection getConnection() {
 		return owner;
 	}
 

@@ -1,9 +1,5 @@
 package com.spaghetti.render;
 
-import java.nio.FloatBuffer;
-import java.nio.IntBuffer;
-
-import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL15;
 import org.lwjgl.opengl.GL20;
@@ -48,6 +44,10 @@ public class Model extends Asset {
 
 	}
 
+	public void setData(float[] vertices, float[] tex_coords, float[] normals, int[] indices) {
+		setData(new Object[] {vertices, tex_coords, normals, indices});
+	}
+	
 	@Override
 	public boolean isFilled() {
 		return vertices != null && tex_coords != null && normals != null && indices != null;
@@ -64,25 +64,25 @@ public class Model extends Asset {
 		Utils.glError();
 		GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, v_id);
 		Utils.glError();
-		GL15.glBufferData(GL15.GL_ARRAY_BUFFER, createFloatBuffer(vertices), GL15.GL_STATIC_DRAW);
+		GL15.glBufferData(GL15.GL_ARRAY_BUFFER, vertices, GL15.GL_STATIC_DRAW);
 		Utils.glError();
 		t_id = GL15.glGenBuffers();
 		Utils.glError();
 		GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, t_id);
 		Utils.glError();
-		GL15.glBufferData(GL15.GL_ARRAY_BUFFER, createFloatBuffer(tex_coords), GL15.GL_STATIC_DRAW);
+		GL15.glBufferData(GL15.GL_ARRAY_BUFFER, tex_coords, GL15.GL_STATIC_DRAW);
 		Utils.glError();
 		n_id = GL15.glGenBuffers();
 		Utils.glError();
 		GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, n_id);
 		Utils.glError();
-		GL15.glBufferData(GL15.GL_ARRAY_BUFFER, createFloatBuffer(normals), GL15.GL_STATIC_DRAW);
+		GL15.glBufferData(GL15.GL_ARRAY_BUFFER, normals, GL15.GL_STATIC_DRAW);
 		Utils.glError();
 		i_id = GL15.glGenBuffers();
 		Utils.glError();
 		GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, i_id);
 		Utils.glError();
-		GL15.glBufferData(GL15.GL_ARRAY_BUFFER, createIntBuffer(indices), GL15.GL_STATIC_DRAW);
+		GL15.glBufferData(GL15.GL_ARRAY_BUFFER, indices, GL15.GL_STATIC_DRAW);
 		Utils.glError();
 
 		GL15.glBindBuffer(GL15.GL_ELEMENT_ARRAY_BUFFER, 0);
@@ -147,20 +147,6 @@ public class Model extends Asset {
 		Utils.glError();
 	}
 
-	private FloatBuffer createFloatBuffer(float[] data) {
-		FloatBuffer buffer = BufferUtils.createFloatBuffer(data.length);
-		buffer.put(data);
-		buffer.flip();
-		return buffer;
-	}
-
-	private IntBuffer createIntBuffer(int[] data) {
-		IntBuffer buffer = BufferUtils.createIntBuffer(data.length);
-		buffer.put(data);
-		buffer.flip();
-		return buffer;
-	}
-
 	public int getDrawCount() {
 		return draw_count;
 	}
@@ -181,4 +167,20 @@ public class Model extends Asset {
 		return i_id;
 	}
 
+	public float[] getVerticesBuffer() {
+		return vertices;
+	}
+	
+	public float[] getTexcoordsBuffer() {
+		return tex_coords;
+	}
+
+	public float[] getNormalsBuffer() {
+		return normals;
+	}
+	
+	public int[] getIndicesBuffer() {
+		return indices;
+	}
+	
 }

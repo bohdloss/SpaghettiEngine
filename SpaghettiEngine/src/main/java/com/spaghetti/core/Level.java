@@ -7,60 +7,81 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
+import com.spaghetti.interfaces.Replicable;
+import com.spaghetti.interfaces.ToClient;
 import com.spaghetti.interfaces.Updatable;
+import com.spaghetti.networking.NetworkBuffer;
+import com.spaghetti.networking.NetworkConnection;
+import com.spaghetti.utils.Utils;
 
-public final class Level implements Updatable {
+@ToClient
+public class Level implements Updatable, Replicable {
 
-	private static final Field o_level;
-	private static final Field o_parent;
-	private static final Method o_setflag;
-
-	static {
-		Field level = null;
-		Field parent = null;
-		Method setflag = null;
-
-		try {
-			level = GameObject.class.getDeclaredField("level");
-			level.setAccessible(true);
-			setflag = GameObject.class.getDeclaredMethod("internal_setflag", int.class, boolean.class);
-			setflag.setAccessible(true);
-			parent = GameObject.class.getDeclaredField("parent");
-			parent.setAccessible(true);
-		} catch (Throwable t) {
-		}
-
-		o_level = level;
-		o_parent = parent;
-		o_setflag = setflag;
-	}
+	protected static final Field o_level = Utils.getPrivateField(GameObject.class, "level");
+	protected static final Field o_parent = Utils.getPrivateField(GameObject.class, "parent");
+	protected static final Method o_setflag = Utils.getPrivateMethod(GameObject.class, "internal_setflag", int.class, boolean.class);
 
 	protected boolean destroyed;
 	protected boolean replicate;
 	protected Game source;
-	protected ArrayList<GameObject> objects = new ArrayList<>();
-	protected ConcurrentHashMap<Integer, GameObject> o_ordered = new ConcurrentHashMap<>();
-	protected ConcurrentHashMap<Integer, GameComponent> c_ordered = new ConcurrentHashMap<>();
+	protected final ArrayList<GameObject> objects = new ArrayList<>();
+	protected final ConcurrentHashMap<Integer, GameObject> o_ordered = new ConcurrentHashMap<>();
+	protected final ConcurrentHashMap<Integer, GameComponent> c_ordered = new ConcurrentHashMap<>();
+	
+	protected String name;
 
-	public Level() {
+	protected void onBeginPlay() {
+		
+	}
+	
+	protected void onEndPlay() {
+		
+	}
+	
+	protected void onDestroy() {
+		
 	}
 
-	public Game getGame() {
-		return source == null ? Game.getGame() : source;
+	@Override
+	public void writeDataServer(NetworkBuffer dataBuffer) {
+		dataBuffer.putString(name);
 	}
 
-	public void destroy() {
+	@Override
+	public void readDataServer(NetworkBuffer dataBuffer) {
+		
+	}
+
+	@Override
+	public void writeDataClient(NetworkBuffer dataBuffer) {
+		
+	}
+
+	@Override
+	public void readDataClient(NetworkBuffer dataBuffer) {
+		name = dataBuffer.getString();
+	}
+	
+	@Override
+	public boolean needsReplication(NetworkConnection connection) {
+		boolean val = replicate;
+		replicate = false;
+		return val;
+	}
+	
+	public final void destroy() {
 		if (isDestroyed()) {
 			return;
 		}
+		onDestroy();
 		for (Object obj : objects.toArray()) {
 			GameObject go = (GameObject) obj;
 			go.destroy();
 		}
 		destroyed = true;
 	}
-
-	public synchronized void addObject(GameObject object) {
+	
+	public final synchronized void addObject(GameObject object) {
 		if (objects.contains(object) || object == null || object.isDestroyed() || isDestroyed()) {
 			return;
 		}
@@ -79,7 +100,7 @@ public final class Level implements Updatable {
 		}
 
 		// Update level pointers and level lists
-		i_r_upd_lvl(object);
+		update_level(object);
 
 		// Finally add to list, set flags, activate triggers
 		objects.add(object);
@@ -88,10 +109,10 @@ public final class Level implements Updatable {
 			o_parent.set(object, null);
 		} catch (Throwable t) {
 		}
-		object.internal_begin();
+		object.onbegin_forward();
 	}
 
-	private final void i_r_upd_lvl(GameObject object) {
+	private final void update_level(GameObject object) {
 		try {
 			o_level.set(object, this);
 		} catch (Throwable t) {
@@ -101,21 +122,22 @@ public final class Level implements Updatable {
 			c_ordered.put(component.getId(), component);
 		});
 		object.forEachChild((id, child) -> {
-			i_r_upd_lvl(child);
+			update_level(child);
 		});
 	}
 
-	public synchronized GameObject removeObject(int id) {
+	public final synchronized GameObject removeObject(int id) {
 		GameObject object = o_ordered.get(id);
 		if (!objects.contains(object)) {
 			return null;
 		}
 		if (object != null) {
-			object.internal_end();
+			object.onend_forward();
 			objects.remove(object);
 			o_ordered.remove(id);
 			try {
 				o_parent.set(object, null);
+				o_level.set(object, null);
 				o_setflag.invoke(object, GameObject.ATTACHED, false);
 			} catch (Throwable t) {
 			}
@@ -123,7 +145,7 @@ public final class Level implements Updatable {
 		return object;
 	}
 
-	public synchronized boolean deleteObject(int id) {
+	public final synchronized boolean deleteObject(int id) {
 		GameObject get = o_ordered.get(id);
 		if (!objects.contains(get)) {
 			return false;
@@ -135,40 +157,40 @@ public final class Level implements Updatable {
 		return false;
 	}
 
-	public GameObject getObject(int id) {
+	public final GameObject getObject(int id) {
 		return o_ordered.get(id);
 	}
 
-	public GameComponent getComponent(int id) {
+	public final GameComponent getComponent(int id) {
 		return c_ordered.get(id);
 	}
 
-	public int getObjectAmount() {
+	public final int getObjectAmount() {
 		return objects.size();
 	}
 
-	public int getActualObjectAmount() {
+	public final int getActualObjectAmount() {
 		return o_ordered.size();
 	}
 
-	public int getComponentAmount() {
+	public final int getComponentAmount() {
 		return c_ordered.size();
 	}
 
-	public void forEachObject(Consumer<GameObject> consumer) {
+	public final void forEachObject(Consumer<GameObject> consumer) {
 		objects.forEach(consumer);
 	}
 
-	public void forEachActualObject(BiConsumer<Integer, GameObject> consumer) {
+	public final void forEachActualObject(BiConsumer<Integer, GameObject> consumer) {
 		o_ordered.forEach(consumer);
 	}
 
-	public void forEachComponent(BiConsumer<Integer, GameComponent> consumer) {
+	public final void forEachComponent(BiConsumer<Integer, GameComponent> consumer) {
 		c_ordered.forEach(consumer);
 	}
 
 	@Override
-	public void update(float delta) {
+	public final void update(float delta) {
 		try {
 			objects.forEach(object -> {
 				if (object != null) {
@@ -179,7 +201,7 @@ public final class Level implements Updatable {
 		}
 	}
 
-	public boolean isDestroyed() {
+	public final boolean isDestroyed() {
 		return destroyed;
 	}
 
@@ -188,7 +210,7 @@ public final class Level implements Updatable {
 	// Get single object by class
 
 	@SuppressWarnings("unchecked")
-	public <T extends GameObject> T getObject(Class<T> cls) {
+	public final <T extends GameObject> T getObject(Class<T> cls) {
 		for (GameObject obj : o_ordered.values()) {
 			if (cls.isAssignableFrom(obj.getClass())) {
 				return (T) obj;
@@ -197,7 +219,7 @@ public final class Level implements Updatable {
 		return null;
 	}
 
-	public GameObject getObjectN(Class<? extends GameObject> cls) {
+	public final GameObject getObjectN(Class<? extends GameObject> cls) {
 		for (GameObject obj : o_ordered.values()) {
 			if (cls.isAssignableFrom(obj.getClass())) {
 				return obj;
@@ -208,7 +230,7 @@ public final class Level implements Updatable {
 
 	// Get single object by index
 
-	public GameObject getObjectAt(int index) {
+	public final GameObject getObjectAt(int index) {
 		int i = 0;
 		for (GameObject obj : o_ordered.values()) {
 			if (i == index) {
@@ -220,7 +242,7 @@ public final class Level implements Updatable {
 	}
 
 	@SuppressWarnings("unchecked")
-	public <T extends GameObject> T getObjectAt(int index, Class<T> cls) {
+	public final <T extends GameObject> T getObjectAt(int index, Class<T> cls) {
 		int i = 0;
 		for (GameObject obj : o_ordered.values()) {
 			if (cls.isAssignableFrom(obj.getClass())) {
@@ -235,7 +257,7 @@ public final class Level implements Updatable {
 
 	// Get amount of objects by class
 
-	public int getObjectAmount(Class<? extends GameObject> cls) {
+	public final int getObjectAmount(Class<? extends GameObject> cls) {
 		int i = 0;
 		for (GameObject obj : o_ordered.values()) {
 			if (cls.isAssignableFrom(obj.getClass())) {
@@ -248,7 +270,7 @@ public final class Level implements Updatable {
 	// Get array of objects
 
 	@SuppressWarnings("unchecked")
-	public <T extends GameObject> T[] getObjects(Class<T> cls, T[] buffer, int offset) {
+	public final <T extends GameObject> T[] getObjects(Class<T> cls, T[] buffer, int offset) {
 		int i = 0;
 		for (GameObject obj : o_ordered.values()) {
 			if (cls.isAssignableFrom(obj.getClass())) {
@@ -259,7 +281,7 @@ public final class Level implements Updatable {
 		return buffer;
 	}
 
-	public GameObject[] getObjectsN(Class<? extends GameObject> cls, GameObject[] buffer, int offset) {
+	public final GameObject[] getObjectsN(Class<? extends GameObject> cls, GameObject[] buffer, int offset) {
 		int i = 0;
 		for (GameObject obj : o_ordered.values()) {
 			if (cls.isAssignableFrom(obj.getClass())) {
@@ -270,7 +292,7 @@ public final class Level implements Updatable {
 		return buffer;
 	}
 
-	public GameObject[] getObjects(GameObject[] buffer, int offset) {
+	public final GameObject[] getObjects(GameObject[] buffer, int offset) {
 		int i = 0;
 		for (GameObject obj : o_ordered.values()) {
 			buffer[i + offset] = obj;
@@ -282,7 +304,7 @@ public final class Level implements Updatable {
 	// Get single component by class
 
 	@SuppressWarnings("unchecked")
-	public <T extends GameComponent> T getComponent(Class<T> cls) {
+	public final <T extends GameComponent> T getComponent(Class<T> cls) {
 		for (GameComponent comp : c_ordered.values()) {
 			if (cls.isAssignableFrom(comp.getClass())) {
 				return (T) comp;
@@ -291,7 +313,7 @@ public final class Level implements Updatable {
 		return null;
 	}
 
-	public GameComponent getComponentN(Class<? extends GameComponent> cls) {
+	public final GameComponent getComponentN(Class<? extends GameComponent> cls) {
 		for (GameComponent comp : c_ordered.values()) {
 			if (cls.isAssignableFrom(comp.getClass())) {
 				return comp;
@@ -302,7 +324,7 @@ public final class Level implements Updatable {
 
 	// Get single component by index
 
-	public GameComponent getComponentAt(int index) {
+	public final GameComponent getComponentAt(int index) {
 		int i = 0;
 		for (GameComponent comp : c_ordered.values()) {
 			if (i == index) {
@@ -314,7 +336,7 @@ public final class Level implements Updatable {
 	}
 
 	@SuppressWarnings("unchecked")
-	public <T extends GameComponent> T getComponentAt(int index, Class<T> cls) {
+	public final <T extends GameComponent> T getComponentAt(int index, Class<T> cls) {
 		int i = 0;
 		for (GameComponent comp : c_ordered.values()) {
 			if (cls.isAssignableFrom(comp.getClass())) {
@@ -329,7 +351,7 @@ public final class Level implements Updatable {
 
 	// Get amounts of components by class
 
-	public int getComponentAmount(Class<? extends GameComponent> cls) {
+	public final int getComponentAmount(Class<? extends GameComponent> cls) {
 		int i = 0;
 		for (GameComponent comp : c_ordered.values()) {
 			if (cls.isAssignableFrom(comp.getClass())) {
@@ -342,7 +364,7 @@ public final class Level implements Updatable {
 	// Get array of components
 
 	@SuppressWarnings("unchecked")
-	public <T extends GameComponent> T[] getComponents(Class<T> cls, T[] buffer, int offset) {
+	public final <T extends GameComponent> T[] getComponents(Class<T> cls, T[] buffer, int offset) {
 		int i = 0;
 		for (GameComponent comp : c_ordered.values()) {
 			if (cls.isAssignableFrom(comp.getClass())) {
@@ -353,7 +375,7 @@ public final class Level implements Updatable {
 		return buffer;
 	}
 
-	public GameComponent[] getComponentsN(Class<? extends GameComponent> cls, GameComponent[] buffer, int offset) {
+	public final GameComponent[] getComponentsN(Class<? extends GameComponent> cls, GameComponent[] buffer, int offset) {
 		int i = 0;
 		for (GameComponent comp : c_ordered.values()) {
 			if (cls.isAssignableFrom(comp.getClass())) {
@@ -364,7 +386,7 @@ public final class Level implements Updatable {
 		return buffer;
 	}
 
-	public GameComponent[] getComponents(GameComponent[] buffer, int offset) {
+	public final GameComponent[] getComponents(GameComponent[] buffer, int offset) {
 		int i = 0;
 		for (GameComponent comp : c_ordered.values()) {
 			buffer[i + offset] = comp;
@@ -373,4 +395,18 @@ public final class Level implements Updatable {
 		return buffer;
 	}
 
+	// Other getters / setters
+	
+	public Game getGame() {
+		return source == null ? Game.getGame() : source;
+	}
+	
+	public String getName() {
+		return name;
+	}
+	
+	public void setName(String name) {
+		this.name = name;
+	}
+	
 }

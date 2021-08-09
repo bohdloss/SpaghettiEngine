@@ -2,6 +2,7 @@ package com.spaghetti.render;
 
 import org.lwjgl.opengl.GL;
 import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL43;
 
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
@@ -16,6 +17,8 @@ import org.lwjgl.openal.ALC10;
 import org.lwjgl.openal.ALCCapabilities;
 import org.lwjgl.openal.ALCapabilities;
 import org.lwjgl.opengl.GLCapabilities;
+import org.lwjgl.opengl.GLDebugMessageCallbackI;
+import org.lwjgl.system.MemoryUtil;
 
 import com.spaghetti.assets.AssetManager;
 import com.spaghetti.core.CoreComponent;
@@ -61,11 +64,28 @@ public class RendererCore extends CoreComponent {
 		// Initializes OpenGL
 		window.makeContextCurrent();
 		glCapabilities = GL.createCapabilities();
+		GL43.glDebugMessageCallback(new GLDebugMessageCallbackI() {
 
+			@Override
+			public void invoke(int source, int type, int id, int severity, int length, long message, long userParam) {
+				GLException error = new GLException(source, type, id, severity, MemoryUtil.memUTF8(message, length));
+				
+				// Remove useless lines from stacktrace
+				final int useless_lines = 2;
+				StackTraceElement[] stack = error.getStackTrace();
+				StackTraceElement[] new_stack = new StackTraceElement[stack.length - useless_lines];
+				System.arraycopy(stack, useless_lines, new_stack, 0, new_stack.length);
+				error.setStackTrace(new_stack);
+				
+				throw error;
+			}
+			
+		}, 0);
+		
 		GL11.glEnable(GL11.GL_TEXTURE_2D);
 		GL11.glEnable(GL11.GL_BLEND);
 		GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-		GL11.glEnable(GL11.GL_CULL_FACE);
+//		GL11.glEnable(GL11.GL_CULL_FACE);
 		GL11.glEnable(GL11.GL_DEPTH_TEST);
 		GL11.glDepthFunc(GL11.GL_LEQUAL);
 		GL11.glDisable(GL11.GL_LIGHTING);
@@ -125,7 +145,8 @@ public class RendererCore extends CoreComponent {
 	@Override
 	protected void loopEvents(float delta) throws Throwable {
 		try {
-			GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_STENCIL_BUFFER_BIT);
+			GL43.glGetError();
+			GL43.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_STENCIL_BUFFER_BIT);
 
 			if (window.shouldClose()) {
 				getGame().stopAsync();
