@@ -1,31 +1,30 @@
 package com.spaghetti.networking.events;
 
 import com.spaghetti.events.GameEvent;
-import com.spaghetti.interfaces.NoReplicate;
-import com.spaghetti.networking.NetworkConnection;
+import com.spaghetti.networking.ConnectionManager;
 
-@NoReplicate
 public class OnClientBanned extends GameEvent {
 
-	protected NetworkConnection client;
+	protected ConnectionManager client;
 	protected long clientId;
+	protected String reason;
 
-	public OnClientBanned(NetworkConnection client, long clientId) {
+	public OnClientBanned(ConnectionManager client, long clientId, String reason) {
 		this.client = client;
 		this.clientId = clientId;
+		this.reason = reason;
 	}
 
-	public NetworkConnection getClient() {
+	public ConnectionManager getClient() {
 		return client;
 	}
 
 	public long getClientId() {
 		return clientId;
 	}
-
-	@Override
-	public boolean needsReplication(NetworkConnection worker) {
-		return false;
+	
+	public String getReason() {
+		return reason;
 	}
-
+	
 }

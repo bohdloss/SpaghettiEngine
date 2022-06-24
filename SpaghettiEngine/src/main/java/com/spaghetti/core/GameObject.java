@@ -2,38 +2,26 @@ package com.spaghetti.core;
 
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.util.HashMap;
-import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 
 import org.joml.Vector3f;
-import com.spaghetti.events.GameEvent;
 import com.spaghetti.interfaces.*;
 import com.spaghetti.networking.NetworkBuffer;
-import com.spaghetti.networking.NetworkConnection;
+import com.spaghetti.networking.ConnectionManager;
 import com.spaghetti.objects.Camera;
+import com.spaghetti.utils.IdProvider;
 import com.spaghetti.utils.Logger;
+import com.spaghetti.utils.Transform;
 import com.spaghetti.utils.Utils;
 
-@ToClient
 public abstract class GameObject implements Updatable, Renderable, Replicable {
 
 	// Hierarchy and utility
 
 	private static final Field c_owner = Utils.getPrivateField(GameComponent.class, "owner");
-	private static final Method c_setflag = Utils.getPrivateMethod(GameComponent.class, "internal_setflag", int.class, boolean.class);
-	private static HashMap<Integer, Integer> staticId = new HashMap<>();
-
-	private static final synchronized int newId() {
-		int index = Game.getGame().getIndex();
-		Integer id = staticId.get(index);
-		if (id == null) {
-			id = 0;
-		}
-		staticId.put(index, id + 1);
-		return new Random().nextInt();
-	}
+	private static final Method c_setflag = Utils.getPrivateMethod(GameComponent.class, "internal_setflag", int.class,
+			boolean.class);
 
 	// Instance methods and fields
 
@@ -47,6 +35,11 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 	public static final int REPLICATE = 3;
 	// 4 is initialized flag
 	public static final int INITIALIZED = 4;
+	// 5 is visible flag
+	public static final int VISIBLE = 5;
+	// 6 is awake flag
+	public static final int AWAKE = 6;
+	// Last 16 bits are reserved for the render cache index
 
 	private final Object flags_lock = new Object();
 	private int flags;
@@ -57,8 +50,11 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 	private ConcurrentHashMap<Integer, GameComponent> components = new ConcurrentHashMap<>();
 
 	public GameObject() {
-		this.id = newId();
+		this.id = IdProvider.newId(getGame());
+		setRenderCacheIndex(-1);
 		internal_setflag(REPLICATE, true);
+		internal_setflag(AWAKE, true);
+		internal_setflag(VISIBLE, true);
 	}
 
 	// Utility
@@ -74,7 +70,36 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 			return Utils.bitAt(flags, flag);
 		}
 	}
-
+	
+	public final void triggerAlloc() {
+		if(!getGame().isHeadless() && getRenderCacheIndex() == -1) {
+			setRenderCacheIndex(getGame().getRenderer().allocCache());
+		}
+	}
+	
+	public final void triggerAllocRecursive() {
+		if(!getGame().isHeadless()) {
+			triggerAlloc();
+			components.forEach((id, component) -> component.triggerAlloc());
+			children.forEach((id, object) -> object.triggerAllocRecursive());
+		}
+	}
+	
+	public final void triggerDealloc() {
+		if(!getGame().isHeadless() && getRenderCacheIndex() != -1) {
+			getGame().getRenderer().deallocCache(getRenderCacheIndex());
+			setRenderCacheIndex(-1);
+		}
+	}
+	
+	public final void triggerDeallocRecursive() {
+		if(!getGame().isHeadless()) {
+			triggerDealloc();
+			components.forEach((id, component) -> component.triggerDealloc());
+			children.forEach((id, object) -> object.triggerDeallocRecursive());
+		}
+	}
+	
 	public final void forEachChild(BiConsumer<Integer, GameObject> consumer) {
 		children.forEach(consumer);
 	}
@@ -519,18 +544,10 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 	}
 
 	protected final void onbegin_forward() {
-		try {
-			onbegin_check();
-		} catch (Throwable t) {
-			Logger.error("Error occurred in object", t);
-		}
+		onbegin_check();
 		for (Object obj : components.values().toArray()) {
 			GameComponent component = (GameComponent) obj;
-			try {
-				component.onbegin_check();
-			} catch (Throwable t) {
-				Logger.error("Error occurred in component", t);
-			}
+			component.onbegin_check();
 		}
 		for (Object obj : children.values().toArray()) {
 			GameObject object = (GameObject) obj;
@@ -545,17 +562,9 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		}
 		for (Object obj : components.values().toArray()) {
 			GameComponent component = (GameComponent) obj;
-			try {
-				component.onend_check();
-			} catch (Throwable t) {
-				Logger.error("Error occurred in component", t);
-			}
+			component.onend_check();
 		}
-		try {
-			onend_check();
-		} catch (Throwable t) {
-			Logger.error("Error occurred in component", t);
-		}
+		onend_check();
 	}
 
 	protected final void ondestroy_forward() {
@@ -626,21 +635,70 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 			}
 			obj = obj.parent;
 		}
-		return true;
+		return level.isAttached();
 	}
 
 	public final boolean isInitialized() {
 		return internal_getflag(INITIALIZED);
 	}
+
+	public final boolean isVisible() {
+		return internal_getflag(VISIBLE);
+	}
+	
+	public final void setVisible(boolean visible) {
+		// Change flag and synchronize with cache
+		internal_setflag(VISIBLE, visible);
+		if(isInitialized() && visible) {
+			triggerAlloc();
+			
+			// Force an update on components and children since this object is now visible
+			components.forEach((id, component) -> component.setVisible(component.isVisible()));
+			children.forEach((id, object) -> object.setVisible(object.isVisible()));
+		} else {
+			triggerDealloc();
+			
+			// Deallocate all components and children cache since this object is now invisible
+			triggerDeallocRecursive();
+		}
+		
+	}
+	
+	public final boolean isAwake() {
+		return internal_getflag(AWAKE);
+	}
+	
+	public final void setAwake(boolean awake) {
+		internal_setflag(AWAKE, awake);
+	}
+	
+	public final void setRenderCacheIndex(int index) {
+		synchronized(flags_lock) {
+			int mask = Integer.MAX_VALUE >> 16;
+			flags &= mask;
+			int write = index << 16;
+			flags |= write;
+		}
+	}
+	
+	public final int getRenderCacheIndex() {
+		synchronized(flags_lock) {
+			return flags >> 16;
+		}
+	}
 	
 	// Override for more precise control
 	@Override
-	public boolean needsReplication(NetworkConnection connection) {
+	public boolean needsReplication(ConnectionManager connection) {
 		boolean flag = internal_getflag(REPLICATE);
 		internal_setflag(REPLICATE, false);
 		return flag;
 	}
 
+	protected final void setReplicateFlag(boolean flag) {
+		internal_setflag(REPLICATE, flag);
+	}
+	
 	// World interaction
 
 	protected final Vector3f relativePosition = new Vector3f();
@@ -652,14 +710,14 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 	public final Vector3f getRelativePosition() {
 		return new Vector3f().set(relativePosition);
 	}
-	
+
 	public final void getRelativePosition(Vector3f pointer) {
 		pointer.set(relativePosition);
 	}
 
 	public final Vector3f getWorldPosition() {
 		Vector3f vec = new Vector3f();
-		
+
 		GameObject last = this;
 		while (last != null) {
 			vec.add(last.relativePosition);
@@ -667,7 +725,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		}
 		return vec;
 	}
-	
+
 	public final void getWorldPosition(Vector3f pointer) {
 		pointer.zero();
 
@@ -783,14 +841,14 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 	public final Vector3f getRelativeScale() {
 		return new Vector3f().set(relativeScale);
 	}
-	
+
 	public final void getRelativeScale(Vector3f pointer) {
 		pointer.set(relativeScale);
 	}
 
 	public final Vector3f getWorldScale() {
 		Vector3f vec = new Vector3f().set(1);
-		
+
 		GameObject last = this;
 		while (last != null) {
 			vec.mul(last.relativeScale);
@@ -798,7 +856,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		}
 		return vec;
 	}
-	
+
 	public final void getWorldScale(Vector3f pointer) {
 		pointer.set(1);
 
@@ -914,14 +972,14 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 	public final Vector3f getRelativeRotation() {
 		return new Vector3f().set(relativeRotation);
 	}
-	
+
 	public final void getRelativeRotation(Vector3f pointer) {
 		pointer.set(relativeRotation);
 	}
 
 	public final Vector3f getWorldRotation() {
 		Vector3f vec = new Vector3f();
-		
+
 		GameObject last = this;
 		while (last != null) {
 			vec.add(last.relativeRotation);
@@ -929,7 +987,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		}
 		return vec;
 	}
-	
+
 	public final void getWorldRotation(Vector3f pointer) {
 		pointer.zero();
 
@@ -1043,19 +1101,31 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 	// Interface methods
 
 	private final void onbegin_check() {
-		if(!internal_getflag(INITIALIZED)) {
-			onBeginPlay();
+		if (!internal_getflag(INITIALIZED)) {
+			try {
+				if(isVisible()) {
+					triggerAlloc();
+				}
+				onBeginPlay();
+			} catch (Throwable t) {
+				Logger.error("onBeginPlay() Error:", t);
+			}
 			internal_setflag(INITIALIZED, true);
 		}
 	}
-	
+
 	private final void onend_check() {
-		if(internal_getflag(INITIALIZED)) {
-			onEndPlay();
+		if (internal_getflag(INITIALIZED)) {
+			try {
+				triggerDealloc();
+				onEndPlay();
+			} catch (Throwable t) {
+				Logger.error("onEndPlay() Error:", t);
+			}
 			internal_setflag(INITIALIZED, false);
 		}
 	}
-	
+
 	protected void onBeginPlay() {
 	}
 
@@ -1067,6 +1137,10 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 
 	@Override
 	public final void update(float delta) {
+		if(!internal_getflag(AWAKE)) {
+			return;
+		}
+		
 		components.forEach((id, component) -> {
 			if (component != null) {
 				component.update(delta);
@@ -1087,45 +1161,73 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 	}
 
 	/**
-	 * WARNING: NONE of the code in this method
-	 * should EVER try to interact with render code
-	 * or other objects that require an opngGL context
-	 * as it will trigger errors or, in the worst
-	 * scenario, a SIGSEGV signal (Segmentation fault)
-	 * shutting down the entire server
-	 * (Which might even be a dedicated server as a whole)
+	 * WARNING: NONE of the code in this method should EVER try to interact with
+	 * render code or other objects that require an opngGL context as it will
+	 * trigger errors or, in the worst scenario, a SIGSEGV signal (Segmentation
+	 * fault) shutting down the entire server (Which might even be a dedicated
+	 * server as a whole)
 	 * 
 	 * @param delta
 	 */
 	protected void serverUpdate(float delta) {
-		
+
 	}
 
 	/**
-	 * Here doing such things may still cause
-	 * exceptions or weird and hard to debug errors
-	 * so by design it is best not to include such
-	 * code in update methods
+	 * Here doing such things may still cause exceptions or weird and hard to debug
+	 * errors so by design it is best not to include such code in update methods
 	 * 
 	 * @param delta
 	 */
 	protected void clientUpdate(float delta) {
-		
+
 	}
 
 	/**
-	 * Happens on both server and client regardless
-	 * So follow all the warnings reported on the serverUpdate
-	 * method plus the ones on clientUpdate
+	 * Happens on both server and client regardless So follow all the warnings
+	 * reported on the serverUpdate method plus the ones on clientUpdate
 	 * 
 	 * @param delta
 	 */
 	protected void commonUpdate(float delta) {
-		
+
 	}
 
+	public final void render(Camera renderer, float delta) {
+		if(!internal_getflag(VISIBLE)) {
+			return;
+		}
+		
+		components.forEach((id, component) -> {
+			if (component != null) {
+				component.render(renderer, delta);
+			}
+		});
+
+		// Gather render cache
+		int cache_index = getRenderCacheIndex();
+		Transform transform;
+		if(cache_index == -1) {
+			transform = new Transform();
+			getWorldPosition(transform.position);
+			getWorldRotation(transform.rotation);
+			getWorldScale(transform.scale);
+		} else {
+			transform = getGame().getRenderer().getCache(cache_index);
+		}
+		
+		if(this != renderer) {
+			render(renderer, delta, transform);
+		}
+		children.forEach((id, object) -> {
+			if (object != null) {
+				object.render(renderer, delta);
+			}
+		});
+	}
+	
 	@Override
-	public void render(Camera renderer, float delta) {
+	public void render(Camera renderer, float delta, Transform transform) {
 	}
 
 	@Override
@@ -1139,7 +1241,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 			buffer.putFloat(relativePosition.z);
 		}
 
-		if (relativeScale.x == 0 && relativeScale.y == 0 && relativeScale.z == 0) {
+		if (relativeScale.x == 1 && relativeScale.y == 1 && relativeScale.z == 1) {
 			buffer.putBoolean(true);
 		} else {
 			buffer.putBoolean(false);
@@ -1179,9 +1281,9 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		}
 
 		if (buffer.getBoolean()) {
-			relativeScale.x = 0;
-			relativeScale.y = 0;
-			relativeScale.z = 0;
+			relativeScale.x = 1;
+			relativeScale.y = 1;
+			relativeScale.z = 1;
 		} else {
 			relativeScale.x = buffer.getFloat();
 			relativeScale.y = buffer.getFloat();
@@ -1197,24 +1299,6 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 			relativeRotation.y = buffer.getFloat();
 			relativeRotation.z = buffer.getFloat();
 		}
-	}
-
-	protected final void setReplicateFlag(boolean flag) {
-		internal_setflag(REPLICATE, flag);
-	}
-
-	// Event dispatching
-
-	protected final void raiseSignal(long signal) {
-		getGame().getEventDispatcher().raiseSignal(this, signal);
-	}
-
-	protected final void raiseEvent(GameEvent event) {
-		getGame().getEventDispatcher().raiseEvent(this, event);
-	}
-
-	protected final void raiseIntention(long intention) {
-		getGame().getEventDispatcher().raiseIntention(this, intention);
 	}
 
 }

@@ -4,57 +4,52 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.Map.Entry;
+import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 import com.spaghetti.core.*;
 import com.spaghetti.events.GameEvent;
-import com.spaghetti.interfaces.JoinHandler;
 import com.spaghetti.interfaces.NetworkFunction;
-import com.spaghetti.networking.NetworkConnection.Priority;
+import com.spaghetti.networking.ConnectionEndpoint.Priority;
 import com.spaghetti.networking.events.OnClientBanned;
 import com.spaghetti.networking.events.OnClientConnect;
 import com.spaghetti.networking.events.OnClientDisconnect;
+import com.spaghetti.networking.events.OnClientKicked;
 import com.spaghetti.networking.events.OnClientUnbanned;
 import com.spaghetti.utils.*;
 
-public abstract class ServerCore extends CoreComponent {
-
+public abstract class ServerCore extends NetworkCore {
+	
 	// Queue events
-	protected Object queue_lock = new Object();
-	protected ArrayList<NetworkFunction> functions = new ArrayList<>(256);
+	protected ArrayList<NetworkFunction> functions_queue1 = new ArrayList<>(256);
+	protected ArrayList<NetworkFunction> functions_queue2 = new ArrayList<>(256);
 
-	// Server data
-	protected JoinHandler joinHandler;
-	protected ConcurrentHashMap<Long, NetworkConnection> clients = new ConcurrentHashMap<>();
+	// Clients data
+	protected ConcurrentHashMap<Long, ConnectionManager> clients = new ConcurrentHashMap<>();
 	protected ConcurrentHashMap<Long, ClientFlags> flags = new ConcurrentHashMap<>();
 
 	// Server variables
 	protected int maxClients = 10;
 	protected long awaitReconnect = 10000; // 10 secs
 	protected int maxDisconnections = 10;
+	
+	// Reserved client tokens
+	protected Random tokenGen = new Random();
+	protected ArrayList<Long> clientTokens = new ArrayList<>();
 
 	public ServerCore() {
-		joinHandler = new DefaultJoinHandler();
 	}
 
 	@Override
 	protected void initialize0() throws Throwable {
-		getGame().getEventDispatcher().registerEventHandler((isClient, object, event) -> {
-			if (event instanceof OnClientConnect) {
-				OnClientConnect occ = (OnClientConnect) event;
-				queueWriteObjectTree(occ.getClient().player);
-			}
-			if (event instanceof OnClientDisconnect) {
-				OnClientDisconnect ocd = (OnClientDisconnect) event;
-				queueWriteObjectDestruction(ocd.getClient().player);
-			}
-		});
-
-		internal_bind(9018);
+		internal_bind(getGame().getEngineOption("networkport"));
+		maxClients = getGame().getEngineOption("networkmaxclients");
+		awaitReconnect = getGame().getEngineOption("networkawaittimeout");
+		maxDisconnections = getGame().getEngineOption("networkmaxdisconnections");
 	}
 
 	@Override
 	protected void terminate0() throws Throwable {
-		internal_banall();
+		internal_banall("Server closed");
 		clients.clear();
 		clients = null;
 		flags.clear();
@@ -63,106 +58,138 @@ public abstract class ServerCore extends CoreComponent {
 		internal_unbind();
 	}
 
+	// Manage client tokens
+	public long reserveToken() {
+		Long token = tokenGen.nextLong();
+		while(clientTokens.contains(token)) {
+			token = tokenGen.nextLong();
+		}
+		clientTokens.add(token);
+		return token;
+	}
+	
+	public void freeToken(Long token) {
+		clientTokens.remove(token);
+	}
+	
 	// Packet read, write loop
 	@Override
 	protected void loopEvents(float delta) throws Throwable {
-		// Catch any exception for safety
+		// Catch any exception for extra safety
 		try {
 
+			// Swap functions queues
+			ArrayList<NetworkFunction> first = functions_queue1;
+			functions_queue1 = functions_queue2;
+			functions_queue2 = first;
+
+			// Skip if no clients are connected
 			if (getClientsAmount() != 0) {
 
-				synchronized (queue_lock) {
-					for (Entry<Long, NetworkConnection> entry : clients.entrySet()) {
-						try {
-							Long clientId = entry.getKey();
-							NetworkConnection client = entry.getValue();
-							ClientFlags clientFlags = flags.get(clientId);
-							if (!client.isConnected()) {
+				// Iterate through clients
+				for (Entry<Long, ConnectionManager> entry : clients.entrySet()) {
+
+					// One more try catch for each client
+					try {
+						Long clientId = entry.getKey();
+						ClientFlags clientFlags = flags.get(clientId);
+						ConnectionManager manager = entry.getValue();
+						ConnectionEndpoint endpoint = manager.getEndpoint();
+						
+						if (endpoint == null || !endpoint.isConnected()) {
+							continue;
+						}
+
+						// Can send
+						if (endpoint.canSend() && endpoint.getPriority() != Priority.RECEIVE) {
+							endpoint.clear();
+							endpoint.getWriteBuffer().putByte(DATA);
+							
+							// We need to send more data when a client just connected
+							if (clientFlags.firstTime) {
+
+								clientFlags.firstTime = false;
+
+								// Write level structure
+								manager.writeLevelStructure();
+
+								// Write some info about the owned player
+								// TODO update ClientState
+
+								// Flush the packet
+								endpoint.setReliable(true);
+								endpoint.send();
+
+								// Turn on force replication flag for the next packet
+								manager.setForceReplication(true);
+								endpoint.setReliable(true);
+							} else {
+
+								// Execute any queued special function
+								functions_queue2.forEach(func -> func.execute(manager));
+
+								// Write data about every object that needs to be updated
+								manager.writeCompleteReplication();
+								manager.setForceReplication(false);
+
+								// Write to network
+								endpoint.send();
+							}
+							endpoint.setPriority(Priority.RECEIVE);
+						} // send
+
+						// Can receive
+						if (endpoint.canReceive() && endpoint.getPriority() != Priority.SEND) {
+							endpoint.clear();
+							
+							// Read incoming packet
+							endpoint.receive();
+							
+							// Which kind of packet is it?
+							byte packetType = endpoint.getReadBuffer().getByte();
+							switch(packetType) {
+							case DATA:
+								// Parse data
+								manager.parsePacket();
+								break;
+							case GOODBYE:
+								// Mark this client as ready to leave
+								clientFlags.goodbye = true;
+								break;
+							case PING:
+								// Calculate ping of client
+								long sendTime = endpoint.getReadBuffer().getLong();
+								long diff = System.currentTimeMillis() - sendTime;
+								clientFlags.ping = diff;
+								break;
+							default:
+								internal_kick(clientId, null);
 								continue;
 							}
+							endpoint.setPriority(Priority.SEND);
+						} // receive
 
-							// Can send
-							if (client.canSend() && client.getPriority() != Priority.RECEIVE) {
+					} catch (Throwable t) {
+						_clientError(t, entry.getKey()); // Something went wrong, wait for reconnection
+					} // Client catch
 
-								// We need to send more data when a client just connected
-								if (clientFlags.firstTime) {
-
-									clientFlags.firstTime = false;
-
-									// Write level structure
-									client.writeLevelStructure();
-
-									// Write some info about the owned player
-									client.writeActivePlayer();
-									client.writeActiveCamera();
-									client.writeActiveController();
-
-									// Flush the packet
-									client.setReliable(true);
-									client.send();
-
-									// Turn on force replication flag
-									client.setForceReplication(true);
-									client.setReliable(true);
-								} else {
-
-									// Execute any queued special function
-									functions.forEach(func -> func.execute(client));
-									functions.clear();
-
-									// Write data about every object that needs to be updated
-									client.writeObjectReplication();
-									client.setForceReplication(false);
-
-									// Write to network
-									client.send();
-								}
-							} // send
-
-							// Can receive
-							if (client.canReceive() && client.getPriority() != Priority.SEND) {
-								// Read incoming packets
-								client.receive();
-
-								// Parse them
-								client.parsePacket();
-							} // receive
-
-						} catch (Throwable t) {
-							// Something went wrong, wait for reconnection
-							clientError(t, entry.getKey());
-						}
-					}
-				}
+				} // Client loop
 
 				// Kick clients that didn't reconnect in time
-				for (Iterator<Entry<Long, NetworkConnection>> iterator = clients.entrySet().iterator(); iterator
-						.hasNext();) {
-					Entry<Long, NetworkConnection> entry = iterator.next();
-					Long clientId = entry.getKey();
-					NetworkConnection client = entry.getValue();
-					ClientFlags clientFlags = flags.get(clientId);
+				_clientOutdated();
 
-					boolean remove = !client.isConnected()
-							&& System.currentTimeMillis() > clientFlags.lostConnectionTime + awaitReconnect
-							&& clientFlags.await;
-					if (remove) {
-						Logger.info("Client " + entry.getKey() + " did not reconnect in time");
-						internal_kick(entry.getKey());
-						iterator.remove();
-					}
-				}
+			} // else no clients are connected
 
-			}
+			// Empty function queue now
+			functions_queue2.clear();
 
-			// Accept new clients
 			if (isBound()) {
-				internal_accept();
+				internal_accept(); // Accept new clients
 			}
 
 		} catch (Throwable t) {
 			Logger.error("Server error:", t);
-		}
+		} // Emergency catch block
 	}
 
 	// Server interface
@@ -172,121 +199,123 @@ public abstract class ServerCore extends CoreComponent {
 		return getGame().getServer();
 	}
 
+	@Override
 	public void queueNetworkFunction(NetworkFunction function) {
-		synchronized (queue_lock) {
-			functions.add(function);
-		}
+		functions_queue1.add(function);
 	}
 
-	public void queueEvent(GameObject issuer, GameEvent event) {
+	@Override
+	public void queueEvent(GameEvent event) {
 		if (event == null) {
 			throw new IllegalArgumentException();
 		}
-		synchronized (queue_lock) {
-			functions.add(client -> {
-				if (!event.needsReplication(client)) {
-					client.writeGameEvent(issuer, event);
-				}
-			});
-		}
+
+		functions_queue1.add(client -> {
+			if (event.needsReplication(client)) {
+				client.writeGameEvent(event);
+			}
+		});
 	}
 
-	public void queueIntention(GameObject issuer, long intention) {
-		synchronized (queue_lock) {
-			functions.add(client -> client.writeIntention(issuer, intention));
-		}
-	}
-
+	@Override
 	public void queueRPC(RemoteProcedure rpc) {
-		synchronized (queue_lock) {
-			functions.add(client -> {
-				if (!rpc.skip(client, false)) {
-					client.writeRemoteProcedure(rpc);
-				}
-			});
+		if (rpc == null) {
+			throw new IllegalArgumentException();
 		}
+
+		functions_queue1.add(client -> {
+			client.writeRemoteProcedure(rpc);
+		});
 	}
 
+	@Override
 	public void queueWriteLevel() {
-		synchronized (queue_lock) {
-			functions.add(NetworkConnection::writeLevelStructure);
-		}
+		functions_queue1.add(ConnectionManager::writeLevelStructure);
 	}
 
+	@Override
 	public void queueWriteData() {
-		synchronized (queue_lock) {
-			functions.add(NetworkConnection::writeObjectReplication);
-		}
+		functions_queue1.add(ConnectionManager::writeCompleteReplication);
 	}
 
+	@Override
+	public void queueWriteObjectFull(GameObject obj) {
+		queueWriteObjectTree(obj);
+		queueWriteObject(obj);
+	}
+
+	@Override
 	public void queueWriteObjectTree(GameObject obj) {
-		synchronized (queue_lock) {
-			functions.add(client -> client.writeObjectTree(obj));
-		}
+		functions_queue1.add(client -> client.writeObjectTree(obj));
 	}
 
+	@Override
 	public void queueWriteObjectDestruction(GameObject obj) {
-		synchronized (queue_lock) {
-			functions.add(client -> client.writeObjectDestruction(obj));
-		}
+		functions_queue1.add(client -> client.writeObjectDestruction(obj));
 	}
 
+	@Override
 	public void queueWriteComponentDestruction(GameComponent comp) {
-		synchronized (queue_lock) {
-			functions.add(client -> client.writeComponentDestruction(comp));
-		}
+		functions_queue1.add(client -> client.writeComponentDestruction(comp));
 	}
 
-	public void queueWriteActiveCamera() {
-		synchronized (queue_lock) {
-			functions.add(NetworkConnection::writeActiveCamera);
-		}
-	}
-
-	public void queueWriteActiveController() {
-		synchronized (queue_lock) {
-			functions.add(NetworkConnection::writeActiveController);
-		}
-	}
-
-	public void queueWriteActivePlayer() {
-		synchronized (queue_lock) {
-			functions.add(NetworkConnection::writeActivePlayer);
-		}
-	}
-
+	@Override
 	public void queueWriteObject(GameObject obj) {
-		synchronized (queue_lock) {
-			functions.add(client -> client.writeObject(obj));
-		}
+		functions_queue1.add(client -> client.writeObjectReplication(obj));
 	}
 
+	@Override
 	public void queueWriteComponent(GameComponent comp) {
-		synchronized (queue_lock) {
-			functions.add(client -> client.writeComponent(comp));
-		}
+		functions_queue1.add(client -> client.writeComponentReplication(comp));
 	}
 
 	// Internal functions
 
+	protected ClientFlags _getClientFlags(long clientId) {
+		ClientFlags clientFlags = flags.get(clientId);
+		if (clientFlags == null) {
+			clientFlags = new ClientFlags();
+			flags.put(clientId, clientFlags);
+		}
+		return clientFlags;
+	}
+	
+	protected ConnectionManager _getConnectionManager(long clientId) {
+		ConnectionManager manager = clients.get(clientId);
+		if(manager == null) {
+			manager = new ConnectionManager(this);
+			clients.put(clientId, manager);
+		}
+		return manager;
+	}
+	
 	protected boolean _increaseDisconnections(long clientId) {
 		ClientFlags clientFlags = flags.get(clientId);
-		if (clientFlags.disconnections == maxDisconnections) {
+		if (clientFlags.disconnections >= maxDisconnections && maxDisconnections >= 0) {
 			Logger.warning("Client " + clientId + " lost connection too many times (" + clientFlags.disconnections
 					+ ") and will now be banned from this server");
-			internal_ban(clientId);
+			internal_ban(clientId, "Too many disconnections");
 			return true;
 		}
 		return false;
 	}
 
-	protected void clientError(Throwable error, long clientId) {
-		NetworkConnection client = clients.get(clientId);
+	protected void _sendMessage(ConnectionEndpoint endpoint, byte type, String message) throws Throwable {
+		endpoint.clear();
+		endpoint.getWriteBuffer().putByte(type);
+		endpoint.getWriteBuffer().putString(message);
+		endpoint.waitCanSend();
+		endpoint.send();
+	}
+	
+	protected void _clientError(Throwable error, long clientId) {
 		ClientFlags clientFlags = flags.get(clientId);
+		ConnectionManager manager = clients.get(clientId);
+		ConnectionEndpoint endpoint = manager.getEndpoint();
 
 		// If the goodbye flag is set, ignore errors and kick
-		if (client.goodbye) {
-			internal_kick(clientId, false);
+		if (clientFlags.goodbye) {
+			internal_kick(clientId, null);
 			return;
 		}
 
@@ -294,54 +323,98 @@ public abstract class ServerCore extends CoreComponent {
 
 		if (!_increaseDisconnections(clientId)) {
 
+			_closeEndpoint(endpoint);
 			clientFlags.await = true;
-			client.disconnect();
 			clientFlags.lostConnectionTime = System.currentTimeMillis();
 
 			Logger.info("Awaiting reconnection for " + awaitReconnect + " ms");
 		}
 	}
 
-	public boolean kick(long id) {
-		return (boolean) getDispatcher().quickQueue(() -> internal_kick(id));
+	protected void _clientOutdated() {
+		for (Iterator<Entry<Long, ConnectionManager>> iterator = clients.entrySet().iterator(); iterator
+				.hasNext();) {
+			Entry<Long, ConnectionManager> entry = iterator.next();
+			Long clientId = entry.getKey();
+			ClientFlags clientFlags = flags.get(clientId);
+			ConnectionManager manager = entry.getValue();
+			ConnectionEndpoint endpoint = manager.getEndpoint();
+
+			boolean remove = !endpoint.isConnected()
+					&& System.currentTimeMillis() > clientFlags.lostConnectionTime + awaitReconnect
+					&& clientFlags.await;
+			if (remove) {
+				Logger.info("Client " + clientId + " did not reconnect in time");
+				internal_kick(clientId, null);
+				iterator.remove();
+			}
+		}
+	}
+	
+	protected void _closeEndpoint(ConnectionEndpoint endpoint) {
+		try {
+			endpoint.disconnect();
+			endpoint.destroy();
+		} catch(Throwable t) {
+		}
+	}
+	
+	public boolean kick(long id, String reason) {
+		return (boolean) getDispatcher().quickQueue(() -> internal_kick(id, reason));
 	}
 
-	protected boolean internal_kick(long id) {
-		return internal_kick(id, true);
-	}
-
-	protected boolean internal_kick(long id, boolean sendGoodbye) {
-		NetworkConnection worker = clients.remove(id);
-		if (worker == null) {
+	protected boolean internal_kick(long id, String reason) {
+		ConnectionManager manager = clients.remove(id);
+		if (manager == null) {
+			Logger.warning("Cannot kick client " + id + " because it's not recognized");
 			return false;
 		}
-		if (sendGoodbye) {
-			internal_goodbye(worker);
+		ConnectionEndpoint endpoint = manager.getEndpoint();
+		
+		if (reason != null && endpoint != null) {
+			try {
+				_sendMessage(endpoint, KICKED, reason);
+			} catch (Throwable e) {
+				Logger.error("Error sending goodbye message", e);
+			}
 		}
-		worker.destroy();
+		if(endpoint != null) {
+			endpoint.disconnect();
+			endpoint.destroy();
+		}
 		_increaseDisconnections(id);
-		getGame().getEventDispatcher().raiseEvent(null, new OnClientDisconnect(worker, id));
-		Logger.info("Kicked client " + id);
+		// If reason is null, we are just updating the internal state of the server
+		if(reason == null) {
+			getGame().getEventDispatcher().raiseEvent(new OnClientDisconnect(manager, id));
+		} else { // Otherwise we are explicitly kicking the client
+			getGame().getEventDispatcher().raiseEvent(new OnClientKicked(manager, id, reason));
+		}
+		
+		manager.setEndpoint(null);
+		manager.destroy();
+		Logger.info("Kicked client " + id + " for: " + reason);
 		return true;
 	}
 
-	public boolean ban(long id) {
-		return (boolean) getDispatcher().quickQueue(() -> internal_ban(id));
+	public boolean ban(long id, String reason) {
+		return (boolean) getDispatcher().quickQueue(() -> internal_ban(id, reason));
 	}
 
-	protected boolean internal_ban(long id) {
-		NetworkConnection worker = clients.get(id);
-		if (worker != null) {
+	protected boolean internal_ban(long id, String reason) {
+		ConnectionManager manager = clients.get(id);
+		if (manager != null) {
 			Logger.info("Client " + id + " is still connected, kicking first");
-			internal_kick(id);
+			internal_kick(id, "You have been banned. Reason: " + reason);
 		}
 		ClientFlags clientFlags = flags.get(id);
 		if (clientFlags.banned) {
-			Logger.warning("Client " + id + " already banned");
+			clientFlags.banReason = reason;
+			Logger.warning("Client " + id + "'s ban reason has been updated to: " + clientFlags.banReason);
 		} else {
 			clientFlags.banned = true;
-			getGame().getEventDispatcher().raiseEvent(null, new OnClientBanned(worker, id));
-			Logger.info("Banned client " + id);
+			clientFlags.banReason = reason;
+			getGame().getEventDispatcher().raiseEvent(new OnClientBanned(manager, id, reason));
+			Logger.info("Banned client " + id + " for: " + reason);
 		}
 		return true;
 	}
@@ -352,9 +425,10 @@ public abstract class ServerCore extends CoreComponent {
 
 	protected boolean internal_pardon(long id) {
 		ClientFlags clientFlags = flags.get(id);
+		ConnectionManager manager = clients.get(id);
 		if (clientFlags.banned) {
 			clientFlags.banned = false;
-			getGame().getEventDispatcher().raiseEvent(null, new OnClientUnbanned(clients.get(id), id));
+			getGame().getEventDispatcher().raiseEvent(new OnClientUnbanned(manager, id));
 			Logger.info("Unbanned client " + id);
 		} else {
 			Logger.warning("Client " + id + " was not banned");
@@ -362,26 +436,26 @@ public abstract class ServerCore extends CoreComponent {
 		return true;
 	}
 
-	public boolean kickAll() {
-		return (boolean) getDispatcher().quickQueue(this::internal_kickall);
+	public boolean kickAll(String reason) {
+		return (boolean) getDispatcher().quickQueue(() -> internal_kickall(reason));
 	}
 
-	protected boolean internal_kickall() {
+	protected boolean internal_kickall(String reason) {
 		boolean last = true;
 		for (Long id : clients.keySet()) {
-			last &= internal_kick(id);
+			last &= internal_kick(id, reason);
 		}
 		return last;
 	}
 
-	public boolean banAll() {
-		return (boolean) getDispatcher().quickQueue(this::internal_banall);
+	public boolean banAll(String reason) {
+		return (boolean) getDispatcher().quickQueue(() -> internal_banall(reason));
 	}
 
-	protected boolean internal_banall() {
+	protected boolean internal_banall(String reason) {
 		boolean last = true;
 		for (Long id : clients.keySet()) {
-			last &= internal_ban(id);
+			last &= internal_ban(id, reason);
 		}
 		return last;
 	}
@@ -392,101 +466,131 @@ public abstract class ServerCore extends CoreComponent {
 
 	protected boolean internal_pardonall() {
 		boolean last = true;
-		for (Entry<Long, NetworkConnection> entry : clients.entrySet()) {
-			last &= internal_pardon(entry.getKey());
+		for (Long id : clients.keySet()) {
+			last &= internal_pardon(id);
 		}
 		return last;
 	}
 
 	protected boolean internal_accept() throws Throwable {
 		// Accept connection
-		Object socket = internal_acceptsocket();
-		if (socket == null) {
+		ConnectionEndpoint endpoint = internal_acceptsocket();
+		if (endpoint == null) {
 			return false;
 		}
-
-		// Hash ip and port
-		long hash = internal_hashsocket(socket);
-
-		// Instantiate a new ClientFlags object and register it
-		Long clientId = new Long(hash);
-		ClientFlags clientFlags = flags.get(clientId);
-		if (clientFlags == null) {
-			clientFlags = new ClientFlags();
-			flags.put(clientId, clientFlags);
+		
+		// New handshake logic
+		
+		// Receive token
+		endpoint.clear();
+		endpoint.waitCanReceive();
+		endpoint.receive();
+		byte packetType = endpoint.getReadBuffer().getByte();
+		if(packetType != TOKEN) {
+			// ???
+			_closeEndpoint(endpoint);
+			return false;
 		}
+		long token = endpoint.getReadBuffer().getLong();
+		
+		// Verify client token
+		if(getGame().<Boolean>getEngineOption("networkverifytoken")) {
+			
+			// Verify
+			if(clientTokens.contains(token)) {
+				
+				// Valid token
+				freeToken(token);
+			} else {
+				
+				// Invalid token
+				_sendMessage(endpoint, INVALID_TOKEN, "You're not supposed to be here!");
+				Logger.warning("REFUSED connection from client because it provided and unvalid token (???" + token + "???)");
+				
+				_closeEndpoint(endpoint);
+				return false;
+			}
+		} else {
+			token = Utils.longHash(endpoint.getRemoteIp() + ":" + endpoint.getRemotePort());
+		}
+
+		// Obtain a client flags object
+		ClientFlags clientFlags = _getClientFlags(token);
+		
+		// Connect: needs to know everything / Reconnect: may have missed something
+		clientFlags.firstTime = true;
 
 		// Check if client is banned
 		if (!clientFlags.banned) {
 
-			// Check if it is already instantiated here and add it
-			if (!clients.containsKey(clientId)) {
+			// Check if the client is attempting to reconnect
+			if (!clients.containsKey(token)) {
 
 				// If we reached the maximum number of clients, refuse connection
 				if (getClientsAmount() < maxClients) {
 
-					// New connection, initialize it
-					NetworkConnection client = internal_initworker();
-					client.connect(socket);
-					clients.put(clientId, client);
-
-					// Perform handshake
-					if (!internal_handshake(client)) {
-						Logger.warning("Client handshake failed (" + clientId + ")");
-						internal_kick(clientId);
-					} else {
-						// Dispatch the operations on the updater thread for synchronization
-						getGame().getUpdaterDispatcher().quickQueue(() -> {
-							joinHandler.handleJoin(false, client);
-							getGame().getEventDispatcher().raiseEvent(null, new OnClientConnect(client, clientId));
-							return null;
-						});
-						clientFlags.firstTime = true;
-						Logger.info("ACCEPTED connection from client (" + clientId + ")");
-						return true;
-					}
+					// New connection, initialize the connection manager
+					endpoint.setPriority(Priority.SEND);
+					ConnectionManager manager = _getConnectionManager(token);
+					manager.setEndpoint(endpoint);
+					clientFlags.clientId = token;
+					
+					// Client connect event
+					_sendMessage(endpoint, HUG, "Welcome aboard!");
+					getGame().getEventDispatcher().raiseEvent(new OnClientConnect(manager, token));
+					Logger.info("ACCEPTED connection from client (" + token + ")");
+					
+					return true;
+				} else {
+					
+					// Notify client there are too many players
+					_sendMessage(endpoint, REACHED_MAX, "There's only place for " + maxClients + " in this town! *BANG*");
+					Logger.warning("REFUSED connection from client because client limit was reached (" + token + ")");
+					
+					_closeEndpoint(endpoint);
+					return false;
 				}
 			} else {
 
-				// Existing connection, attempt reconnection
-				NetworkConnection client = clients.get(clientId);
-				if (!client.isConnected()) {
-					// Provide new socket to worker
-					client.connect(socket);
-
-					// Re-perform handshake for security reasons
-					if (!internal_handshake(client)) {
-						Logger.warning("Client handshake failed (" + clientId + ")");
-						internal_kick(clientId);
-					} else {
-						// Old connection successfully re-established, return true
-						clientFlags.await = false;
-						Logger.info("RECONNECTED with client (" + clientId + ")");
-						return true;
-					}
+				// Existing client, new endpoint, synchronize with manager
+				ConnectionManager manager = _getConnectionManager(token);
+				
+				// Accept only if we were waiting for this reconnect
+				if (clientFlags.await) {
+					
+					// Update endpoint
+					endpoint.setPriority(Priority.SEND);
+					manager.setEndpoint(endpoint);
+					clientFlags.await = false;
+					
+					// Client endpoint successfully updated, yay!
+					_sendMessage(endpoint, RECONNECTED, "Welcome back!");
+					Logger.info("RECONNECTED with client (" + token + ")");
+					
+					return true;
 				} else {
-					Logger.warning("Attempt to connect more than once from the same network");
+					
+					// Mock the client for trying to perform an illegal operation
+					_sendMessage(endpoint, SNEAKED_IN, "Are you insane? Stop attacking, immediately!");
+					Logger.warning("REFUSED connection from client who tried a fake reconnect request (" + token + ")");
+					
+					_closeEndpoint(endpoint);
+					return false;
 				}
 			}
+		} else {
+			
+			// Write reason for ban
+			_sendMessage(endpoint, BANNED, clientFlags.banReason);
+			Logger.warning("REFUSED connection from client because it is banned (" + token + ")");
+			
+			_closeEndpoint(endpoint);
+			return false;
 		}
-
-		// Failure, close socket and return false
-		Logger.warning("REFUSED connection from client (" + clientId + ")");
-		try {
-			internal_closesocket(socket);
-		} catch (Throwable e) {
-		}
-		return false;
 	}
 
 	// Abstract functions related to internal_accept
-	protected abstract Object internal_acceptsocket() throws Throwable;
-
-	protected abstract long internal_hashsocket(Object object);
-
-	protected abstract void internal_closesocket(Object object) throws Throwable;
-
-	protected abstract NetworkConnection internal_initworker();
+	protected abstract ConnectionEndpoint internal_acceptsocket() throws Throwable;
 
 	public boolean bind(int port) {
 		return (boolean) getDispatcher().quickQueue(() -> internal_bind(port));
@@ -534,61 +638,38 @@ public abstract class ServerCore extends CoreComponent {
 
 	protected abstract void internal_stopserver() throws Throwable;
 
-	protected boolean internal_handshake(NetworkConnection client) {
-		try {
-			client.receive();
-			client.readAuthentication();
-			boolean ret = client.writeAuthentication();
-			client.send();
-			return ret;
-		} catch (Throwable t) {
-			Logger.error("Handshake error:", t);
-			return false;
-		}
-	}
-
-	protected void internal_goodbye(NetworkConnection client) {
-		try {
-			client.writeGoodbye();
-			while (!client.canSend()) {
-				Utils.sleep(1);
-			}
-			client.send();
-		} catch (Throwable t) {
-			Logger.error("Goodbye error:", t);
-		}
-	}
-
 	// Getters and setters
 
 	public boolean isConnected(long id) {
-		NetworkConnection client;
-		return (client = clients.get(id)) == null ? false : client.isConnected();
+		ConnectionManager manager = clients.get(id);
+		if(manager == null || manager.getEndpoint() == null) {
+			return false;
+		}
+		return manager.getEndpoint().isConnected();
 	}
 
 	public int getClientsAmount() {
 		return clients.size();
 	}
 
-	public long getClientId(NetworkConnection client) {
-		for (Entry<Long, NetworkConnection> entry : clients.entrySet()) {
-			if (entry.getValue() == client) {
-				return entry.getKey();
-			}
-		}
-		return 0;
-	}
-
-	public NetworkConnection getClientById(long id) {
+	public ConnectionManager getClientById(long id) {
 		return clients.get(id);
 	}
 
 	public String getRemoteIp(long id) {
-		return clients.get(id).getRemoteIp();
+		ConnectionManager manager = clients.get(id);
+		if(manager == null || manager.getEndpoint() == null) {
+			return null;
+		}
+		return manager.getEndpoint().getRemoteIp();
 	}
 
 	public int getRemotePort(long id) {
-		return clients.get(id).getRemotePort();
+		ConnectionManager manager = clients.get(id);
+		if(manager == null || manager.getEndpoint() == null) {
+			return 0;
+		}
+		return manager.getEndpoint().getLocalPort();
 	}
 
 	public abstract String getLocalIp();
@@ -596,14 +677,6 @@ public abstract class ServerCore extends CoreComponent {
 	public abstract int getLocalPort();
 
 	public abstract boolean isBound();
-
-	public JoinHandler getJoinHandler() {
-		return joinHandler;
-	}
-
-	public void setJoinHandler(JoinHandler joinHandler) {
-		this.joinHandler = joinHandler;
-	}
 
 	public int getMaxClients() {
 		return maxClients;

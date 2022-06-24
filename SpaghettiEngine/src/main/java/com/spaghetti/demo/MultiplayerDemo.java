@@ -56,11 +56,6 @@ public class MultiplayerDemo {
 		client1.getInputDispatcher().registerListener(new MyKeyListener());
 		client2.getInputDispatcher().registerListener(new MyKeyListener());
 
-		// Register join handlers for when the player joins the server
-		client1.getClient().setJoinHandler(new MyJoinHandler());
-		client2.getClient().setJoinHandler(new MyJoinHandler());
-		server.getServer().setJoinHandler(new MyJoinHandler());
-
 		// Set the server to depend on the client
 		server.depends(client1);
 		client1.depends(client2);

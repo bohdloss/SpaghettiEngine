@@ -10,6 +10,7 @@ import com.spaghetti.input.Controller;
 import com.spaghetti.input.InputDispatcher;
 import com.spaghetti.input.UpdaterCore;
 import com.spaghetti.networking.ClientCore;
+import com.spaghetti.networking.NetworkCore;
 import com.spaghetti.networking.ServerCore;
 import com.spaghetti.objects.Camera;
 import com.spaghetti.render.RendererCore;
@@ -27,11 +28,13 @@ public final class Game {
 	protected volatile static Handler handler;
 
 	private static void init() {
-		if (handler == null) {
-			handler = new Handler();
-			handler.start();
-			while (handler.dispatcher == null) {
-				Utils.sleep(1);
+		synchronized(handler) {
+			if (handler == null) {
+				handler = new Handler();
+				handler.start();
+				while (handler.dispatcher == null) {
+					Utils.sleep(1);
+				}
 			}
 		}
 	}
@@ -72,6 +75,7 @@ public final class Game {
 	// Global variables
 	private volatile AssetManager assetManager;
 	private volatile EventDispatcher eventDispatcher;
+	private volatile GameState gameState;
 	private volatile ClientState clientState;
 	private volatile GameOptions options;
 	private volatile InputDispatcher inputDispatcher;
@@ -106,7 +110,7 @@ public final class Game {
 			Class<? extends ClientCore> clientClass, Class<? extends ServerCore> serverClass,
 			Class<? extends EventDispatcher> eventDispatcherClass, Class<? extends GameOptions> gameOptionsClass,
 			Class<? extends AssetManager> assetManagerClass, Class<? extends InputDispatcher> inputDispatcherClass,
-			Class<? extends ClientState> clientStateClass) {
+			Class<? extends ClientState> clientStateClass, Class<? extends GameState> gameStateClass) {
 		// Sanity checks
 		if (clientClass != null && serverClass != null) {
 			throw new IllegalArgumentException("Cannot have both a client and a server in a Game");
@@ -184,13 +188,14 @@ public final class Game {
 			this.options = gameOptionsClass.getConstructor(Game.class).newInstance(this);
 			this.assetManager = assetManagerClass.getConstructor(Game.class).newInstance(this);
 			this.inputDispatcher = inputDispatcherClass.getConstructor(Game.class).newInstance(this);
+			this.gameState = gameStateClass.getConstructor(Game.class).newInstance(this);
 			this.clientState = clientStateClass.getConstructor(Game.class).newInstance(this);
 		} catch (InstantiationException e) {
 			throw new RuntimeException("Error initializing an object: class is abstract", e);
 		} catch (InvocationTargetException e) {
 			throw new RuntimeException("Error initializing an object: exception in constructor", e);
 		} catch (NoSuchMethodException e) {
-			throw new RuntimeException("Error initializing an object: empty constructor is not defined", e);
+			throw new RuntimeException("Error initializing an object: please define a constructor taking Game as the only argument", e);
 		} catch (IllegalAccessException e) {
 			throw new RuntimeException("Error initializing an object: constructor is private", e);
 		}
@@ -276,7 +281,7 @@ public final class Game {
 
 		// Then wait for initialization
 
-		Logger.loading(this, "Waiting for initialization to end...");
+		Logger.loading(this, "Waiting for initialization...");
 		if (updater != null) {
 			updater.waitInit();
 		}
@@ -309,7 +314,7 @@ public final class Game {
 		init = true;
 		starting = false;
 
-		eventDispatcher.raiseSignal((GameObject) null, Signals.SIGSTART);
+		eventDispatcher.raiseSignal(Signals.SIGSTART);
 
 		Logger.info(this, "Ready!");
 	}
@@ -358,7 +363,7 @@ public final class Game {
 		// Raise shutdown signal
 
 		Logger.info(this, "Dispatching stop signal...");
-		eventDispatcher.raiseSignal((GameObject) null, Signals.SIGSTOP);
+		eventDispatcher.raiseSignal(Signals.SIGSTOP);
 
 		// Allow finalization to begin
 
@@ -431,6 +436,10 @@ public final class Game {
 		return server;
 	}
 
+	public NetworkCore getNetworkManager() {
+		return client == null ? server : client;
+	}
+
 	public GameWindow getWindow() {
 		return renderer.getWindow();
 	}
@@ -497,7 +506,7 @@ public final class Game {
 	}
 
 	public float getTickMultiplier(float delta) {
-		return (delta / 1000) * clientState.getTickMultiplier();
+		return (delta / 1000) * gameState.getTickMultiplier();
 	}
 
 	public long getUpdaterId() {
@@ -532,6 +541,10 @@ public final class Game {
 		return server.getDispatcher();
 	}
 
+	public FunctionDispatcher getNetworkDispatcher() {
+		return getNetworkManager().getDispatcher();
+	}
+
 	public int getComponentAmount() {
 		return components.size();
 	}
@@ -552,46 +565,80 @@ public final class Game {
 		return inputDispatcher;
 	}
 
+	// Game state
+
+	public GameState getGameState() {
+		return gameState;
+	}
+
+	public int getLevelsAmount() {
+		return gameState.getLevelsAmount();
+	}
+
+	public boolean containsLevel(String name) {
+		return gameState.containsLevel(name);
+	}
+
+	public boolean isLevelActive(String name) {
+		return gameState.isLevelActive(name);
+	}
+
+	public void addLevel(String name) {
+		gameState.addLevel(name);
+	}
+
+	public void activateLevel(String name) {
+		gameState.activateLevel(name);
+	}
+
+	public void deactivateLevel(String name) {
+		gameState.deactivateLevel(name);
+	}
+
+	public void destroyLevel(String name) {
+		gameState.destroyLevel(name);
+	}
+	
+	public Level getLevel(String name) {
+		return gameState.getLevel(name);
+	}
+
+	public float getTickMultiplier() {
+		return gameState.getTickMultiplier();
+	}
+
+	public void setTickMultiplier(float multiplier) {
+		gameState.setTickMultiplier(multiplier);
+	}
+
 	// Client state
 
 	public ClientState getClientState() {
 		return clientState;
 	}
 
-	public Level getActiveLevel() {
-		return clientState.getActiveLevel();
+	public void setLocalCamera(Camera camera) {
+		clientState.setLocalCamera(camera);
 	}
 
-	public void attachLevel(Level level) {
-		clientState.attachLevel(level);
+	public Camera getLocalCamera() {
+		return clientState.getLocalCamera();
 	}
 
-	public void detachLevel() {
-		clientState.detachLevel();
+	public void setLocalPlayer(GameObject player) {
+		clientState.setLocalPlayer(player);
 	}
 
-	public Camera getActiveCamera() {
-		return clientState.getActiveCamera();
+	public GameObject getLocalPlayer() {
+		return clientState.getLocalPlayer();
 	}
 
-	public void attachCamera(Camera camera) {
-		clientState.attachCamera(camera);
+	public void setLocalController(Controller<?> controller) {
+		clientState.setLocalController(controller);
 	}
 
-	public void detachCamera() {
-		clientState.detachCamera();
-	}
-
-	public Controller getActiveController() {
-		return clientState.getActiveController();
-	}
-
-	public void attachController(Controller controller) {
-		clientState.attachController(controller);
-	}
-
-	public void detachController() {
-		clientState.detachController();
+	public Controller<?> getLocalController() {
+		return clientState.getLocalController();
 	}
 
 	public void setEngineOption(String name, Object option) {

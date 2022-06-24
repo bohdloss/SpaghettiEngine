@@ -4,17 +4,15 @@ import org.joml.Matrix4f;
 import org.joml.Vector3f;
 
 import com.spaghetti.core.*;
-import com.spaghetti.interfaces.ToClient;
 import com.spaghetti.networking.NetworkBuffer;
 import com.spaghetti.render.*;
+import com.spaghetti.utils.Logger;
+import com.spaghetti.utils.Transform;
 
-@ToClient
 public class Mesh extends GameObject {
 
 	protected Model model;
 	protected Material material;
-	protected boolean projectionCaching = true;
-	protected boolean visible = true;
 
 	public Mesh(Model model, Material material) {
 		this.model = model;
@@ -26,22 +24,14 @@ public class Mesh extends GameObject {
 	}
 
 	@Override
-	public void render(Camera renderer, float delta) {
-		if (material != null && model != null && visible) {
-
-			// Gather transform data
-			Vector3f position = new Vector3f();
-			Vector3f rotation = new Vector3f();
-			Vector3f scale = new Vector3f();
-			getWorldPosition(position);
-			getWorldRotation(rotation);
-			getWorldScale(scale);
+	public void render(Camera renderer, float delta, Transform transform) {
+		if (material != null && model != null) {
 
 			// Transform matrix
-			Matrix4f matrix = renderer.getProjection(projectionCaching);
-			matrix.translate(position);
-			matrix.rotateXYZ(rotation);
-			matrix.scale(scale);
+			Matrix4f matrix = renderer.getProjection();
+			matrix.translate(transform.position);
+			matrix.rotateXYZ(transform.rotation);
+			matrix.scale(transform.scale);
 
 			// Render
 			material.use();
@@ -66,29 +56,11 @@ public class Mesh extends GameObject {
 		this.material = material;
 	}
 
-	public boolean isProjectionCaching() {
-		return projectionCaching;
-	}
-
-	public void setProjectionCaching(boolean projectionCaching) {
-		this.projectionCaching = projectionCaching;
-	}
-
-	public boolean isVisible() {
-		return visible;
-	}
-
-	public void setVisible(boolean visible) {
-		this.visible = visible;
-	}
-
 	@Override
 	public void writeDataServer(NetworkBuffer buffer) {
 		super.writeDataServer(buffer);
 		buffer.putString(true, model == null ? "" : model.getName(), NetworkBuffer.UTF_8);
 		buffer.putString(true, material == null ? "" : material.getName(), NetworkBuffer.UTF_8);
-		buffer.putBoolean(projectionCaching);
-		buffer.putBoolean(visible);
 	}
 
 	@Override
@@ -98,8 +70,6 @@ public class Mesh extends GameObject {
 		String materialname = buffer.getString(true, NetworkBuffer.UTF_8);
 		this.model = modelname.equals("") ? null : getGame().getAssetManager().model(modelname);
 		this.material = materialname.equals("") ? null : getGame().getAssetManager().material(materialname);
-		this.projectionCaching = buffer.getBoolean();
-		this.visible = buffer.getBoolean();
 	}
 
 }

@@ -1,22 +1,41 @@
-package com.spaghetti.networking;
+package com.spaghetti.interfaces;
 
 import java.util.HashMap;
 
-import org.joml.*;
+import org.joml.Vector2d;
+import org.joml.Vector2f;
+import org.joml.Vector2i;
+import org.joml.Vector3d;
+import org.joml.Vector3f;
+import org.joml.Vector3i;
+import org.joml.Vector4d;
+import org.joml.Vector4f;
+import org.joml.Vector4i;
 
-import com.spaghetti.interfaces.ClassInterpreter;
-import com.spaghetti.assets.*;
+import com.spaghetti.assets.Asset;
+import com.spaghetti.core.Game;
+import com.spaghetti.networking.NetworkBuffer;
 
-public final class DefaultInterpreters {
+public abstract class Serializer<T> {
 
-	private DefaultInterpreters() {
+	private static final HashMap<String, Serializer<?>> interpreters = new HashMap<>();
+
+	@SuppressWarnings("unchecked")
+	public static <U> Serializer<U> get(Class<U> cls) {
+		return (Serializer<U>) interpreters.get(cls.getName());
 	}
 
-	public static final HashMap<String, ClassInterpreter<?>> interpreters = new HashMap<>();
+	public static <U> void register(Class<U> cls, Serializer<U> interpreter) {
+		interpreters.put(cls.getName(), interpreter);
+	}
+
+	public static <U> void unregister(Class<U> cls) {
+		interpreters.remove(cls.getName());
+	}
 
 	static {
 		// Primitives
-		interpreters.put("int", new ClassInterpreter<Integer>() {
+		interpreters.put("int", new Serializer<Integer>() {
 			@Override
 			public void writeClass(Integer object, NetworkBuffer buffer) {
 				buffer.putInt(object);
@@ -27,7 +46,7 @@ public final class DefaultInterpreters {
 				return buffer.getInt();
 			}
 		});
-		interpreters.put("byte", new ClassInterpreter<Byte>() {
+		interpreters.put("byte", new Serializer<Byte>() {
 			@Override
 			public void writeClass(Byte object, NetworkBuffer buffer) {
 				buffer.putByte(object);
@@ -38,7 +57,7 @@ public final class DefaultInterpreters {
 				return buffer.getByte();
 			}
 		});
-		interpreters.put("short", new ClassInterpreter<Short>() {
+		interpreters.put("short", new Serializer<Short>() {
 			@Override
 			public void writeClass(Short object, NetworkBuffer buffer) {
 				buffer.putShort(object);
@@ -49,7 +68,7 @@ public final class DefaultInterpreters {
 				return buffer.getShort();
 			}
 		});
-		interpreters.put("long", new ClassInterpreter<Long>() {
+		interpreters.put("long", new Serializer<Long>() {
 			@Override
 			public void writeClass(Long object, NetworkBuffer buffer) {
 				buffer.putLong(object);
@@ -60,7 +79,7 @@ public final class DefaultInterpreters {
 				return buffer.getLong();
 			}
 		});
-		interpreters.put("char", new ClassInterpreter<Character>() {
+		interpreters.put("char", new Serializer<Character>() {
 			@Override
 			public void writeClass(Character object, NetworkBuffer buffer) {
 				buffer.putChar(object);
@@ -71,7 +90,7 @@ public final class DefaultInterpreters {
 				return buffer.getChar();
 			}
 		});
-		interpreters.put("float", new ClassInterpreter<Float>() {
+		interpreters.put("float", new Serializer<Float>() {
 			@Override
 			public void writeClass(Float object, NetworkBuffer buffer) {
 				buffer.putFloat(object);
@@ -82,7 +101,7 @@ public final class DefaultInterpreters {
 				return buffer.getFloat();
 			}
 		});
-		interpreters.put("double", new ClassInterpreter<Double>() {
+		interpreters.put("double", new Serializer<Double>() {
 			@Override
 			public void writeClass(Double object, NetworkBuffer buffer) {
 				buffer.putDouble(object);
@@ -93,7 +112,7 @@ public final class DefaultInterpreters {
 				return buffer.getDouble();
 			}
 		});
-		interpreters.put("boolean", new ClassInterpreter<Boolean>() {
+		interpreters.put("boolean", new Serializer<Boolean>() {
 			@Override
 			public void writeClass(Boolean object, NetworkBuffer buffer) {
 				buffer.putBoolean(object);
@@ -112,7 +131,7 @@ public final class DefaultInterpreters {
 		interpreters.put("java.lang.Float", interpreters.get("float"));
 		interpreters.put("java.lang.Double", interpreters.get("double"));
 		interpreters.put("java.lang.Boolean", interpreters.get("boolean"));
-		interpreters.put("java.lang.String", new ClassInterpreter<String>() {
+		interpreters.put("java.lang.String", new Serializer<String>() {
 			@Override
 			public void writeClass(String object, NetworkBuffer buffer) {
 				buffer.putString(object);
@@ -125,7 +144,7 @@ public final class DefaultInterpreters {
 		});
 
 		// Assets
-		interpreters.put("com.spaghetti.assets.Asset", new ClassInterpreter<Asset>() {
+		interpreters.put("com.spaghetti.assets.Asset", new Serializer<Asset>() {
 			@Override
 			public void writeClass(Asset object, NetworkBuffer buffer) {
 				buffer.putString(object == null ? "" : object.getName());
@@ -134,12 +153,13 @@ public final class DefaultInterpreters {
 			@Override
 			public Asset readClass(Asset original, NetworkBuffer buffer) {
 				String asset_name = buffer.getString();
-				return asset_name.equals("") ? null : buffer.getConnection().getGame().getAssetManager().custom(asset_name);
+				return asset_name.equals("") ? null
+						: Game.getGame().getAssetManager().custom(asset_name);
 			}
 		});
 
 		// Vector2
-		interpreters.put("org.joml.Vector2d", new ClassInterpreter<Vector2d>() {
+		interpreters.put("org.joml.Vector2d", new Serializer<Vector2d>() {
 			@Override
 			public void writeClass(Vector2d object, NetworkBuffer buffer) {
 				buffer.putDouble(object.x);
@@ -154,7 +174,7 @@ public final class DefaultInterpreters {
 				return vec;
 			}
 		});
-		interpreters.put("org.joml.Vector2f", new ClassInterpreter<Vector2f>() {
+		interpreters.put("org.joml.Vector2f", new Serializer<Vector2f>() {
 			@Override
 			public void writeClass(Vector2f object, NetworkBuffer buffer) {
 				buffer.putFloat(object.x);
@@ -169,7 +189,7 @@ public final class DefaultInterpreters {
 				return vec;
 			}
 		});
-		interpreters.put("org.joml.Vector2i", new ClassInterpreter<Vector2i>() {
+		interpreters.put("org.joml.Vector2i", new Serializer<Vector2i>() {
 			@Override
 			public void writeClass(Vector2i object, NetworkBuffer buffer) {
 				buffer.putInt(object.x);
@@ -186,7 +206,7 @@ public final class DefaultInterpreters {
 		});
 
 		// Vector3
-		interpreters.put("org.joml.Vector3d", new ClassInterpreter<Vector3d>() {
+		interpreters.put("org.joml.Vector3d", new Serializer<Vector3d>() {
 			@Override
 			public void writeClass(Vector3d object, NetworkBuffer buffer) {
 				buffer.putDouble(object.x);
@@ -203,7 +223,7 @@ public final class DefaultInterpreters {
 				return vec;
 			}
 		});
-		interpreters.put("org.joml.Vector3f", new ClassInterpreter<Vector3f>() {
+		interpreters.put("org.joml.Vector3f", new Serializer<Vector3f>() {
 			@Override
 			public void writeClass(Vector3f object, NetworkBuffer buffer) {
 				buffer.putFloat(object.x);
@@ -220,7 +240,7 @@ public final class DefaultInterpreters {
 				return vec;
 			}
 		});
-		interpreters.put("org.joml.Vector3i", new ClassInterpreter<Vector3i>() {
+		interpreters.put("org.joml.Vector3i", new Serializer<Vector3i>() {
 			@Override
 			public void writeClass(Vector3i object, NetworkBuffer buffer) {
 				buffer.putInt(object.x);
@@ -239,7 +259,7 @@ public final class DefaultInterpreters {
 		});
 
 		// Vector4
-		interpreters.put("org.joml.Vector4d", new ClassInterpreter<Vector4d>() {
+		interpreters.put("org.joml.Vector4d", new Serializer<Vector4d>() {
 			@Override
 			public void writeClass(Vector4d object, NetworkBuffer buffer) {
 				buffer.putDouble(object.x);
@@ -258,7 +278,7 @@ public final class DefaultInterpreters {
 				return vec;
 			}
 		});
-		interpreters.put("org.joml.Vector4f", new ClassInterpreter<Vector4f>() {
+		interpreters.put("org.joml.Vector4f", new Serializer<Vector4f>() {
 			@Override
 			public void writeClass(Vector4f object, NetworkBuffer buffer) {
 				buffer.putFloat(object.x);
@@ -277,7 +297,7 @@ public final class DefaultInterpreters {
 				return vec;
 			}
 		});
-		interpreters.put("org.joml.Vector4i", new ClassInterpreter<Vector4i>() {
+		interpreters.put("org.joml.Vector4i", new Serializer<Vector4i>() {
 			@Override
 			public void writeClass(Vector4i object, NetworkBuffer buffer) {
 				buffer.putInt(object.x);
@@ -296,6 +316,20 @@ public final class DefaultInterpreters {
 				return vec;
 			}
 		});
+	}
+
+	public abstract void writeClass(T object, NetworkBuffer buffer);
+
+	@SuppressWarnings("unchecked")
+	public final void writeClassGeneric(Object object, NetworkBuffer buffer) {
+		writeClass((T) object, buffer);
+	}
+
+	public abstract T readClass(T original, NetworkBuffer buffer);
+
+	@SuppressWarnings("unchecked")
+	public final Object readClassGeneric(Object original, NetworkBuffer buffer) {
+		return readClass((T) original, buffer);
 	}
 
 }

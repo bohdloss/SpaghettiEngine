@@ -1,26 +1,30 @@
 package com.spaghetti.input;
 
 import com.spaghetti.core.CoreComponent;
+import com.spaghetti.core.Game;
+import com.spaghetti.core.GameState;
+import com.spaghetti.render.RendererCore;
 import com.spaghetti.utils.Logger;
+import com.spaghetti.utils.Utils;
 
 public class UpdaterCore extends CoreComponent {
 
 	@Override
 	protected void loopEvents(float delta) throws Throwable {
+		Game game = getGame();
 		try {
-			if (!getGame().isHeadless()) {
-				getGame().getInputDispatcher().update();
+			if (!game.isHeadless()) {
+				game.getInputDispatcher().update();
 			}
 		} catch (Throwable t) {
 			Logger.error("Updater error:", t);
 		}
 
 		try {
-			if (getLevel() != null) {
-				getLevel().update(delta);
-			}
+			game.getGameState().update(delta);
 		} catch (Throwable t) {
 			Logger.error("Level generated an exception:", t);
+			Utils.sleep(100); // Remove later
 		}
 	}
 
@@ -31,9 +35,7 @@ public class UpdaterCore extends CoreComponent {
 
 	@Override
 	protected void preTerminate() throws Throwable {
-		if (getGame().getActiveLevel() != null) {
-			getGame().getActiveLevel().destroy();
-		}
+		getGame().getGameState().destroyAllLevels();
 	}
 
 	@Override

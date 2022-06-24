@@ -1,98 +1,61 @@
 package com.spaghetti.core;
 
 import com.spaghetti.input.Controller;
+import com.spaghetti.interfaces.Replicable;
 import com.spaghetti.objects.Camera;
 
-public class ClientState {
+/**
+ * ClientState can be subject to changes by the server, but for the most part is
+ * different on each client, or should be considered as such
+ * <p>
+ * The class holds data that is necessary for the client and doesn't often need
+ * server synchronization
+ * 
+ * @author bohdloss
+ *
+ */
+public class ClientState implements Replicable {
 
 	protected final Game game;
+
+	protected GameObject player;
+	protected Camera camera;
+	protected Controller<?> controller;
 
 	public ClientState(Game game) {
 		this.game = game;
 	}
 
-	protected float tickMultiplier = 1;
-
-	protected Level activeLevel;
-	protected Camera activeCamera;
-	protected Controller activeController;
-
 	// Getters and setters
 
-	public Level getActiveLevel() {
-		return activeLevel;
-	}
-
-	public void detachLevel() {
-		if (activeLevel == null) {
+	public void setLocalCamera(Camera camera) {
+		if (this.camera == camera) {
 			return;
 		}
-		activeLevel.source = null;
-		activeLevel = null;
-		detachCamera();
-		detachController();
-	}
-
-	public void attachLevel(Level level) {
-		if (level == null) {
-			return;
+		if (camera != null) {
+			camera.calcScale();
 		}
-		if (activeLevel != null) {
-			detachLevel();
-		}
-		activeLevel = level;
-		activeLevel.source = game;
+		this.camera = camera;
 	}
 
-	public Camera getActiveCamera() {
-		return activeCamera;
+	public Camera getLocalCamera() {
+		return camera;
 	}
 
-	public void detachCamera() {
-		if (activeCamera == null) {
-			return;
-		}
-		activeCamera = null;
+	public void setLocalPlayer(GameObject player) {
+		this.player = player;
 	}
 
-	public void attachCamera(Camera camera) {
-		if (camera == null || game.isHeadless() || activeCamera == camera) {
-			return;
-		}
-		if (activeCamera != null) {
-			detachCamera();
-		}
-		camera.calcScale();
-		activeCamera = camera;
+	public GameObject getLocalPlayer() {
+		return player;
 	}
 
-	public Controller getActiveController() {
-		return activeController;
+	public void setLocalController(Controller<?> controller) {
+		this.controller = controller;
 	}
 
-	public void detachController() {
-		if (activeController == null) {
-			return;
-		}
-		activeController = null;
-	}
-
-	public void attachController(Controller controller) {
-		if (controller == null || game.isHeadless() || activeController == controller) {
-			return;
-		}
-		if (activeController != null) {
-			detachController();
-		}
-		this.activeController = controller;
-	}
-
-	public float getTickMultiplier() {
-		return tickMultiplier;
-	}
-
-	public void setTickMultiplier(float multiplier) {
-		this.tickMultiplier = multiplier;
+	public Controller<?> getLocalController() {
+		return controller;
 	}
 
 }

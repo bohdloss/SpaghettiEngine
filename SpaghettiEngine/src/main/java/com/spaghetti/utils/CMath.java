@@ -156,7 +156,7 @@ public final class CMath {
 	public static void mGLCoord(Vector2i pointer) {
 		Game game = Game.getGame();
 		GameWindow win = game.getWindow();
-		Camera cam = game.getActiveCamera();
+		Camera cam = game.getLocalCamera();
 		win.getMousePosition(pointer);
 		toGLCoord(pointer.x, pointer.y, cam.getCameraScale(), win.getWidth(), win.getHeight(), new Vector2f(pointer));
 	}

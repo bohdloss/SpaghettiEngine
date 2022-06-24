@@ -1,18 +1,16 @@
 package com.spaghetti.networking;
 
 import java.util.HashMap;
-import java.util.concurrent.ThreadLocalRandom;
-
 import com.spaghetti.core.*;
-import com.spaghetti.interfaces.ClassInterpreter;
+import com.spaghetti.interfaces.Serializer;
 import com.spaghetti.interfaces.RemoteProcedureCallback;
+import com.spaghetti.utils.IdProvider;
 import com.spaghetti.utils.Logger;
 import com.spaghetti.utils.Utils;
 
 public abstract class RemoteProcedure {
 
 	protected static final HashMap<Integer, RemoteProcedure> rpcs = new HashMap<>();
-	protected static final ThreadLocalRandom random = ThreadLocalRandom.current();
 
 	public static void save(RemoteProcedure rpc) {
 		rpcs.put(rpc.getId(), rpc);
@@ -22,35 +20,55 @@ public abstract class RemoteProcedure {
 		return rpcs.remove(id);
 	}
 
-	private final ClassInterpreter<?>[] argInterpreter = getArgInterpreters();
-	private final Object[] args = new Object[argInterpreter.length];
-	private final int argAmount = args.length;
+	private Serializer<?>[] argSerializers;
+	private Object[] arguments;
 
-	private final boolean hasResponse = hasResponse();
-	private final ClassInterpreter<?> retInterpreter = getReturnInterpreter();
+	private Serializer<?> retSerializer;
 	private Object retVal;
+
 	private RemoteProcedureCallback callback;
 
-	private volatile int id;
-	private volatile boolean ready;
-	private volatile boolean error;
+	private int id;
+	private boolean ready;
+	private boolean error;
+	private boolean reliable;
+
+	public RemoteProcedure() {
+		id = IdProvider.newId(Game.getGame());
+		ready = true;
+		error = false;
+		reliable = true;
+
+		Class<?>[] argClasses = getArgumentTypes();
+		if (argClasses != null) {
+			argSerializers = new Serializer<?>[argClasses.length];
+			for (int i = 0; i < argSerializers.length; i++) {
+				argSerializers[i] = Serializer.get(argClasses[i]);
+			}
+		} else {
+			argSerializers = new Serializer[0];
+		}
+
+		Class<?> retClass = getReturnType();
+		if (retClass != null) {
+			retSerializer = Serializer.get(retClass);
+		} else {
+			retSerializer = null;
+		}
+
+		arguments = new Object[argSerializers.length];
+	}
 
 	public final Object callAndWait(Object... args) {
 		call(args);
-		while (!ready) {
-			Utils.sleep(1);
-		}
-		return error ? null : retVal;
+		return waitCompletion();
 	}
 
-	public final RemoteProcedure call(Object... args) {
-		if (args.length != argAmount) {
-			throw new IllegalArgumentException(args.length + " arguments provided, expected " + argAmount);
-		}
+	public final synchronized RemoteProcedure call(Object... args) {
+		waitCompletion();
+		ready = false;
 
-		System.arraycopy(args, 0, this.args, 0, this.args.length);
-		this.id = random.nextInt();
-		this.ready = false;
+		System.arraycopy(args, 0, arguments, 0, Math.min(args.length, arguments.length));
 
 		Game game = Game.getGame();
 		if (game.isClient()) {
@@ -61,27 +79,32 @@ public abstract class RemoteProcedure {
 		return this;
 	}
 
-	protected abstract ClassInterpreter<?>[] getArgInterpreters();
+	public Object waitCompletion() {
+		while (!ready) {
+			Utils.sleep(1);
+		}
+		return error ? null : retVal;
+	}
 
-	protected abstract ClassInterpreter<?> getReturnInterpreter();
+	protected abstract Class<?>[] getArgumentTypes();
 
-	protected abstract boolean hasResponse();
+	protected abstract Class<?> getReturnType();
 
 	public final void writeArgs(NetworkBuffer buffer) {
-		for (int i = 0; i < argAmount; i++) {
-			argInterpreter[i].writeClassGeneric(args[i], buffer);
+		for (int i = 0; i < arguments.length; i++) {
+			argSerializers[i].writeClassGeneric(arguments[i], buffer);
 		}
 	}
 
 	public final void readArgs(NetworkBuffer buffer) {
-		for (int i = 0; i < argAmount; i++) {
-			args[i] = argInterpreter[i].readClassGeneric(args[i], buffer);
+		for (int i = 0; i < arguments.length; i++) {
+			arguments[i] = argSerializers[i].readClassGeneric(arguments[i], buffer);
 		}
 	}
 
-	public final RemoteProcedure execute(NetworkConnection worker) {
+	public final RemoteProcedure execute(ConnectionManager worker) {
 		try {
-			retVal = execute0(worker.getGame().isClient(), worker, args);
+			retVal = onCall(arguments, worker.player);
 			error = false;
 		} catch (Throwable t) {
 			Logger.error("Error in remote procedure call", t);
@@ -91,10 +114,10 @@ public abstract class RemoteProcedure {
 		return this;
 	}
 
-	protected abstract Object execute0(boolean isClient, NetworkConnection worker, Object[] args) throws Throwable;
+	protected abstract Object onCall(Object[] args, GameObject player) throws Throwable;
 
 	public final void writeReturn(NetworkBuffer buffer) {
-		if (!hasResponse) {
+		if (!hasReturnValue()) {
 			return;
 		}
 		// Error flag
@@ -102,11 +125,11 @@ public abstract class RemoteProcedure {
 		if (error) {
 			return;
 		}
-		retInterpreter.writeClassGeneric(retVal, buffer);
+		retSerializer.writeClassGeneric(retVal, buffer);
 	}
 
 	public final void readReturn(NetworkBuffer buffer) {
-		if (!hasResponse) {
+		if (!hasReturnValue()) {
 			return;
 		}
 		error = buffer.getBoolean();
@@ -114,11 +137,7 @@ public abstract class RemoteProcedure {
 			retVal = null;
 			return;
 		}
-		retVal = retInterpreter.readClassGeneric(retVal, buffer);
-	}
-
-	public boolean skip(NetworkConnection worker, boolean isClient) {
-		return false;
+		retVal = retSerializer.readClassGeneric(retVal, buffer);
 	}
 
 	// Getters
@@ -135,12 +154,20 @@ public abstract class RemoteProcedure {
 		return error;
 	}
 
+	public final void setReliable(boolean reliable) {
+		this.reliable = reliable;
+	}
+	
+	public final boolean isReliable() {
+		return reliable;
+	}
+	
 	public final Object getReturnValue() {
 		return retVal;
 	}
 
 	public final boolean hasReturnValue() {
-		return hasResponse;
+		return retSerializer != null;
 	}
 
 	public final RemoteProcedure setCallback(RemoteProcedureCallback callback) {
@@ -167,7 +194,7 @@ public abstract class RemoteProcedure {
 		try {
 			callback.receiveReturnValue(this, null, error, true);
 		} catch (Throwable t) {
-			Logger.error("Error occurred in RemoteProcedure ack callback", t);
+			Logger.error("Error occurred in RemoteProcedure acknowledgement callback", t);
 		}
 		return this;
 	}

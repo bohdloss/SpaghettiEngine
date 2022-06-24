@@ -68,7 +68,7 @@ public final class GameWindow {
 			// GLFW native window initialization
 			boolean debug_context = (boolean) game.getEngineOption("debugcontext");
 			GLFW.glfwWindowHint(GLFW.GLFW_OPENGL_DEBUG_CONTEXT, debug_context ? GL11.GL_TRUE : GL11.GL_FALSE);
-			
+
 			id = GLFW.glfwCreateWindow(width, height, title, 0, 0);
 			if (id == 0) {
 				// In case the window does not initialize properly
@@ -83,7 +83,7 @@ public final class GameWindow {
 					self.width = width;
 					self.height = height;
 
-					Camera c = source.getActiveCamera();
+					Camera c = source.getLocalCamera();
 					if (c != null) {
 						c.calcScale();
 					}
@@ -179,9 +179,7 @@ public final class GameWindow {
 	}
 
 	public boolean isVisible() {
-		return (boolean) quickQueue(() -> {
-			return GLFW.glfwGetWindowAttrib(id, GLFW.GLFW_VISIBLE) == GLFW.GLFW_TRUE;
-		});
+		return (boolean) quickQueue(() -> (GLFW.glfwGetWindowAttrib(id, GLFW.GLFW_VISIBLE) == GLFW.GLFW_TRUE));
 	}
 
 	public boolean shouldClose() {
@@ -414,15 +412,15 @@ public final class GameWindow {
 	public void setCursor(BufferedImage cursor, int centerX, int centerY, int cursorWidth, int cursorHeight) {
 		// Cursors larger than this number glitch out on X11
 		final int maxCursorSize = 256;
-		if(cursorWidth > maxCursorSize || cursorHeight > maxCursorSize) {
+		if (cursorWidth > maxCursorSize || cursorHeight > maxCursorSize) {
 			throw new IllegalArgumentException("Neither width or height of cursor can be larger than " + maxCursorSize);
 		}
-		
+
 		// Resize cursor
 		BufferedImage resized = new BufferedImage(cursorWidth, cursorHeight, BufferedImage.TYPE_INT_ARGB);
 		resized.getGraphics().drawImage(cursor, 0, 0, cursorWidth, cursorHeight, null);
 		ByteBuffer imageData = ImageUtils.parseImage(resized, null);
-		
+
 		// Allocate glfw resources
 		GLFWImage cursorGlfw = GLFWImage.malloc();
 		cursorGlfw.width(cursorWidth);
@@ -463,9 +461,7 @@ public final class GameWindow {
 	}
 
 	public boolean isFocused() {
-		return (boolean) quickQueue(() -> {
-			return GLFW.glfwGetWindowAttrib(id, GLFW.GLFW_FOCUSED) == GLFW.GLFW_TRUE;
-		});
+		return (boolean) quickQueue(() -> (GLFW.glfwGetWindowAttrib(id, GLFW.GLFW_FOCUSED) == GLFW.GLFW_TRUE));
 	}
 
 	public void requestAttention() {
@@ -483,15 +479,11 @@ public final class GameWindow {
 	}
 
 	public boolean isFullscreen() {
-		return (boolean) quickQueue(() -> {
-			return GLFW.glfwGetWindowMonitor(id) != 0;
-		});
+		return (boolean) quickQueue(() -> (GLFW.glfwGetWindowMonitor(id) != 0));
 	}
 
 	public float getOpacity() {
-		return (float) quickQueue(() -> {
-			return GLFW.glfwGetWindowOpacity(id);
-		});
+		return (float) quickQueue(() -> GLFW.glfwGetWindowOpacity(id));
 	}
 
 	public void setOpacity(float opacity) {
@@ -502,11 +494,9 @@ public final class GameWindow {
 	}
 
 	public boolean isIconified() {
-		return (boolean) quickQueue(() -> {
-			return GLFW.glfwGetWindowAttrib(id, GLFW.GLFW_ICONIFIED) == GLFW.GLFW_TRUE;
-		});
+		return (boolean) quickQueue(() -> (GLFW.glfwGetWindowAttrib(id, GLFW.GLFW_ICONIFIED) == GLFW.GLFW_TRUE));
 	}
-	
+
 	public void setIconified(boolean iconified) {
 		quickQueue(() -> {
 			if (iconified) {
@@ -520,11 +510,9 @@ public final class GameWindow {
 	}
 
 	public boolean isMaximized() {
-		return (boolean) quickQueue(() -> {
-			return GLFW.glfwGetWindowAttrib(id, GLFW.GLFW_MAXIMIZED) == GLFW.GLFW_TRUE;
-		});
+		return (boolean) quickQueue(() -> (GLFW.glfwGetWindowAttrib(id, GLFW.GLFW_MAXIMIZED) == GLFW.GLFW_TRUE));
 	}
-	
+
 	public void setMaximized(boolean maximized) {
 		quickQueue(() -> {
 			if (maximized) {
@@ -536,7 +524,7 @@ public final class GameWindow {
 		});
 
 	}
-	
+
 	private Object quickQueue(Function action) {
 		try {
 			long funcId = Game.handler.dispatcher.queue(action);

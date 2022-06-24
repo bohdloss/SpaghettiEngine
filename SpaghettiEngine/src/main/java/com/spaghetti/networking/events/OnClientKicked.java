@@ -3,14 +3,16 @@ package com.spaghetti.networking.events;
 import com.spaghetti.events.GameEvent;
 import com.spaghetti.networking.ConnectionManager;
 
-public class OnClientDisconnect extends GameEvent {
+public class OnClientKicked extends GameEvent {
 
 	protected ConnectionManager client;
 	protected long clientId;
+	protected String reason;
 
-	public OnClientDisconnect(ConnectionManager client, long clientId) {
+	public OnClientKicked(ConnectionManager client, long clientId, String reason) {
 		this.client = client;
 		this.clientId = clientId;
+		this.reason = reason;
 	}
 
 	public ConnectionManager getClient() {
@@ -19,6 +21,10 @@ public class OnClientDisconnect extends GameEvent {
 
 	public long getClientId() {
 		return clientId;
+	}
+	
+	public String getReason() {
+		return reason;
 	}
 	
 }

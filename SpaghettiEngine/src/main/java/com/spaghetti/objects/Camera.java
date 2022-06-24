@@ -6,12 +6,10 @@ import org.joml.Vector3f;
 import org.lwjgl.opengl.GL11;
 
 import com.spaghetti.core.*;
-import com.spaghetti.interfaces.ToClient;
 import com.spaghetti.networking.NetworkBuffer;
 import com.spaghetti.render.*;
 import com.spaghetti.utils.*;
 
-@ToClient
 public class Camera extends GameObject {
 
 	// Variables
@@ -31,6 +29,10 @@ public class Camera extends GameObject {
 	protected boolean clearColor = true, clearDepth = true, clearStencil = true;
 	protected FrameBuffer renderTarget;
 
+	public Camera() {
+		setVisible(true);
+	}
+	
 	protected void setProjectionMatrix() {
 		projection.identity().setOrtho(-width / 2, width / 2, -height / 2, height / 2, -1000, 1000);
 		calcScale();
@@ -61,8 +63,8 @@ public class Camera extends GameObject {
 
 	@Override
 	public void onDestroy() {
-		if (getGame().getActiveCamera() == this) {
-			getGame().detachCamera();
+		if (getGame().getLocalCamera() == this) {
+			getGame().setLocalCamera(null);
 		}
 		if (!getGame().isHeadless()) {
 			if (!getGame().getRenderer().isAlive()) {
@@ -75,47 +77,25 @@ public class Camera extends GameObject {
 		}
 	}
 
-	protected void onBeginFrame() {
+	protected void onBeginFrame(Transform transform) {
 		precalculated.set(projection);
 		precalculated.scale(scale, scale, 1);
 
-		if (useRotation) {
-			Vector3f rot = new Vector3f();
-			getWorldRotation(rot);
+		if(useRotation) {
+			Vector3f rot = transform.rotation;
 			precalculated.rotateXYZ(-rot.x, -rot.y, -rot.z);
 		}
-		if (usePosition) {
-			Vector3f pos = new Vector3f();
-			getWorldPosition(pos);
+		if(usePosition) {
+			Vector3f pos = transform.position;
 			precalculated.translate(-pos.x, -pos.y, -pos.z);
 		}
 	}
 
-	protected void onEndFrame() {
+	protected void onEndFrame(Transform transform) {
 	}
 
 	public Matrix4f getProjection() {
-		return getProjection(true);
-	}
-
-	public Matrix4f getProjection(boolean useCache) {
-		if (useCache) {
-			cache.set(precalculated);
-		} else {
-			cache.set(projection);
-			cache.scale(scale, scale, 1);
-
-			if (useRotation) {
-				Vector3f rot = new Vector3f();
-				getWorldRotation(rot);
-				cache.rotateXYZ(-rot.x, -rot.y, -rot.z);
-			}
-			if (usePosition) {
-				Vector3f pos = new Vector3f();
-				getWorldPosition(pos);
-				cache.translate(-pos.x, -pos.y, -pos.z);
-			}
-		}
+		cache.set(precalculated);
 		return cache;
 	}
 
@@ -201,11 +181,15 @@ public class Camera extends GameObject {
 	public void readDataClient(NetworkBuffer buffer) {
 		super.readDataClient(buffer);
 		fov = buffer.getFloat();
-		clearColor = buffer.getBoolean();
-		clearDepth = buffer.getBoolean();
-		clearStencil = buffer.getBoolean();
-		usePosition = buffer.getBoolean();
-		useRotation = buffer.getBoolean();
+		
+		byte flags = buffer.getByte();
+		
+		clearColor = (flags & 1) == 1;
+		clearDepth = (flags & (1 << 1)) == 1;
+		clearStencil = (flags & (1 << 2)) == 1;
+		usePosition = (flags & (1 << 3)) == 1;
+		useRotation = (flags & (1 << 4)) == 1;
+		
 		calcScale();
 	}
 
@@ -213,15 +197,19 @@ public class Camera extends GameObject {
 	public void writeDataServer(NetworkBuffer buffer) {
 		super.writeDataServer(buffer);
 		buffer.putFloat(fov);
-		buffer.putBoolean(clearColor);
-		buffer.putBoolean(clearDepth);
-		buffer.putBoolean(clearStencil);
-		buffer.putBoolean(usePosition);
-		buffer.putBoolean(useRotation);
+		
+		byte flags = 0;
+		flags |= (clearColor ? 1 : 0);
+		flags |= (clearDepth ? 1 : 0) << 1;
+		flags |= (clearStencil ? 1 : 0) << 2;
+		flags |= (usePosition ? 1 : 0) << 3;
+		flags |= (useRotation ? 1 : 0) << 4;
+		
+		buffer.putByte(flags);
 	}
 
 	@Override
-	public void render(Camera renderer, float delta) {
+	public void render(Camera renderer, float delta, Transform transform) {
 		// Prepare buffer
 		checkTarget();
 		renderTarget.use();
@@ -236,20 +224,17 @@ public class Camera extends GameObject {
 		}
 
 		// Pre-frame trigger
-		onBeginFrame();
+		onBeginFrame(transform);
 
 		// Render frame
-		getLevel().forEachActualObject((id, component) -> {
-			if (!Camera.class.isAssignableFrom(component.getClass())) {
-				component.render(this, delta);
+		getLevel().forEachObject(object -> {
+			if (!Camera.class.isAssignableFrom(object.getClass())) {
+				object.render(this, delta);
 			}
-		});
-		getLevel().forEachComponent((id, component) -> {
-			component.render(this, delta);
 		});
 
 		// Post-frame trigger
-		onEndFrame();
+		onEndFrame(transform);
 
 		renderTarget.stop();
 	}

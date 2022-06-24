@@ -21,6 +21,7 @@ public final class GameBuilder {
 	private Class<? extends AssetManager> assetManagerClass = AssetManager.class;
 	private Class<? extends InputDispatcher> inputDispatcherClass = InputDispatcher.class;
 	private Class<? extends ClientState> clientStateClass = ClientState.class;
+	private Class<? extends GameState> gameStateClass = GameState.class;
 
 	public GameBuilder setUpdater(Class<? extends UpdaterCore> updater) {
 		this.updater = updater;
@@ -103,9 +104,18 @@ public final class GameBuilder {
 		return clientStateClass;
 	}
 
+	public GameBuilder setGameStateClass(Class<? extends GameState> cls) {
+		this.gameStateClass = cls;
+		return this;
+	}
+
+	public Class<? extends GameState> getGameStateClass() {
+		return gameStateClass;
+	}
+
 	public Game build() {
 		return new Game(updater, renderer, client, server, eventDispatcherClass, gameOptionsClass, assetManagerClass,
-				inputDispatcherClass, clientStateClass);
+				inputDispatcherClass, clientStateClass, gameStateClass);
 	}
 
 }

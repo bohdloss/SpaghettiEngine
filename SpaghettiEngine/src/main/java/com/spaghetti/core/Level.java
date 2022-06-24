@@ -7,68 +7,47 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-import com.spaghetti.interfaces.Replicable;
-import com.spaghetti.interfaces.ToClient;
-import com.spaghetti.interfaces.Updatable;
-import com.spaghetti.networking.NetworkBuffer;
-import com.spaghetti.networking.NetworkConnection;
+import com.spaghetti.interfaces.*;
+import com.spaghetti.networking.*;
+import com.spaghetti.render.RendererCore;
+import com.spaghetti.utils.Transform;
 import com.spaghetti.utils.Utils;
 
-@ToClient
-public class Level implements Updatable, Replicable {
+public final class Level implements Updatable {
 
-	protected static final Field o_level = Utils.getPrivateField(GameObject.class, "level");
-	protected static final Field o_parent = Utils.getPrivateField(GameObject.class, "parent");
-	protected static final Method o_setflag = Utils.getPrivateMethod(GameObject.class, "internal_setflag", int.class, boolean.class);
+	private static final Field o_level = Utils.getPrivateField(GameObject.class, "level");
+	private static final Field o_parent = Utils.getPrivateField(GameObject.class, "parent");
+	private static final Method o_setflag = Utils.getPrivateMethod(GameObject.class, "internal_setflag", int.class,
+			boolean.class);
 
 	protected boolean destroyed;
-	protected boolean replicate;
+	protected boolean attached;
 	protected Game source;
 	protected final ArrayList<GameObject> objects = new ArrayList<>();
 	protected final ConcurrentHashMap<Integer, GameObject> o_ordered = new ConcurrentHashMap<>();
 	protected final ConcurrentHashMap<Integer, GameComponent> c_ordered = new ConcurrentHashMap<>();
-	
-	protected String name;
 
+	protected final String name;
+
+	public Level(String name) {
+		this.name = name;
+	}
+	
 	protected void onBeginPlay() {
-		
+		for (GameObject obj : objects) {
+			obj.onbegin_forward();
+		}
 	}
-	
+
 	protected void onEndPlay() {
-		
+		for (GameObject obj : objects) {
+			obj.onend_forward();
+		}
 	}
-	
+
 	protected void onDestroy() {
-		
 	}
 
-	@Override
-	public void writeDataServer(NetworkBuffer dataBuffer) {
-		dataBuffer.putString(name);
-	}
-
-	@Override
-	public void readDataServer(NetworkBuffer dataBuffer) {
-		
-	}
-
-	@Override
-	public void writeDataClient(NetworkBuffer dataBuffer) {
-		
-	}
-
-	@Override
-	public void readDataClient(NetworkBuffer dataBuffer) {
-		name = dataBuffer.getString();
-	}
-	
-	@Override
-	public boolean needsReplication(NetworkConnection connection) {
-		boolean val = replicate;
-		replicate = false;
-		return val;
-	}
-	
 	public final void destroy() {
 		if (isDestroyed()) {
 			return;
@@ -80,7 +59,7 @@ public class Level implements Updatable, Replicable {
 		}
 		destroyed = true;
 	}
-	
+
 	public final synchronized void addObject(GameObject object) {
 		if (objects.contains(object) || object == null || object.isDestroyed() || isDestroyed()) {
 			return;
@@ -109,7 +88,9 @@ public class Level implements Updatable, Replicable {
 			o_parent.set(object, null);
 		} catch (Throwable t) {
 		}
-		object.onbegin_forward();
+		if (isAttached()) {
+			object.onbegin_forward();
+		}
 	}
 
 	private final void update_level(GameObject object) {
@@ -128,19 +109,18 @@ public class Level implements Updatable, Replicable {
 
 	public final synchronized GameObject removeObject(int id) {
 		GameObject object = o_ordered.get(id);
-		if (!objects.contains(object)) {
+		if (!objects.contains(object) || object == null) {
 			return null;
 		}
-		if (object != null) {
-			object.onend_forward();
-			objects.remove(object);
-			o_ordered.remove(id);
-			try {
-				o_parent.set(object, null);
-				o_level.set(object, null);
-				o_setflag.invoke(object, GameObject.ATTACHED, false);
-			} catch (Throwable t) {
-			}
+
+		object.onend_forward();
+		objects.remove(object);
+		o_ordered.remove(id);
+		try {
+			o_parent.set(object, null);
+			o_level.set(object, null);
+			o_setflag.invoke(object, GameObject.ATTACHED, false);
+		} catch (Throwable t) {
 		}
 		return object;
 	}
@@ -192,17 +172,57 @@ public class Level implements Updatable, Replicable {
 	@Override
 	public final void update(float delta) {
 		try {
+			// Update level
 			objects.forEach(object -> {
 				if (object != null) {
 					object.update(delta);
 				}
 			});
+			
+			// Attempt to update render cache
+			RendererCore renderer = getGame().getRenderer();
+			if(!getGame().isHeadless() && !renderer.isFrameFlag()) {
+				synchronized(renderer.getFrameLock()) {
+					o_ordered.forEach((id, object) -> {
+						if (object != null) {
+							int cache_index = object.getRenderCacheIndex();
+							
+							if(cache_index != -1) {
+								
+								Transform transform = renderer.getCache(cache_index);
+								object.getWorldPosition(transform.position);
+								object.getWorldRotation(transform.rotation);
+								object.getWorldScale(transform.scale);
+							}
+						}
+					});
+					
+					c_ordered.forEach((id, component) -> {
+						if (component != null) {
+							int cache_index = component.getRenderCacheIndex();
+							
+							if(cache_index != -1) {
+								
+								GameObject object = component.getOwner();
+								Transform transform = renderer.getCache(cache_index);
+								object.getWorldPosition(transform.position);
+								object.getWorldRotation(transform.rotation);
+								object.getWorldScale(transform.scale);
+							}
+						}
+					});
+				}
+			}
 		} catch (ConcurrentModificationException e) {
 		}
 	}
 
 	public final boolean isDestroyed() {
 		return destroyed;
+	}
+
+	public final boolean isAttached() {
+		return attached;
 	}
 
 	// Getter utility functions
@@ -375,7 +395,8 @@ public class Level implements Updatable, Replicable {
 		return buffer;
 	}
 
-	public final GameComponent[] getComponentsN(Class<? extends GameComponent> cls, GameComponent[] buffer, int offset) {
+	public final GameComponent[] getComponentsN(Class<? extends GameComponent> cls, GameComponent[] buffer,
+			int offset) {
 		int i = 0;
 		for (GameComponent comp : c_ordered.values()) {
 			if (cls.isAssignableFrom(comp.getClass())) {
@@ -396,17 +417,13 @@ public class Level implements Updatable, Replicable {
 	}
 
 	// Other getters / setters
-	
+
 	public Game getGame() {
 		return source == null ? Game.getGame() : source;
 	}
-	
+
 	public String getName() {
 		return name;
 	}
-	
-	public void setName(String name) {
-		this.name = name;
-	}
-	
+
 }

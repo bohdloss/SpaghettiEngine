@@ -17,7 +17,6 @@ import org.lwjgl.openal.ALC10;
 import org.lwjgl.openal.ALCCapabilities;
 import org.lwjgl.openal.ALCapabilities;
 import org.lwjgl.opengl.GLCapabilities;
-import org.lwjgl.opengl.GLDebugMessageCallbackI;
 import org.lwjgl.system.MemoryUtil;
 
 import com.spaghetti.assets.AssetManager;
@@ -47,6 +46,14 @@ public class RendererCore extends CoreComponent {
 	protected Vector3f cameravel = new Vector3f();
 	protected Model sceneRenderer;
 	protected ShaderProgram defaultShader;
+	
+	// 2.1 MB render cache
+	protected Transform[] renderCache;
+	// 256 KB render cache allocation table
+	protected boolean[] renderCache_alloc;
+	// Cache locks
+	protected boolean renderCache_frameflag;
+	protected Object renderCache_framelock = new Object();
 
 	// FPS counter
 	protected int fps;
@@ -54,21 +61,34 @@ public class RendererCore extends CoreComponent {
 
 	public RendererCore() {
 		window = new GameWindow();
+		// Init render cache
+		renderCache = new Transform[Short.MAX_VALUE];
+		for(int i = 0; i < renderCache.length; i++) {
+			renderCache[i] = new Transform();
+		}
+		renderCache_alloc = new boolean[Short.MAX_VALUE];
 	}
 
 	@Override
 	public void initialize0() throws Throwable {
+		
+		// Init window and obtain asset manager
 		this.window.winInit(getGame());
 		this.assetManager = getGame().getAssetManager();
 
 		// Initializes OpenGL
 		window.makeContextCurrent();
 		glCapabilities = GL.createCapabilities();
-		GL43.glDebugMessageCallback(new GLDebugMessageCallbackI() {
-
-			@Override
-			public void invoke(int source, int type, int id, int severity, int length, long message, long userParam) {
-				GLException error = new GLException(source, type, id, severity, MemoryUtil.memUTF8(message, length));
+		GL43.glDebugMessageCallback((source, type, id, severity, length, message, userParam) -> {
+			String message_str = MemoryUtil.memUTF8(message, length);
+			if(severity <= GL43.GL_DEBUG_SEVERITY_NOTIFICATION) {
+				Logger.info(getGame(), "[NOTIFICATION] OpenGL: ");
+				Logger.info(getGame(), "[NOTIFICATION] " + message_str);
+			} else if(severity <= GL43.GL_DEBUG_SEVERITY_LOW) {
+				Logger.warning(getGame(), "[LOW] OpenGL: ");
+				Logger.warning(getGame(), "[LOW] " + message_str);
+			} else {
+				GLException error = new GLException(source, type, id, severity, message_str);
 				
 				// Remove useless lines from stacktrace
 				final int useless_lines = 2;
@@ -77,11 +97,17 @@ public class RendererCore extends CoreComponent {
 				System.arraycopy(stack, useless_lines, new_stack, 0, new_stack.length);
 				error.setStackTrace(new_stack);
 				
-				throw error;
+				if(severity == GL43.GL_DEBUG_SEVERITY_MEDIUM) {
+					Logger.error(getGame(), "[MEDIUM] OpenGL: ");
+					Logger.error(getGame(), "[MEDIUM] " + message_str, error);
+				} else if(severity == GL43.GL_DEBUG_SEVERITY_HIGH) {
+					Logger.error(getGame(), "[HIGH] OpenGL: ");
+					Logger.error(getGame(), "[HIGH] " + message_str, error);
+				}
+				
 			}
-			
 		}, 0);
-		
+
 		GL11.glEnable(GL11.GL_TEXTURE_2D);
 		GL11.glEnable(GL11.GL_BLEND);
 		GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
@@ -140,13 +166,22 @@ public class RendererCore extends CoreComponent {
 		window.setAsync(true);
 		window.destroy();
 		window.setAsync(async);
+		
+		// Free render cache
+		for(int i = 0; i < renderCache_alloc.length; i++) {
+			if(renderCache_alloc[i]) {
+				Logger.info("Block " + i + " was not freed");
+			}
+		}
+		renderCache = null;
+		renderCache_alloc = null;
 	}
 
 	@Override
 	protected void loopEvents(float delta) throws Throwable {
 		try {
-			GL43.glGetError();
-			GL43.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_STENCIL_BUFFER_BIT);
+			GL11.glGetError();
+			GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_STENCIL_BUFFER_BIT);
 
 			if (window.shouldClose()) {
 				getGame().stopAsync();
@@ -154,25 +189,38 @@ public class RendererCore extends CoreComponent {
 
 			Camera camera = getCamera();
 			if (camera != null) {
+				Transform transform;
+				int camera_index = camera.getRenderCacheIndex();
+				if(camera_index == -1) {
+					transform = new Transform();
+					camera.getWorldPosition(transform.position);
+					camera.getWorldRotation(transform.rotation);
+					camera.getWorldScale(transform.scale);
+				} else {
+					transform = getCache(camera_index);
+				}
+				
 				if (openal) {
 					// Update listener position and velocity
-					Vector3f camerapos = new Vector3f();
-					camera.getWorldPosition(camerapos);
+					Vector3f camerapos = transform.position;
 					Vector3f cameravel = new Vector3f();
 					camerapos.sub(camerapos_old, cameravel);
-					if (delta == 0) {
-						cameravel.set(0);
-					} else {
-						cameravel.div(delta / 1000);
-					}
+					
 					AL10.alListener3f(AL10.AL_POSITION, camerapos.x, camerapos.y, camerapos.z);
-					AL10.alListener3f(AL10.AL_VELOCITY, cameravel.x, cameravel.y, cameravel.z);
+					if (delta != 0) {
+						cameravel.div(delta / 1000);
+						AL10.alListener3f(AL10.AL_VELOCITY, cameravel.x, cameravel.y, cameravel.z);
+					}
 					camerapos_old.set(camerapos);
 				}
 
 				// Draw level to camera frame buffer
-				camera.render(null, delta);
-
+				synchronized(renderCache_framelock) {
+					renderCache_frameflag = true;
+					camera.render(null, delta, transform);
+				}
+				renderCache_frameflag = false;
+				
 				// Draw texture from frame buffer to screen
 
 				// Reset render matrix
@@ -222,4 +270,46 @@ public class RendererCore extends CoreComponent {
 		this.openal = value;
 	}
 
+	public int allocCache() {
+		if(renderCache == null) {
+			return -1;
+		}
+		
+		for(int i = 0; i < renderCache_alloc.length; i++) {
+			if(!renderCache_alloc[i]) {
+				renderCache_alloc[i] = true;
+				
+				Logger.info("Allocted render cache at index " + i);
+				
+				return i;
+			}
+		}
+		return -1;
+	}
+	
+	public void deallocCache(int index) {
+		if(renderCache == null) {
+			return;
+		}
+		if(index < 0 || index > renderCache_alloc.length) {
+			return;
+		}
+		
+		Logger.info("Deallocated render cache at index " + index);
+		
+		renderCache_alloc[index] = false;
+	}
+	
+	public Transform getCache(int index) {
+		return renderCache[index];
+	}
+	
+	public boolean isFrameFlag() {
+		return renderCache_frameflag;
+	}
+	
+	public Object getFrameLock() {
+		return renderCache_framelock;
+	}
+	
 }

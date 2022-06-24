@@ -1,29 +1,23 @@
 package com.spaghetti.demo;
 
-import com.spaghetti.interfaces.*;
+import com.spaghetti.core.GameObject;
 import com.spaghetti.networking.*;
 import com.spaghetti.utils.Logger;
 
-@ToClient
 public class Testrpc extends RemoteProcedure {
 
 	@Override
-	protected ClassInterpreter<?>[] getArgInterpreters() {
-		return new ClassInterpreter<?>[] { DefaultInterpreters.interpreters.get("int") };
+	protected Class<?>[] getArgumentTypes() {
+		return new Class<?>[] { Integer.class };
 	}
 
 	@Override
-	protected ClassInterpreter<?> getReturnInterpreter() {
-		return DefaultInterpreters.interpreters.get("int");
+	protected Class<?> getReturnType() {
+		return Integer.class;
 	}
 
 	@Override
-	protected boolean hasResponse() {
-		return true;
-	}
-
-	@Override
-	protected Object execute0(boolean isClient, NetworkConnection worker, Object[] args) throws Throwable {
+	protected Object onCall(Object[] args, GameObject player) throws Throwable {
 		Integer arg0 = (Integer) args[0];
 		Logger.info("Received number " + arg0);
 		Logger.info("Sending number " + arg0 + " + 1 = " + (arg0 + 1));

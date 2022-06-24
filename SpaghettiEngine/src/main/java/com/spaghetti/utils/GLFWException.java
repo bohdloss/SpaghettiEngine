@@ -7,6 +7,7 @@ public class GLFWException extends RuntimeException {
 
 	private static final long serialVersionUID = -878596842738489954L;
 	protected int error;
+	protected String description;
 
 	protected static String errorString(int error, long description) {
 		String string;
@@ -54,10 +55,15 @@ public class GLFWException extends RuntimeException {
 	public GLFWException(int error, long description) {
 		super(errorString(error, description));
 		this.error = error;
+		this.description = MemoryUtil.memUTF8(description);
 	}
 
 	public int getError() {
 		return error;
+	}
+	
+	public String getDescription() {
+		return description;
 	}
 
 }

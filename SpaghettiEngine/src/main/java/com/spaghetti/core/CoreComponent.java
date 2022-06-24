@@ -1,6 +1,5 @@
 package com.spaghetti.core;
 
-import com.spaghetti.input.Controller;
 import com.spaghetti.objects.Camera;
 import com.spaghetti.utils.*;
 
@@ -130,7 +129,6 @@ public abstract class CoreComponent extends Thread {
 				// Compute queued operations
 				functionDispatcher.computeEvents();
 				loopEvents(delta);
-				Utils.sleep(1);
 			}
 		} catch (Throwable t) {
 			_uncaught(t);
@@ -206,16 +204,8 @@ public abstract class CoreComponent extends Thread {
 		return source;
 	}
 
-	public final Level getLevel() {
-		return source.getActiveLevel();
-	}
-
 	public final Camera getCamera() {
-		return getGame().getActiveCamera();
-	}
-
-	public final Controller getController() {
-		return getGame().getActiveController();
+		return getGame().getLocalCamera();
 	}
 
 	public final FunctionDispatcher getDispatcher() {

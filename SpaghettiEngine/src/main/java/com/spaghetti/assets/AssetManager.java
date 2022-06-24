@@ -86,7 +86,7 @@ public class AssetManager {
 		registerAssetLoader("music", new MusicLoader());
 
 		// Register shutdown hook
-		game.getEventDispatcher().registerSignalHandler((isClient, issuer, signal) -> {
+		game.getEventDispatcher().registerSignalHandler((isClient, signal) -> {
 			if (signal == Signals.SIGSTOP) {
 				if (game.isHeadless()) {
 					destroy();
@@ -337,7 +337,7 @@ public class AssetManager {
 							// Fill asset
 							fillAsset(asset);
 						}
-							
+
 						// Queue native loading
 						FunctionDispatcher dispatcher = game.getRendererDispatcher();
 						long func = dispatcher.queue(() -> {

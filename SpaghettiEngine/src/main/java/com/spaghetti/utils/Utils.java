@@ -19,6 +19,8 @@ import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL30;
 import org.lwjgl.opengl.GL45;
 
+import com.spaghetti.core.CoreComponent;
+
 /**
  * Utils is a namespace for common useful functions
  * 
@@ -52,6 +54,19 @@ public final class Utils {
 	public static void sleepUntil(long time) {
 		while (System.currentTimeMillis() < time) {
 			sleep(0);
+		}
+	}
+
+	/**
+	 * Yields execution to the current thread's
+	 * {@link FunctionDispatcher#computeEvents()} method only if the current thread
+	 * is and {@link CoreComponent} instance
+	 */
+	public static void yield() {
+		Thread thread = Thread.currentThread();
+		if (CoreComponent.class.isAssignableFrom(thread.getClass())) {
+			CoreComponent core = (CoreComponent) thread;
+			core.getDispatcher().computeEvents();
 		}
 	}
 
@@ -562,23 +577,70 @@ public final class Utils {
 			throw new RuntimeException("Couldn't obtain field " + cls.getName() + "." + name, t);
 		}
 	}
-	
+
 	/**
-	 * Obtains a private method with the given {@code name} and {@code arguments} vararg from the given
-	 * {@code cls} and if not found, the superclass of {@code cls} will be searched,
-	 * and so on iteratively.<br>
-	 * Once the method is found, {@code private/protected}
-	 * restrictions are removed from it, then it is returned
+	 * Obtains the value of a private field, making it accessible if it is private.
+	 * <p>
+	 * If an exception is thrown, it is converted into a {@link RuntimeException} so
+	 * the caller doesn't need to explicitly catch it
+	 * 
+	 * @param field The field to read from
+	 * @param obj   The object to read from
+	 * @return The value of the field
+	 */
+	public static Object readField(Field field, Object obj) {
+		try {
+			field.setAccessible(true);
+			return field.get(obj);
+		} catch (Throwable t) {
+			throw new RuntimeException(t);
+		}
+	}
+
+	/**
+	 * Writes the value of a private field, making it accessible if it is private
+	 * and removing the {@code final} modifier
+	 * <p>
+	 * If an exception is thrown, it is converted into a {@link RuntimeException} so
+	 * the caller doesn't need to explicitly catch it
+	 * 
+	 * @param field The field to write to
+	 * @param obj   The object to write to
+	 * @param value The value to write into the field
+	 */
+	public static void writeField(Field field, Object obj, Object value) {
+		try {
+			// Remove private restrictions
+			field.setAccessible(true);
+
+			// Remove final restrictions
+			Field modifiers = Field.class.getDeclaredField("modifiers");
+			modifiers.setAccessible(true);
+			modifiers.set(field, field.getModifiers() & ~Modifier.FINAL);
+
+			// Write
+			field.set(obj, value);
+		} catch (Throwable t) {
+			throw new RuntimeException(t);
+		}
+	}
+
+	/**
+	 * Obtains a private method with the given {@code name} and {@code arguments}
+	 * vararg from the given {@code cls} and if not found, the superclass of
+	 * {@code cls} will be searched, and so on iteratively.<br>
+	 * Once the method is found, {@code private/protected} restrictions are removed
+	 * from it, then it is returned
 	 * <p>
 	 * This method will throw a RuntimeException if the field couldn't be obtained
 	 * because of some exception, or if the field does not exist
 	 * 
-	 * @param cls  The class to start searching for the method
-	 * @param name The name of the method to search for
+	 * @param cls       The class to start searching for the method
+	 * @param name      The name of the method to search for
 	 * @param arguments The argument types the method accepts
 	 * @return The Method
 	 */
-	public static Method getPrivateMethod(Class<?> cls, String name, Class<?>...arguments) {
+	public static Method getPrivateMethod(Class<?> cls, String name, Class<?>... arguments) {
 		try {
 			Method result = null;
 			while (result == null) {
@@ -597,12 +659,13 @@ public final class Utils {
 	}
 
 	/**
-	 * Prints the current thread stack trace in a similar way as {@link Throwable#printStackTrace()} does
+	 * Prints the current thread stack trace in a similar way as
+	 * {@link Throwable#printStackTrace()} does
 	 */
 	public static void printStackTrace() {
 		StackTraceElement[] stack = Thread.currentThread().getStackTrace();
 		StringBuilder trace = new StringBuilder();
-		for(int i = 2; i < stack.length; i++) {
+		for (int i = 2; i < stack.length; i++) {
 			trace.append(stack[i].getClassName());
 			trace.append('.');
 			trace.append(stack[i].getMethodName());
@@ -611,11 +674,11 @@ public final class Utils {
 			trace.append(':');
 			trace.append(stack[i].getLineNumber());
 			trace.append(')');
-			if(i != stack.length - 1) {
+			if (i != stack.length - 1) {
 				trace.append('\n');
 			}
 		}
 		Logger.info(trace.toString());
 	}
-	
+
 }

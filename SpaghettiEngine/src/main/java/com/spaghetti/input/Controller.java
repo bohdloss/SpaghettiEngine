@@ -2,122 +2,137 @@ package com.spaghetti.input;
 
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Iterator;
 
 import com.spaghetti.core.*;
 import com.spaghetti.interfaces.*;
+import com.spaghetti.networking.NetworkBuffer;
+import com.spaghetti.utils.Utils;
 
-public abstract class Controller<T extends GameObject> extends GameComponent {
-	
-	private static final class ControllerActionClass<U extends GameObject> {
+public class Controller<T extends GameObject> extends GameComponent {
 
-		private ControllerAction<U> _interface;
-		private Object[] params = new Object[0];
-		
-		public ControllerActionClass(ControllerAction<U> _interface) {
-			this._interface = _interface;
-		}
-		
-		// Interface
-		
-		@SuppressWarnings("unchecked")
-		public void executeInterface(GameObject target) {
-			_interface.execute((U) target, params);
-		}
+	private final HashMap<Integer, ControllerAction<T>> commands = new HashMap<>(256);
+	private final ArrayList<ControllerAction<T>> queue = new ArrayList<>(256);
+	private final ArrayList<Integer> networkQueue = new ArrayList<>(256);
 
-		
-		// Getters and setters
-		
-		public ControllerAction<U> getInterface() {
-			return _interface;
-		}
-		
-		public void setParams(Object[] params) {
-			if(this.params.length != params.length) {
-				this.params = new Object[params.length];
-			}
-			
-			for(int i = 0; i < params.length; i++) {
-				this.params[i] = params[i];
-			}
-		}
-		
-	}
-	
-	private final HashMap<String, ControllerActionClass<T>> commands = new HashMap<>(256);
-	private final ArrayList<ControllerActionClass<T>> queue = new ArrayList<>(256);
-	
+	@SuppressWarnings("unchecked")
 	@Override
 	public void commonUpdate(float delta) {
-		for(ControllerActionClass<T> action : queue) {
-				action.executeInterface(getOwner());
+		synchronized (queue) {
+			for (ControllerAction<T> action : queue) {
+				action.execute((T) getOwner());
+			}
+			queue.clear();
 		}
-		queue.clear();
 	}
-	
+
 	// Managing commands
-	
+
 	public void registerCommand(String name, ControllerAction<T> command) {
-		commands.put(name, new ControllerActionClass<T>(command));
+		commands.put(Utils.intHash(name), command);
 	}
-	
+
 	public void unregisterCommand(String name) {
-		commands.remove(name);
+		commands.remove(Utils.intHash(name));
 	}
-	
+
 	public void registerCommands(String name, ControllerAction<T> command, ControllerAction<T> opposite) {
-		registerCommand(name, command);
-		registerCommand("!" + name, opposite);
+		registerCommand("+" + name, command);
+		registerCommand("-" + name, opposite);
 	}
-	
+
 	public void unregisterCommands(String name) {
-		unregisterCommand(name);
-		unregisterCommand("!" + name);
+		unregisterCommand("+" + name);
+		unregisterCommand("-" + name);
 	}
-	
+
 	public ControllerAction<T> getCommand(String name) {
-		return commands.get(name).getInterface();
+		return commands.get(Utils.intHash(name));
 	}
-	
+
 	public boolean isCommandRegistered(String name) {
-		return commands.containsKey(name);
+		return commands.containsKey(Utils.intHash(name));
 	}
-	
+
 	public boolean isCommandRegistered(ControllerAction<T> command) {
-		return commands.containsValue(new ControllerActionClass<T>(command));
+		return commands.containsValue(command);
 	}
-	
-	public void execCommand(String name) {
-		ControllerActionClass<T> action = commands.get(name);
-		if(action == null || queue.contains(action)) {
+
+	@SuppressWarnings("unchecked")
+	public void execCommand(Integer command) {
+		ControllerAction<T> action = commands.get(command);
+		if (action == null) {
 			return;
 		}
-		action.executeInterface(getOwner());
-	}
-	
-	public void execCommandWithParams(String name, Object...params) {
-		ControllerActionClass<T> action = commands.get(name);
-		if(action == null || queue.contains(action)) {
-			return;
+		action.execute((T) getOwner());
+
+		synchronized (networkQueue) {
+			networkQueue.add(command);
 		}
-		action.setParams(params);
-		action.executeInterface(getOwner());
 	}
-	
-	public void queueCommand(String name) {
-		ControllerActionClass<T> action = commands.get(name);
-		if(action == null || queue.contains(action)) {
-			return;
+
+	public void queueCommand(Integer command) {
+		synchronized (queue) {
+			ControllerAction<T> action = commands.get(command);
+			if (action == null) {
+				return;
+			}
+			queue.add(action);
 		}
-		queue.add(action);
-	}
-	
-	public void queueCommandWithParams(String name, Object...params) {
-		ControllerActionClass<T> action = commands.get(name);
-		if(action == null || queue.contains(action)) {
-			return;
+
+		synchronized (networkQueue) {
+			networkQueue.add(command);
 		}
-		action.setParams(params);
-		queue.add(action);
 	}
-	
+
+	// Network interface
+
+	public boolean needsReplication() {
+		return networkQueue.size() > 0;
+	}
+
+	@Override
+	public void writeDataClient(NetworkBuffer buffer) {
+		doWrite(buffer);
+	}
+
+	@Override
+	public void writeDataServer(NetworkBuffer buffer) {
+		doWrite(buffer);
+	}
+
+	@Override
+	public void readDataClient(NetworkBuffer buffer) {
+		doRead(buffer);
+	}
+
+	@Override
+	public void readDataServer(NetworkBuffer buffer) {
+		doRead(buffer);
+	}
+
+	protected void doWrite(NetworkBuffer buffer) {
+		synchronized (networkQueue) {
+			byte size = (byte) (networkQueue.size() > Byte.MAX_VALUE ? Byte.MAX_VALUE : networkQueue.size());
+			buffer.putByte(size);
+			Iterator<Integer> iter = networkQueue.iterator();
+			byte i = size;
+			while (i < size) {
+				buffer.putInt(iter.next());
+				iter.remove();
+				i++;
+			}
+		}
+	}
+
+	protected void doRead(NetworkBuffer buffer) {
+		synchronized (queue) {
+			byte size = buffer.getByte();
+			for (byte i = 0; i < size; i++) {
+				int action = buffer.getInt();
+				queue.add(commands.get(action));
+			}
+		}
+	}
+
 }

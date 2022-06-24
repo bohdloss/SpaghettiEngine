@@ -45,9 +45,9 @@ public class Model extends Asset {
 	}
 
 	public void setData(float[] vertices, float[] tex_coords, float[] normals, int[] indices) {
-		setData(new Object[] {vertices, tex_coords, normals, indices});
+		setData(new Object[] { vertices, tex_coords, normals, indices });
 	}
-	
+
 	@Override
 	public boolean isFilled() {
 		return vertices != null && tex_coords != null && normals != null && indices != null;
@@ -170,7 +170,7 @@ public class Model extends Asset {
 	public float[] getVerticesBuffer() {
 		return vertices;
 	}
-	
+
 	public float[] getTexcoordsBuffer() {
 		return tex_coords;
 	}
@@ -178,9 +178,9 @@ public class Model extends Asset {
 	public float[] getNormalsBuffer() {
 		return normals;
 	}
-	
+
 	public int[] getIndicesBuffer() {
 		return indices;
 	}
-	
+
 }

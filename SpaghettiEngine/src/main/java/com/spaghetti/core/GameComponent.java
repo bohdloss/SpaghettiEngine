@@ -1,28 +1,15 @@
 package com.spaghetti.core;
 
-import java.util.HashMap;
-import java.util.Random;
-
 import com.spaghetti.interfaces.*;
 import com.spaghetti.networking.NetworkBuffer;
-import com.spaghetti.networking.NetworkConnection;
+import com.spaghetti.networking.ConnectionManager;
 import com.spaghetti.objects.Camera;
+import com.spaghetti.utils.IdProvider;
 import com.spaghetti.utils.Logger;
+import com.spaghetti.utils.Transform;
 import com.spaghetti.utils.Utils;
 
 public abstract class GameComponent implements Updatable, Renderable, Replicable {
-
-	private static HashMap<Integer, Integer> staticId = new HashMap<>();
-
-	private static final synchronized int newId() {
-		int index = Game.getGame().getIndex();
-		Integer id = staticId.get(index);
-		if (id == null) {
-			id = 0;
-		}
-		staticId.put(index, id + 1);
-		return new Random().nextInt();
-	}
 
 	private final void internal_setflag(int flag, boolean value) {
 		synchronized (flags_lock) {
@@ -35,7 +22,20 @@ public abstract class GameComponent implements Updatable, Renderable, Replicable
 			return Utils.bitAt(flags, flag);
 		}
 	}
-
+	
+	public final void triggerAlloc() {
+		if(!getGame().isHeadless() && getRenderCacheIndex() == -1) {
+			setRenderCacheIndex(getGame().getRenderer().allocCache());
+		}
+	}
+	
+	public final void triggerDealloc() {
+		if(!getGame().isHeadless() && getRenderCacheIndex() != -1) {
+			getGame().getRenderer().deallocCache(getRenderCacheIndex());
+			setRenderCacheIndex(-1);
+		}
+	}
+	
 	// O is attached flag
 	public static final int ATTACHED = 0;
 	// 1 is destroyed flag
@@ -46,6 +46,11 @@ public abstract class GameComponent implements Updatable, Renderable, Replicable
 	public static final int REPLICATE = 3;
 	// 4 is initialized flag
 	public static final int INITIALIZED = 4;
+	// 5 is visible flag
+	public static final int VISIBLE = 5;
+	// 6 is awake flag
+	public static final int AWAKE = 6;
+	// Last 16 bits are reserved for the render cache index
 
 	private final Object flags_lock = new Object();
 	private int flags;
@@ -53,26 +58,41 @@ public abstract class GameComponent implements Updatable, Renderable, Replicable
 	private int id;
 
 	public GameComponent() {
-		this.id = newId();
-
+		this.id = IdProvider.newId(getGame());
+		setRenderCacheIndex(-1);
+		internal_setflag(REPLICATE, true);
+		internal_setflag(VISIBLE, true);
+		internal_setflag(AWAKE, true);
 	}
 
 	// Interfaces
 
 	protected final void onbegin_check() {
-		if(!internal_getflag(INITIALIZED)) {
-			onBeginPlay();
+		if (!internal_getflag(INITIALIZED)) {
+			try {
+				if(isVisible()) {
+					triggerAlloc();
+				}
+				onBeginPlay();
+			} catch (Throwable t) {
+				Logger.error("onBeginPlay() Error:", t);
+			}
 			internal_setflag(INITIALIZED, true);
 		}
 	}
-	
+
 	protected final void onend_check() {
-		if(internal_getflag(INITIALIZED)) {
-			onEndPlay();
+		if (internal_getflag(INITIALIZED)) {
+			try {
+				triggerDealloc();
+				onEndPlay();
+			} catch (Throwable t) {
+				Logger.error("onEndPlay() Error:", t);
+			}
 			internal_setflag(INITIALIZED, false);
 		}
 	}
-	
+
 	protected void onBeginPlay() {
 	}
 
@@ -98,16 +118,39 @@ public abstract class GameComponent implements Updatable, Renderable, Replicable
 	public void readDataClient(NetworkBuffer buffer) {
 	}
 
-	@Override
-	public void render(Camera renderer, float delta) {
+	public final void render(Camera renderer, float delta) {
+		if(!internal_getflag(VISIBLE)) {
+			return;
+		}
+
+		// Gather render cache
+		int cache_index = getRenderCacheIndex();
+		Transform transform;
+		if(cache_index == -1) {
+			transform = new Transform();
+			getOwner().getWorldPosition(transform.position);
+			getOwner().getWorldRotation(transform.rotation);
+			getOwner().getWorldScale(transform.scale);
+		} else {
+			transform = getGame().getRenderer().getCache(cache_index);
+		}
+		
+		render(renderer, delta, transform);
 	}
 	
+	@Override
+	public void render(Camera renderer, float delta, Transform transform) {
+	}
+
 	// All of the warnings from GameObject's
 	// update methods apply here as well
 	@Override
 	public final void update(float delta) {
+		if(!internal_getflag(AWAKE)) {
+			return;
+		}
+		
 		commonUpdate(delta);
-
 		if (getGame().isClient()) {
 			clientUpdate(delta);
 		} else {
@@ -165,7 +208,7 @@ public abstract class GameComponent implements Updatable, Renderable, Replicable
 	}
 
 	public final boolean isLocallyAttached() {
-		return Utils.bitAt(flags, ATTACHED);
+		return internal_getflag(ATTACHED);
 	}
 
 	public final boolean isGloballyAttached() {
@@ -175,10 +218,46 @@ public abstract class GameComponent implements Updatable, Renderable, Replicable
 	public final boolean isInitialized() {
 		return internal_getflag(INITIALIZED);
 	}
+
+	public final boolean isVisible() {
+		return internal_getflag(VISIBLE);
+	}
+	
+	public final void setVisible(boolean visible) {
+		internal_setflag(VISIBLE, visible);
+		if(isInitialized() && visible) {
+			triggerAlloc();
+		} else {
+			triggerDealloc();
+		}
+	}
+	
+	public final boolean isAwake() {
+		return internal_getflag(AWAKE);
+	}
+	
+	public final void setAwake(boolean awake) {
+		internal_setflag(AWAKE, awake);
+	}
+	
+	public final void setRenderCacheIndex(int index) {
+		synchronized(flags_lock) {
+			int mask = Integer.MAX_VALUE >> 16;
+			flags &= mask;
+			int write = index << 16;
+			flags |= write;
+		}
+	}
+	
+	public final int getRenderCacheIndex() {
+		synchronized(flags_lock) {
+			return flags >> 16;
+		}
+	}
 	
 	// Override for more precise control
 	@Override
-	public boolean needsReplication(NetworkConnection connection) {
+	public boolean needsReplication(ConnectionManager connection) {
 		boolean flag = internal_getflag(REPLICATE);
 		internal_setflag(REPLICATE, false);
 		return flag;

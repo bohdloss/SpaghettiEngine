@@ -1,25 +1,12 @@
 package com.spaghetti.events;
 
-import java.util.HashMap;
-
 import com.spaghetti.core.Game;
 import com.spaghetti.interfaces.Replicable;
 import com.spaghetti.networking.NetworkBuffer;
-import com.spaghetti.networking.NetworkConnection;
+import com.spaghetti.networking.ConnectionManager;
+import com.spaghetti.utils.IdProvider;
 
 public abstract class GameEvent implements Replicable {
-
-	private static final HashMap<Integer, Integer> staticId = new HashMap<>();
-
-	private static final synchronized int newId() {
-		int index = Game.getGame().getIndex();
-		Integer id = staticId.get(index);
-		if (id == null) {
-			id = 0;
-		}
-		staticId.put(index, id + 1);
-		return id;
-	}
 
 	public static final int CLIENT = -1;
 	public static final int NOT_SET = 0;
@@ -30,7 +17,7 @@ public abstract class GameEvent implements Replicable {
 	private boolean cancelled;
 
 	public GameEvent() {
-		this.id = newId();
+		this.id = IdProvider.newId(Game.getGame());
 	}
 
 	// Getters and setters
@@ -59,10 +46,10 @@ public abstract class GameEvent implements Replicable {
 
 	// Override this to mask out certain clients / servers
 	@Override
-	public boolean needsReplication(NetworkConnection target) {
-		return true;
+	public boolean needsReplication(ConnectionManager target) {
+		return false;
 	}
-	
+
 	@Override
 	public void writeDataServer(NetworkBuffer buffer) {
 	}
@@ -78,5 +65,5 @@ public abstract class GameEvent implements Replicable {
 	@Override
 	public void readDataClient(NetworkBuffer buffer) {
 	}
-	
+
 }

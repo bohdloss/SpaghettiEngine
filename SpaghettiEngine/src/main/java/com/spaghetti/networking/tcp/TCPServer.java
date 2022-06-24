@@ -6,7 +6,8 @@ import java.net.Socket;
 import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 
-import com.spaghetti.networking.NetworkConnection;
+import com.spaghetti.networking.ConnectionEndpoint;
+import com.spaghetti.networking.ConnectionManager;
 import com.spaghetti.networking.ServerCore;
 import com.spaghetti.utils.Utils;
 
@@ -33,35 +34,18 @@ public class TCPServer extends ServerCore {
 
 	// Accepting connections
 	@Override
-	protected Object internal_acceptsocket() throws Throwable {
+	protected ConnectionEndpoint internal_acceptsocket() throws Throwable {
+		// Accept socket
 		SocketChannel socket = server.accept();
 		if (socket == null) {
 			return null;
 		}
 		socket.configureBlocking(false);
-		return socket;
-	}
-
-	@Override
-	protected long internal_hashsocket(Object object) {
-		try {
-			SocketChannel socket = (SocketChannel) object;
-			InetSocketAddress addr;
-			addr = (InetSocketAddress) socket.getRemoteAddress();
-			return Utils.longHash(addr.getHostName() + ":" + addr.getPort());
-		} catch (IOException e) {
-			throw new RuntimeException("IOException occurred while getting remote socket address", e);
-		}
-	}
-
-	@Override
-	protected void internal_closesocket(Object object) throws Throwable {
-		Utils.close((Socket) object);
-	}
-
-	@Override
-	protected NetworkConnection internal_initworker() {
-		return new TCPConnection(this);
+		
+		// Initialize endpoint
+		ConnectionEndpoint endpoint = new TCPConnection();
+		endpoint.connect(socket);
+		return endpoint;
 	}
 
 	// Getters

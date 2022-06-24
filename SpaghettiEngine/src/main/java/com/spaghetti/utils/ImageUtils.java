@@ -44,7 +44,8 @@ public final class ImageUtils {
 	/**
 	 * Converts a BufferedImage into an OpenGL-compatible ByteBuffer <br>
 	 * If passed {@code null} as the output parameter a new buffer will be allocated
-	 * with {@link #allocateImage(int, int)} using the size of the image as arguments
+	 * with {@link #allocateImage(int, int)} using the size of the image as
+	 * arguments
 	 * 
 	 * @param image  The image to convert
 	 * @param output The ByteBuffer to store the result in

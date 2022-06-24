@@ -6,30 +6,29 @@ import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
-import com.spaghetti.core.CoreComponent;
+import com.spaghetti.core.Game;
+import com.spaghetti.networking.ConnectionEndpoint;
 import com.spaghetti.networking.NetworkBuffer;
-import com.spaghetti.networking.NetworkConnection;
+import com.spaghetti.networking.NetworkCore;
 import com.spaghetti.networking.Opcode;
-import com.spaghetti.utils.Logger;
 import com.spaghetti.utils.Utils;
 
-public class TCPConnection extends NetworkConnection {
-
-	protected SocketChannel socket;
+public class TCPConnection extends ConnectionEndpoint {
+	
 	protected static final int HEADER_SIZE = Integer.BYTES + Short.BYTES;
+	
+	protected SocketChannel socket;
 	protected ByteBuffer packet_header;
 	protected ByteBuffer[] composite = new ByteBuffer[2];
 	protected long timeout;
 
-	public TCPConnection(CoreComponent parent) {
-		super(parent);
+	public TCPConnection() {
 		packet_header = ByteBuffer.allocate(HEADER_SIZE);
 		packet_header.order(NetworkBuffer.ORDER);
 	}
 
 	@Override
 	public void destroy() {
-		super.destroy();
 		packet_header = null;
 	}
 
@@ -40,11 +39,7 @@ public class TCPConnection extends NetworkConnection {
 			throw new IllegalArgumentException("Invalid socket provided");
 		}
 		this.socket = socket;
-		ping = true;
-		str_cache.clear();
-		w_buffer.clear();
-		r_buffer.clear();
-		timeout = getGame().getEngineOption("networktimeout");
+		timeout = Game.getGame().getEngineOption("networktimeout");
 	}
 
 	@Override
@@ -60,9 +55,7 @@ public class TCPConnection extends NetworkConnection {
 		if (socket != null) {
 			Utils.close(socket);
 			socket = null;
-			str_cache.clear();
 		}
-		this.ping = false;
 	}
 
 	@Override
@@ -74,7 +67,7 @@ public class TCPConnection extends NetworkConnection {
 		w_buffer.putByte(Opcode.END);
 		w_buffer.flip();
 		int length = w_buffer.getLimit();
-		
+
 		// Write header
 		packet_header.clear();
 		packet_header.putInt(length);
@@ -90,12 +83,10 @@ public class TCPConnection extends NetworkConnection {
 				throw new IllegalStateException(timeout + " ms timeout reached while writing");
 			}
 		}
-		Logger.info("Written " + length + " bytes");
-		
+
 		// Reset state
 		w_buffer.clear();
 		reliable = false;
-		forceReplication = false;
 	}
 
 	@Override
@@ -116,6 +107,10 @@ public class TCPConnection extends NetworkConnection {
 		int length = packet_header.getInt();
 		short checksum = packet_header.getShort();
 
+		if(length < 0 || length > 256000) {
+			throw new IllegalStateException("Packet length invalid (" + length + ")");
+		}
+		
 		// Read packet body
 		r_buffer.clear();
 		r_buffer.setLimit(length);
@@ -141,7 +136,7 @@ public class TCPConnection extends NetworkConnection {
 
 	@Override
 	public boolean isConnected() {
-		return socket != null && socket.isOpen() && ping;
+		return socket != null && socket.isOpen();
 	}
 
 	@Override

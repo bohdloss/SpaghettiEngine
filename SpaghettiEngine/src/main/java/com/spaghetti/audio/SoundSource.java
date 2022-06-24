@@ -4,12 +4,10 @@ import org.joml.Vector3f;
 import org.lwjgl.openal.*;
 
 import com.spaghetti.core.GameObject;
-import com.spaghetti.interfaces.ToClient;
 import com.spaghetti.networking.NetworkBuffer;
 import com.spaghetti.objects.Camera;
 import com.spaghetti.utils.*;
 
-@ToClient
 public class SoundSource extends GameObject {
 
 	public static final int IDLE = 0, PLAYING = 1, PAUSED = 2;
@@ -120,7 +118,7 @@ public class SoundSource extends GameObject {
 	}
 
 	@Override
-	public void render(Camera renderer, float delta) {
+	public void render(Camera renderer, float delta, Transform transform) {
 		if (sound == null || !sound.valid()) {
 			return;
 		}
@@ -130,14 +128,14 @@ public class SoundSource extends GameObject {
 		}
 
 		// Update position and velocity
-		Vector3f currentpos = new Vector3f();
-		getWorldPosition(currentpos);
+		Vector3f currentpos = transform.position;
 		Vector3f currentvel = new Vector3f();
 		currentpos.sub(lastpos, currentvel);
-		currentvel.div(delta / 1000);
+		
 		lastpos.set(currentpos);
 		AL10.alSource3f(id, AL10.AL_POSITION, currentpos.x, currentpos.y, currentpos.z);
 		if (delta != 0) { // Avoid getting Infinity or NaN as velocity
+			currentvel.div(delta / 1000);
 			AL10.alSource3f(id, AL10.AL_VELOCITY, currentvel.x, currentvel.y, currentvel.z);
 		}
 

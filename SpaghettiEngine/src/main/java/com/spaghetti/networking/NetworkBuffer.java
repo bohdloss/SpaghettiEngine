@@ -4,6 +4,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.Charset;
 
+import com.spaghetti.interfaces.StringCacher;
 import com.spaghetti.utils.Utils;
 
 public final class NetworkBuffer {
@@ -18,10 +19,10 @@ public final class NetworkBuffer {
 	public static final ByteOrder ORDER = ByteOrder.BIG_ENDIAN;
 
 	protected ByteBuffer buffer;
-	protected final NetworkConnection owner;
+	protected final StringCacher strcache;
 
-	public NetworkBuffer(NetworkConnection owner, int size) {
-		this.owner = owner;
+	public NetworkBuffer(StringCacher strcache, int size) {
+		this.strcache = strcache;
 		buffer = ByteBuffer.allocate(size);
 		buffer.order(ORDER);
 	}
@@ -213,8 +214,8 @@ public final class NetworkBuffer {
 		if (cache) {
 			short hash = Utils.shortHash(v);
 			buffer.putShort(hash);
-			if (!owner.str_cache.containsKey(hash)) {
-				owner.str_cache.put(hash, v);
+			if (!strcache.containsString(hash)) {
+				strcache.cacheString(hash, v);
 			} else {
 				return;
 			}
@@ -253,15 +254,15 @@ public final class NetworkBuffer {
 	public String getString(boolean cache, Charset charset) {
 		if (cache) {
 			short hash = buffer.getShort();
-			if (!owner.str_cache.containsKey(hash)) {
+			if (!strcache.containsString(hash)) {
 				short length = buffer.getShort();
 				byte[] bytes = new byte[length];
 				buffer.get(bytes, 0, length);
 				String str = new String(bytes, charset);
-				owner.str_cache.put(hash, str);
+				strcache.cacheString(hash, str);
 				return str;
 			} else {
-				return owner.str_cache.get(hash);
+				return strcache.getCachedString(hash);
 			}
 		}
 		short length = buffer.getShort();
@@ -347,10 +348,6 @@ public final class NetworkBuffer {
 	}
 
 	// Utility
-
-	public NetworkConnection getConnection() {
-		return owner;
-	}
 
 	public void skip(int amount) {
 		buffer.position(buffer.position() + amount);

@@ -42,10 +42,6 @@ public class ServerDemo {
 		 */
 		client.getInputDispatcher().registerListener(new MyKeyListener());
 
-		// Register join handlers for when the player joins the server
-		client.getClient().setJoinHandler(new MyJoinHandler());
-		server.getServer().setJoinHandler(new MyJoinHandler());
-
 		// Set the server to depend on the client
 		server.depends(client);
 

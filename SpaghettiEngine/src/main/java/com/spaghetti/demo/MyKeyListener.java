@@ -13,7 +13,7 @@ public class MyKeyListener implements InputListener {
 			Game.getGame().getClient().disconnect();
 			break;
 		case Keyboard.P:
-			Game.getGame().getClient().connect("localhost", 9018);
+			Game.getGame().getClient().connect("localhost", 9018, 0);
 			break;
 		}
 	}
