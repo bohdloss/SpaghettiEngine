@@ -57,7 +57,7 @@ public class Material extends Asset {
 
 		this.texture = (Texture) objects[0];
 		this.shader = (ShaderProgram) objects[1];
-		;
+
 	}
 
 	@Override

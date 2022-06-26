@@ -1,7 +1,7 @@
 package com.spaghetti.interfaces;
 
-import com.spaghetti.networking.NetworkBuffer;
 import com.spaghetti.networking.ConnectionManager;
+import com.spaghetti.networking.NetworkBuffer;
 
 public interface Replicable {
 
@@ -24,5 +24,5 @@ public interface Replicable {
 	public default boolean isLocal() {
 		return false;
 	}
-	
+
 }

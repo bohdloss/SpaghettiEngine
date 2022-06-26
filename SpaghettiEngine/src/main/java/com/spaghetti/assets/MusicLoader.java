@@ -6,6 +6,7 @@ import java.nio.ByteOrder;
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioInputStream;
 import javax.sound.sampled.AudioSystem;
+
 import org.lwjgl.openal.AL10;
 
 import com.spaghetti.audio.StreamingSound;

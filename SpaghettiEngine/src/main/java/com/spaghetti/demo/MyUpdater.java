@@ -2,7 +2,7 @@ package com.spaghetti.demo;
 
 import java.util.Random;
 
-import com.spaghetti.core.*;
+import com.spaghetti.core.Level;
 import com.spaghetti.demo.player.Player;
 import com.spaghetti.input.UpdaterCore;
 import com.spaghetti.objects.Camera;
@@ -12,7 +12,8 @@ import com.spaghetti.physics.Physics;
 import com.spaghetti.physics.RigidBody.BodyType;
 import com.spaghetti.physics.d2.Physics2D;
 import com.spaghetti.physics.d2.RigidBody2D;
-import com.spaghetti.render.*;
+import com.spaghetti.render.Material;
+import com.spaghetti.render.Model;
 
 public class MyUpdater extends UpdaterCore {
 
@@ -29,11 +30,11 @@ public class MyUpdater extends UpdaterCore {
 		if (!getGame().hasAuthority()) {
 			return;
 		}
-		getGame().addLevel("myWorld");
-		level = getGame().getLevel("myWorld");
-		
+		level = getGame().addLevel("myWorld");
+		getGame().activateLevel("myWorld");
+
 		// Init physics world
-//		level.addObject(new Physics2D());
+		level.addObject(new Physics2D());
 
 		// Init floor meshes
 		for (int i = -100; i <= 100; i++) {
@@ -44,14 +45,14 @@ public class MyUpdater extends UpdaterCore {
 		}
 
 		// Init floor collision
-//		floor = new Mesh(Model.get("square"), Material.get("defaultMAT"));
-//		floor.setRelativeScale(402f, 2, 1);
-//		floor.setRelativePosition(0, -3, 0);
-//		floor.setVisible(false);
-//		floor.addComponent(new RigidBody2D(BodyType.STATIC));
-//		level.addObject(floor);
-//		RigidBody2D floor_body = floor.getComponent(RigidBody2D.class);
-//		floor_body.setFriction(0.3f);
+		floor = new Mesh(Model.get("square"), Material.get("defaultMAT"));
+		floor.setRelativeScale(402f, 2, 1);
+		floor.setRelativePosition(0, -3, 0);
+		floor.setVisible(false);
+		floor.addComponent(new RigidBody2D(BodyType.STATIC));
+		level.addObject(floor);
+		RigidBody2D floor_body = floor.getComponent(RigidBody2D.class);
+		floor_body.setFriction(0.3f);
 
 		// Init skybox
 		UntransformedMesh skybox = new UntransformedMesh(Model.get("square"), Material.get("m_skybox"));
@@ -60,20 +61,20 @@ public class MyUpdater extends UpdaterCore {
 		level.addObject(skybox);
 
 		// Stress test for physics
-//		int width = 10;
-//		int height = 10;
-//		for (int i = 0; i < width; i++) {
-//			for (int j = 0; j < height; j++) {
-//				Mesh mesh = new Mesh(Model.get("square"), Material.get("defaultMAT"));
-//				RigidBody2D mesh_body = new RigidBody2D();
-//				mesh_body.setFriction(0.3f);
-//				mesh_body.setAngularDamping(0);
-//				mesh.addComponent(mesh_body);
-//				mesh.setRelativePosition(i * 1.1f, j * 10, 0);
-//				mesh.setRelativeScale(2f, 2f, 1);
-//				level.addObject(mesh);
-//			}
-//		}
+		int width = 10;
+		int height = 10;
+		for (int i = 0; i < width; i++) {
+			for (int j = 0; j < height; j++) {
+				Mesh mesh = new Mesh(Model.get("square"), Material.get("defaultMAT"));
+				RigidBody2D mesh_body = new RigidBody2D();
+				mesh_body.setFriction(0.3f);
+				mesh_body.setAngularDamping(0);
+				mesh.addComponent(mesh_body);
+				mesh.setRelativePosition(i * 1.1f, j * 10, 0);
+				mesh.setRelativeScale(2f, 2f, 1);
+				level.addObject(mesh);
+			}
+		}
 
 //		for (int i = 0; i < width; i++) {
 //			for(int j = 0; j < height; j++) {
@@ -96,7 +97,15 @@ public class MyUpdater extends UpdaterCore {
 			level.addObject(p);
 		}
 
-		getGame().activateLevel("myWorld");
+		// Test physics on moving object
+//		MovingMesh mm = new MovingMesh(Model.get("square"), Material.get("defaultMAT"));
+//		mm.setRelativeScale(2, 2, 1);
+//		RigidBody2D mm_body = new RigidBody2D();
+//		mm_body.setFriction(0.3f);
+//		mm_body.setAngularDamping(0);
+//		mm.addComponent(mm_body);
+//		level.addObject(mm);
+
 	}
 
 	boolean done = false;
@@ -128,7 +137,7 @@ class MovingMesh extends Mesh {
 	float i = 0;
 
 	@Override
-	public void serverUpdate(float delta) {
+	public void commonUpdate(float delta) {
 		i += 10 * getGame().getTickMultiplier(delta);
 
 		float mod = (float) Math.sin(i);

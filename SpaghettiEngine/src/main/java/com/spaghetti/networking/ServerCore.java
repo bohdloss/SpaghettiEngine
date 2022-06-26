@@ -6,7 +6,10 @@ import java.util.Iterator;
 import java.util.Map.Entry;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
-import com.spaghetti.core.*;
+
+import com.spaghetti.core.CoreComponent;
+import com.spaghetti.core.GameComponent;
+import com.spaghetti.core.GameObject;
 import com.spaghetti.events.GameEvent;
 import com.spaghetti.interfaces.NetworkFunction;
 import com.spaghetti.networking.ConnectionEndpoint.Priority;
@@ -15,10 +18,11 @@ import com.spaghetti.networking.events.OnClientConnect;
 import com.spaghetti.networking.events.OnClientDisconnect;
 import com.spaghetti.networking.events.OnClientKicked;
 import com.spaghetti.networking.events.OnClientUnbanned;
-import com.spaghetti.utils.*;
+import com.spaghetti.utils.Logger;
+import com.spaghetti.utils.Utils;
 
 public abstract class ServerCore extends NetworkCore {
-	
+
 	// Queue events
 	protected ArrayList<NetworkFunction> functions_queue1 = new ArrayList<>(256);
 	protected ArrayList<NetworkFunction> functions_queue2 = new ArrayList<>(256);
@@ -31,7 +35,7 @@ public abstract class ServerCore extends NetworkCore {
 	protected int maxClients = 10;
 	protected long awaitReconnect = 10000; // 10 secs
 	protected int maxDisconnections = 10;
-	
+
 	// Reserved client tokens
 	protected Random tokenGen = new Random();
 	protected ArrayList<Long> clientTokens = new ArrayList<>();
@@ -67,11 +71,11 @@ public abstract class ServerCore extends NetworkCore {
 		clientTokens.add(token);
 		return token;
 	}
-	
+
 	public void freeToken(Long token) {
 		clientTokens.remove(token);
 	}
-	
+
 	// Packet read, write loop
 	@Override
 	protected void loopEvents(float delta) throws Throwable {
@@ -95,7 +99,7 @@ public abstract class ServerCore extends NetworkCore {
 						ClientFlags clientFlags = flags.get(clientId);
 						ConnectionManager manager = entry.getValue();
 						ConnectionEndpoint endpoint = manager.getEndpoint();
-						
+
 						if (endpoint == null || !endpoint.isConnected()) {
 							continue;
 						}
@@ -104,7 +108,7 @@ public abstract class ServerCore extends NetworkCore {
 						if (endpoint.canSend() && endpoint.getPriority() != Priority.RECEIVE) {
 							endpoint.clear();
 							endpoint.getWriteBuffer().putByte(DATA);
-							
+
 							// We need to send more data when a client just connected
 							if (clientFlags.firstTime) {
 
@@ -141,10 +145,10 @@ public abstract class ServerCore extends NetworkCore {
 						// Can receive
 						if (endpoint.canReceive() && endpoint.getPriority() != Priority.SEND) {
 							endpoint.clear();
-							
+
 							// Read incoming packet
 							endpoint.receive();
-							
+
 							// Which kind of packet is it?
 							byte packetType = endpoint.getReadBuffer().getByte();
 							switch(packetType) {
@@ -279,7 +283,7 @@ public abstract class ServerCore extends NetworkCore {
 		}
 		return clientFlags;
 	}
-	
+
 	protected ConnectionManager _getConnectionManager(long clientId) {
 		ConnectionManager manager = clients.get(clientId);
 		if(manager == null) {
@@ -288,7 +292,7 @@ public abstract class ServerCore extends NetworkCore {
 		}
 		return manager;
 	}
-	
+
 	protected boolean _increaseDisconnections(long clientId) {
 		ClientFlags clientFlags = flags.get(clientId);
 		if (clientFlags.disconnections >= maxDisconnections && maxDisconnections >= 0) {
@@ -307,7 +311,7 @@ public abstract class ServerCore extends NetworkCore {
 		endpoint.waitCanSend();
 		endpoint.send();
 	}
-	
+
 	protected void _clientError(Throwable error, long clientId) {
 		ClientFlags clientFlags = flags.get(clientId);
 		ConnectionManager manager = clients.get(clientId);
@@ -350,7 +354,7 @@ public abstract class ServerCore extends NetworkCore {
 			}
 		}
 	}
-	
+
 	protected void _closeEndpoint(ConnectionEndpoint endpoint) {
 		try {
 			endpoint.disconnect();
@@ -358,7 +362,7 @@ public abstract class ServerCore extends NetworkCore {
 		} catch(Throwable t) {
 		}
 	}
-	
+
 	public boolean kick(long id, String reason) {
 		return (boolean) getDispatcher().quickQueue(() -> internal_kick(id, reason));
 	}
@@ -370,7 +374,7 @@ public abstract class ServerCore extends NetworkCore {
 			return false;
 		}
 		ConnectionEndpoint endpoint = manager.getEndpoint();
-		
+
 		if (reason != null && endpoint != null) {
 			try {
 				_sendMessage(endpoint, KICKED, reason);
@@ -389,7 +393,7 @@ public abstract class ServerCore extends NetworkCore {
 		} else { // Otherwise we are explicitly kicking the client
 			getGame().getEventDispatcher().raiseEvent(new OnClientKicked(manager, id, reason));
 		}
-		
+
 		manager.setEndpoint(null);
 		manager.destroy();
 		Logger.info("Kicked client " + id + " for: " + reason);
@@ -478,9 +482,9 @@ public abstract class ServerCore extends NetworkCore {
 		if (endpoint == null) {
 			return false;
 		}
-		
+
 		// New handshake logic
-		
+
 		// Receive token
 		endpoint.clear();
 		endpoint.waitCanReceive();
@@ -492,21 +496,21 @@ public abstract class ServerCore extends NetworkCore {
 			return false;
 		}
 		long token = endpoint.getReadBuffer().getLong();
-		
+
 		// Verify client token
 		if(getGame().<Boolean>getEngineOption("networkverifytoken")) {
-			
+
 			// Verify
 			if(clientTokens.contains(token)) {
-				
+
 				// Valid token
 				freeToken(token);
 			} else {
-				
+
 				// Invalid token
 				_sendMessage(endpoint, INVALID_TOKEN, "You're not supposed to be here!");
 				Logger.warning("REFUSED connection from client because it provided and unvalid token (???" + token + "???)");
-				
+
 				_closeEndpoint(endpoint);
 				return false;
 			}
@@ -516,7 +520,7 @@ public abstract class ServerCore extends NetworkCore {
 
 		// Obtain a client flags object
 		ClientFlags clientFlags = _getClientFlags(token);
-		
+
 		// Connect: needs to know everything / Reconnect: may have missed something
 		clientFlags.firstTime = true;
 
@@ -534,19 +538,19 @@ public abstract class ServerCore extends NetworkCore {
 					ConnectionManager manager = _getConnectionManager(token);
 					manager.setEndpoint(endpoint);
 					clientFlags.clientId = token;
-					
+
 					// Client connect event
 					_sendMessage(endpoint, HUG, "Welcome aboard!");
 					getGame().getEventDispatcher().raiseEvent(new OnClientConnect(manager, token));
 					Logger.info("ACCEPTED connection from client (" + token + ")");
-					
+
 					return true;
 				} else {
-					
+
 					// Notify client there are too many players
 					_sendMessage(endpoint, REACHED_MAX, "There's only place for " + maxClients + " in this town! *BANG*");
 					Logger.warning("REFUSED connection from client because client limit was reached (" + token + ")");
-					
+
 					_closeEndpoint(endpoint);
 					return false;
 				}
@@ -554,36 +558,36 @@ public abstract class ServerCore extends NetworkCore {
 
 				// Existing client, new endpoint, synchronize with manager
 				ConnectionManager manager = _getConnectionManager(token);
-				
+
 				// Accept only if we were waiting for this reconnect
 				if (clientFlags.await) {
-					
+
 					// Update endpoint
 					endpoint.setPriority(Priority.SEND);
 					manager.setEndpoint(endpoint);
 					clientFlags.await = false;
-					
+
 					// Client endpoint successfully updated, yay!
 					_sendMessage(endpoint, RECONNECTED, "Welcome back!");
 					Logger.info("RECONNECTED with client (" + token + ")");
-					
+
 					return true;
 				} else {
-					
+
 					// Mock the client for trying to perform an illegal operation
 					_sendMessage(endpoint, SNEAKED_IN, "Are you insane? Stop attacking, immediately!");
 					Logger.warning("REFUSED connection from client who tried a fake reconnect request (" + token + ")");
-					
+
 					_closeEndpoint(endpoint);
 					return false;
 				}
 			}
 		} else {
-			
+
 			// Write reason for ban
 			_sendMessage(endpoint, BANNED, clientFlags.banReason);
 			Logger.warning("REFUSED connection from client because it is banned (" + token + ")");
-			
+
 			_closeEndpoint(endpoint);
 			return false;
 		}

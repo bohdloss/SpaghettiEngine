@@ -20,9 +20,9 @@ public abstract class NetworkCore extends CoreComponent {
 	public static final byte KICKED = (byte) 8;
 	public static final byte DATA = (byte) 9; // Indicates that this packet contains actual replication data
 	public static final byte TOKEN = (byte) 10;
-	
+
 	// Abstract queue methods
-	
+
 	public abstract void queueNetworkFunction(NetworkFunction function);
 	public abstract void queueEvent(GameEvent event);
 	public abstract void queueRPC(RemoteProcedure rpc);

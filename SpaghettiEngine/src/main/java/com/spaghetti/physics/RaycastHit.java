@@ -3,7 +3,7 @@ package com.spaghetti.physics;
 /**
  * a RaycastHit object represents one of the return values from
  * {@link Physics#raycast(RaycastRequest)}
- * 
+ *
  * @author bohdloss
  *
  * @param <VecType>    Children classes are required to specify their own

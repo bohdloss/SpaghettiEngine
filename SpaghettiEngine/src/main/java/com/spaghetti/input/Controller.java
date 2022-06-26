@@ -4,8 +4,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 
-import com.spaghetti.core.*;
-import com.spaghetti.interfaces.*;
+import com.spaghetti.core.GameComponent;
+import com.spaghetti.core.GameObject;
+import com.spaghetti.interfaces.ControllerAction;
 import com.spaghetti.networking.NetworkBuffer;
 import com.spaghetti.utils.Utils;
 

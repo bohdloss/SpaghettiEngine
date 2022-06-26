@@ -1,7 +1,9 @@
 package com.spaghetti.core;
 
 import com.spaghetti.objects.Camera;
-import com.spaghetti.utils.*;
+import com.spaghetti.utils.FunctionDispatcher;
+import com.spaghetti.utils.Logger;
+import com.spaghetti.utils.Utils;
 
 public abstract class CoreComponent extends Thread {
 

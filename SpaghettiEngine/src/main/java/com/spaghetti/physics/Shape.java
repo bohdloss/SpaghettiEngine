@@ -5,7 +5,7 @@ import java.util.ArrayList;
 /**
  * Shape defines how a body interacts with other bodies in the physics world
  * with either a list of vertices or a radius for circles and spheres
- * 
+ *
  * @author bohdloss
  *
  * @param <VecType> Children classes are required to specify their own
@@ -26,7 +26,7 @@ public class Shape<VecType> implements Cloneable {
 	 * Functionally equal to creating an instance with the empty constructor and
 	 * then calling {@link Shape#addVertices(Object[])} with {@code vertices} as the
 	 * parameter
-	 * 
+	 *
 	 * @param vertices The vertices to initialize the shape with
 	 */
 	public Shape(VecType[] vertices) {
@@ -37,7 +37,7 @@ public class Shape<VecType> implements Cloneable {
 	 * Functionally equal to creating an instance with the empty constructor and
 	 * then calling {@link Shape#setRadius(float)} with {@code radius} as the
 	 * parameter
-	 * 
+	 *
 	 * @param radius The radius to initialize the shape with
 	 */
 	public Shape(float radius) {
@@ -57,7 +57,7 @@ public class Shape<VecType> implements Cloneable {
 
 	/**
 	 * Retrieves the amount of vertices in this shape
-	 * 
+	 *
 	 * @return The vertex count
 	 */
 	public int getVertexCount() {
@@ -68,7 +68,7 @@ public class Shape<VecType> implements Cloneable {
 	 * Retrieves the vertex of the shape at the given index as a vector
 	 * <p>
 	 * Modifying this vector is allowed and will reflect back to the shape
-	 * 
+	 *
 	 * @param index The index to retrieve the point from
 	 * @return A vector representing the vertex
 	 */
@@ -80,7 +80,7 @@ public class Shape<VecType> implements Cloneable {
 	 * Changes a point of the shape at the given index to the vertex parameter
 	 * <p>
 	 * Later changes made to the vector will reflect back to the shape
-	 * 
+	 *
 	 * @param vertex The new vertex
 	 * @param index  The index to replace
 	 */
@@ -92,7 +92,7 @@ public class Shape<VecType> implements Cloneable {
 	 * Inserts a single vertex in the shape at the given index
 	 * <p>
 	 * Later changes made to the vector will reflect back to the shape
-	 * 
+	 *
 	 * @param vertex The vertex to insert
 	 * @param index  The index to insert the vertex at
 	 */
@@ -104,7 +104,7 @@ public class Shape<VecType> implements Cloneable {
 	 * Adds a single vertex to the shape
 	 * <p>
 	 * Later changes made to the vector will reflect back to the shape
-	 * 
+	 *
 	 * @param vertex The vertex to add
 	 */
 	public void addVertex(VecType vertex) {
@@ -113,7 +113,7 @@ public class Shape<VecType> implements Cloneable {
 
 	/**
 	 * Removes a single vertex from the shape, at the given index
-	 * 
+	 *
 	 * @param index The index of the vertex to remove
 	 */
 	public void removeVertex(int index) {
@@ -122,7 +122,7 @@ public class Shape<VecType> implements Cloneable {
 
 	/**
 	 * Inserts multiple vertices at the given index in the shape
-	 * 
+	 *
 	 * @param buffer An array of vertices to be inserted
 	 * @param index  The index at which to insert them
 	 */
@@ -135,7 +135,7 @@ public class Shape<VecType> implements Cloneable {
 
 	/**
 	 * Adds multiple vertices to the shape
-	 * 
+	 *
 	 * @param buffer An array of vertices to be added
 	 */
 	public void addVertices(VecType[] buffer) {
@@ -146,7 +146,7 @@ public class Shape<VecType> implements Cloneable {
 
 	/**
 	 * Retrieves the radius of the shape
-	 * 
+	 *
 	 * @return The radius
 	 */
 	public float getRadius() {
@@ -155,7 +155,7 @@ public class Shape<VecType> implements Cloneable {
 
 	/**
 	 * Changes the radius of the shape
-	 * 
+	 *
 	 * @param radius The new radius
 	 */
 	public void setRadius(float radius) {
@@ -164,7 +164,7 @@ public class Shape<VecType> implements Cloneable {
 
 	/**
 	 * Returns true if there is a stored radius that is greater than zero
-	 * 
+	 *
 	 * @return {@link Shape#getRadius()} {@code > 0}
 	 */
 	public boolean isCircle() {
@@ -174,7 +174,7 @@ public class Shape<VecType> implements Cloneable {
 	/**
 	 * Returns true if this is a circle with a radius greater than zero or if it's a
 	 * polygon shape with at least 3 vertices
-	 * 
+	 *
 	 * @return {@link Shape#isCircle()} {@code || } {@link Shape#getVertexCount()}
 	 *         {@code > 2}
 	 */

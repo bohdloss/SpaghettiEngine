@@ -1,10 +1,9 @@
 package com.spaghetti.physics.d2;
 
+import org.jbox2d.callbacks.RayCastCallback;
 import org.jbox2d.common.Vec2;
 import org.jbox2d.dynamics.Body;
 import org.jbox2d.dynamics.World;
-
-import org.jbox2d.callbacks.RayCastCallback;
 import org.joml.Vector2f;
 
 import com.spaghetti.networking.NetworkBuffer;

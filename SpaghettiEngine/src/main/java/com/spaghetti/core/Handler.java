@@ -3,6 +3,7 @@ package com.spaghetti.core;
 import java.awt.GraphicsEnvironment;
 
 import org.lwjgl.glfw.GLFW;
+
 import com.spaghetti.utils.FunctionDispatcher;
 import com.spaghetti.utils.GLFWException;
 import com.spaghetti.utils.Utils;

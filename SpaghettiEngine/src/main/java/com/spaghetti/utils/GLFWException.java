@@ -61,7 +61,7 @@ public class GLFWException extends RuntimeException {
 	public int getError() {
 		return error;
 	}
-	
+
 	public String getDescription() {
 		return description;
 	}

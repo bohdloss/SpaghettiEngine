@@ -1,12 +1,11 @@
 package com.spaghetti.objects;
 
 import org.joml.Matrix4f;
-import org.joml.Vector3f;
 
-import com.spaghetti.core.*;
+import com.spaghetti.core.GameObject;
 import com.spaghetti.networking.NetworkBuffer;
-import com.spaghetti.render.*;
-import com.spaghetti.utils.Logger;
+import com.spaghetti.render.Material;
+import com.spaghetti.render.Model;
 import com.spaghetti.utils.Transform;
 
 public class Mesh extends GameObject {

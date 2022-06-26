@@ -20,5 +20,5 @@ public class OnClientConnect extends GameEvent {
 	public long getClientId() {
 		return clientId;
 	}
-	
+
 }

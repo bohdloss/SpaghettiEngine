@@ -2,8 +2,6 @@ package com.spaghetti.input;
 
 import com.spaghetti.core.CoreComponent;
 import com.spaghetti.core.Game;
-import com.spaghetti.core.GameState;
-import com.spaghetti.render.RendererCore;
 import com.spaghetti.utils.Logger;
 import com.spaghetti.utils.Utils;
 

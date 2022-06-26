@@ -20,5 +20,5 @@ public class OnClientDisconnect extends GameEvent {
 	public long getClientId() {
 		return clientId;
 	}
-	
+
 }

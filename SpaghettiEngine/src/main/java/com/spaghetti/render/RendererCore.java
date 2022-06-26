@@ -1,9 +1,5 @@
 package com.spaghetti.render;
 
-import org.lwjgl.opengl.GL;
-import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL43;
-
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 
@@ -16,6 +12,9 @@ import org.lwjgl.openal.ALC;
 import org.lwjgl.openal.ALC10;
 import org.lwjgl.openal.ALCCapabilities;
 import org.lwjgl.openal.ALCapabilities;
+import org.lwjgl.opengl.GL;
+import org.lwjgl.opengl.GL11;
+import org.lwjgl.opengl.GL43;
 import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.system.MemoryUtil;
 
@@ -23,7 +22,10 @@ import com.spaghetti.assets.AssetManager;
 import com.spaghetti.core.CoreComponent;
 import com.spaghetti.core.GameWindow;
 import com.spaghetti.objects.Camera;
-import com.spaghetti.utils.*;
+import com.spaghetti.utils.CMath;
+import com.spaghetti.utils.GLException;
+import com.spaghetti.utils.Logger;
+import com.spaghetti.utils.Transform;
 
 public class RendererCore extends CoreComponent {
 
@@ -46,7 +48,7 @@ public class RendererCore extends CoreComponent {
 	protected Vector3f cameravel = new Vector3f();
 	protected Model sceneRenderer;
 	protected ShaderProgram defaultShader;
-	
+
 	// 2.1 MB render cache
 	protected Transform[] renderCache;
 	// 256 KB render cache allocation table
@@ -71,7 +73,7 @@ public class RendererCore extends CoreComponent {
 
 	@Override
 	public void initialize0() throws Throwable {
-		
+
 		// Init window and obtain asset manager
 		this.window.winInit(getGame());
 		this.assetManager = getGame().getAssetManager();
@@ -89,14 +91,14 @@ public class RendererCore extends CoreComponent {
 				Logger.warning(getGame(), "[LOW] " + message_str);
 			} else {
 				GLException error = new GLException(source, type, id, severity, message_str);
-				
+
 				// Remove useless lines from stacktrace
 				final int useless_lines = 2;
 				StackTraceElement[] stack = error.getStackTrace();
 				StackTraceElement[] new_stack = new StackTraceElement[stack.length - useless_lines];
 				System.arraycopy(stack, useless_lines, new_stack, 0, new_stack.length);
 				error.setStackTrace(new_stack);
-				
+
 				if(severity == GL43.GL_DEBUG_SEVERITY_MEDIUM) {
 					Logger.error(getGame(), "[MEDIUM] OpenGL: ");
 					Logger.error(getGame(), "[MEDIUM] " + message_str, error);
@@ -104,7 +106,7 @@ public class RendererCore extends CoreComponent {
 					Logger.error(getGame(), "[HIGH] OpenGL: ");
 					Logger.error(getGame(), "[HIGH] " + message_str, error);
 				}
-				
+
 			}
 		}, 0);
 
@@ -141,12 +143,12 @@ public class RendererCore extends CoreComponent {
 //			System.out.println(device);
 //		}
 //		StreamProvider provider = (StreamProvider) () -> new MicrophoneInputStream();
-//		
+//
 //		StreamingSound sound = new StreamingSound();
 //		sound.setData(MicrophoneInputStream.DEFAULT_FORMAT, MicrophoneInputStream.DEFAULT_FREQUENCY,
 //				MicrophoneInputStream.BPS, ByteOrder.nativeOrder(), provider, 2, 1000);
 //		sound.load();
-//		
+//
 //		SoundSource source = new SoundSource(sound);
 //		source.play();
 //		getGame().getActiveLevel().addObject(source);
@@ -166,7 +168,7 @@ public class RendererCore extends CoreComponent {
 		window.setAsync(true);
 		window.destroy();
 		window.setAsync(async);
-		
+
 		// Free render cache
 		for(int i = 0; i < renderCache_alloc.length; i++) {
 			if(renderCache_alloc[i]) {
@@ -199,13 +201,13 @@ public class RendererCore extends CoreComponent {
 				} else {
 					transform = getCache(camera_index);
 				}
-				
+
 				if (openal) {
 					// Update listener position and velocity
 					Vector3f camerapos = transform.position;
 					Vector3f cameravel = new Vector3f();
 					camerapos.sub(camerapos_old, cameravel);
-					
+
 					AL10.alListener3f(AL10.AL_POSITION, camerapos.x, camerapos.y, camerapos.z);
 					if (delta != 0) {
 						cameravel.div(delta / 1000);
@@ -220,7 +222,7 @@ public class RendererCore extends CoreComponent {
 					camera.render(null, delta, transform);
 				}
 				renderCache_frameflag = false;
-				
+
 				// Draw texture from frame buffer to screen
 
 				// Reset render matrix
@@ -274,42 +276,39 @@ public class RendererCore extends CoreComponent {
 		if(renderCache == null) {
 			return -1;
 		}
-		
+
 		for(int i = 0; i < renderCache_alloc.length; i++) {
 			if(!renderCache_alloc[i]) {
 				renderCache_alloc[i] = true;
-				
+
 				Logger.info("Allocted render cache at index " + i);
-				
+
 				return i;
 			}
 		}
 		return -1;
 	}
-	
+
 	public void deallocCache(int index) {
-		if(renderCache == null) {
+		if((renderCache == null) || index < 0 || index > renderCache_alloc.length) {
 			return;
 		}
-		if(index < 0 || index > renderCache_alloc.length) {
-			return;
-		}
-		
+
 		Logger.info("Deallocated render cache at index " + index);
-		
+
 		renderCache_alloc[index] = false;
 	}
-	
+
 	public Transform getCache(int index) {
 		return renderCache[index];
 	}
-	
+
 	public boolean isFrameFlag() {
 		return renderCache_frameflag;
 	}
-	
+
 	public Object getFrameLock() {
 		return renderCache_framelock;
 	}
-	
+
 }

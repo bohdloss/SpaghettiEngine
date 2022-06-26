@@ -8,6 +8,7 @@ import com.spaghetti.networking.ClientCore;
 import com.spaghetti.networking.ServerCore;
 import com.spaghetti.render.RendererCore;
 import com.spaghetti.utils.GameOptions;
+import com.spaghetti.utils.Logger;
 
 public final class GameBuilder {
 
@@ -22,6 +23,7 @@ public final class GameBuilder {
 	private Class<? extends InputDispatcher> inputDispatcherClass = InputDispatcher.class;
 	private Class<? extends ClientState> clientStateClass = ClientState.class;
 	private Class<? extends GameState> gameStateClass = GameState.class;
+	private Class<? extends Logger> loggerClass = Logger.class;
 
 	public GameBuilder setUpdater(Class<? extends UpdaterCore> updater) {
 		this.updater = updater;
@@ -113,9 +115,18 @@ public final class GameBuilder {
 		return gameStateClass;
 	}
 
+	public GameBuilder setLoggerClass(Class<? extends Logger> cls) {
+		this.loggerClass = cls;
+		return this;
+	}
+
+	public Class<? extends Logger> getLoggerClass() {
+		return loggerClass;
+	}
+
 	public Game build() {
 		return new Game(updater, renderer, client, server, eventDispatcherClass, gameOptionsClass, assetManagerClass,
-				inputDispatcherClass, clientStateClass, gameStateClass);
+				inputDispatcherClass, clientStateClass, gameStateClass, loggerClass);
 	}
 
 }

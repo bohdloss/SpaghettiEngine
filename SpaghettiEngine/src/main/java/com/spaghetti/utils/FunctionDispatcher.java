@@ -5,10 +5,9 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map.Entry;
+import java.util.Random;
 
 import com.spaghetti.interfaces.Function;
-
-import java.util.Random;
 
 public final class FunctionDispatcher {
 

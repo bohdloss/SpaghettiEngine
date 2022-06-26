@@ -12,8 +12,9 @@ import org.jbox2d.dynamics.FixtureDef;
 import org.jbox2d.dynamics.World;
 import org.joml.Vector2f;
 import org.joml.Vector3f;
-import com.spaghetti.networking.NetworkBuffer;
+
 import com.spaghetti.networking.ConnectionManager;
+import com.spaghetti.networking.NetworkBuffer;
 import com.spaghetti.objects.Camera;
 import com.spaghetti.physics.Physics;
 import com.spaghetti.physics.RigidBody;
@@ -81,6 +82,8 @@ public class RigidBody2D extends RigidBody<Vector2f, Float> {
 
 	protected void prepare() {
 		Vector3f ptr = new Vector3f();
+
+		// Apply scale
 		getOwner().getWorldScale(ptr);
 		if (!CMath.equals(ptr.x, last_scale.x, 0.001f) || !CMath.equals(ptr.y, last_scale.y, 0.001f)) {
 			// The scale changed since the last time
@@ -102,6 +105,10 @@ public class RigidBody2D extends RigidBody<Vector2f, Float> {
 
 			setShape(shape);
 		}
+
+		// Apply change in position
+		getOwner().getWorldPosition(ptr);
+		body.setTransform(new Vec2(ptr.x, ptr.y), getOwner().getRoll());
 	}
 
 	protected void commit() {
@@ -646,8 +653,7 @@ public class RigidBody2D extends RigidBody<Vector2f, Float> {
 		getOwner().getWorldPosition(vec);
 		setPosition(vec.x, vec.y);
 
-		getOwner().getWorldRotation(vec);
-		setRotation(vec.z);
+		setRotation(getOwner().getWorldRoll());
 
 		if (this.shape.isValid()) {
 			setShape(this.shape);

@@ -4,7 +4,17 @@ import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 import java.util.HashMap;
 
-import org.joml.*;
+import org.joml.Matrix2f;
+import org.joml.Matrix3d;
+import org.joml.Matrix3f;
+import org.joml.Matrix4d;
+import org.joml.Matrix4f;
+import org.joml.Vector2d;
+import org.joml.Vector2f;
+import org.joml.Vector3d;
+import org.joml.Vector3f;
+import org.joml.Vector4d;
+import org.joml.Vector4f;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL20;

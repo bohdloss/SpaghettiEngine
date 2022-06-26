@@ -5,9 +5,11 @@ import java.util.ArrayList;
 import org.joml.Vector2i;
 import org.lwjgl.glfw.GLFW;
 
-import com.spaghetti.core.*;
-import com.spaghetti.interfaces.*;
-import com.spaghetti.utils.*;
+import com.spaghetti.core.Game;
+import com.spaghetti.core.GameWindow;
+import com.spaghetti.interfaces.InputListener;
+import com.spaghetti.utils.CMath;
+import com.spaghetti.utils.Logger;
 
 public class InputDispatcher {
 

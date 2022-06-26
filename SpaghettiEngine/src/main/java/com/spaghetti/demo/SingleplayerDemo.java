@@ -2,8 +2,9 @@ package com.spaghetti.demo;
 
 import org.joml.Vector2i;
 
-import com.spaghetti.core.*;
-import com.spaghetti.render.*;
+import com.spaghetti.core.Game;
+import com.spaghetti.core.GameBuilder;
+import com.spaghetti.render.RendererCore;
 
 public class SingleplayerDemo {
 

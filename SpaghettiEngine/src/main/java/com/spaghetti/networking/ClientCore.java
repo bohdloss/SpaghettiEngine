@@ -1,18 +1,22 @@
 package com.spaghetti.networking;
 
 import java.io.IOException;
-import java.net.*;
+import java.net.UnknownHostException;
 import java.util.ArrayList;
-import com.spaghetti.core.*;
+
+import com.spaghetti.core.CoreComponent;
+import com.spaghetti.core.GameComponent;
+import com.spaghetti.core.GameObject;
 import com.spaghetti.events.GameEvent;
-import com.spaghetti.interfaces.*;
+import com.spaghetti.interfaces.NetworkFunction;
+import com.spaghetti.networking.ConnectionEndpoint.Priority;
 import com.spaghetti.networking.events.OnClientBanned;
 import com.spaghetti.networking.events.OnClientConnect;
 import com.spaghetti.networking.events.OnClientDisconnect;
 import com.spaghetti.networking.events.OnConnectionRefused;
 import com.spaghetti.networking.events.OnInvalidToken;
-import com.spaghetti.utils.*;
-import com.spaghetti.networking.ConnectionEndpoint.Priority;
+import com.spaghetti.utils.Logger;
+import com.spaghetti.utils.Utils;
 
 public abstract class ClientCore extends NetworkCore {
 
@@ -50,12 +54,12 @@ public abstract class ClientCore extends NetworkCore {
 	@Override
 	protected void loopEvents(float delta) throws Throwable {
 		ConnectionEndpoint endpoint = manager.getEndpoint();
-		
+
 		// Check if we are connected to a server
 		if(!isConnected()) {
 			return;
 		}
-		
+
 		try {
 			flags.firstTime = false;
 
@@ -182,7 +186,7 @@ public abstract class ClientCore extends NetworkCore {
 		endpoint.waitCanSend();
 		endpoint.send();
 	}
-	
+
 	protected void internal_clienterror(Throwable t) {
 		// If the goodbye flag is on, it means we can ignore errors and perform
 		// disconnection
@@ -196,7 +200,7 @@ public abstract class ClientCore extends NetworkCore {
 		String ip = manager.getEndpoint().getRemoteIp();
 		int port = manager.getEndpoint().getRemotePort();
 		flags.await = true;
-		
+
 		giveUp = false;
 		boolean status = false;
 		for (int attemtps = 0; attemtps < reconnectAttempts; attemtps++) {
@@ -226,26 +230,26 @@ public abstract class ClientCore extends NetworkCore {
 	protected boolean internal_connect(String ip, int port, boolean disconnectFirst, long token) {
 		Logger.error("CONNECTION ATTEMPT BEGIN");
 		if (isConnected() && disconnectFirst) {
-			
+
 			// Need to disconnect first
 			Logger.warning("Already connected, disconnecting first");
 			internal_disconnect();
 		}
-		
+
 		try {
-			
+
 			// Establish connection
 			ConnectionEndpoint endpoint = internal_connectsocket(ip, port);
-			
+
 			// New handshake logic
-			
+
 			// Send our precious token!
 			endpoint.clear();
 			endpoint.getWriteBuffer().putByte(TOKEN); // Packet type
 			endpoint.getWriteBuffer().putLong(token);
 			endpoint.waitCanSend();
 			endpoint.send();
-			
+
 			// Receive response from server
 			endpoint.clear();
 			endpoint.waitCanReceive();
@@ -303,7 +307,7 @@ public abstract class ClientCore extends NetworkCore {
 				internal_disconnect(false);
 				return false;
 			}
-			
+
 			endpoint.setPriority(Priority.RECEIVE);
 			flags.goodbye = false;
 			flags.firstTime = true;
@@ -338,7 +342,7 @@ public abstract class ClientCore extends NetworkCore {
 		String remoteIp = getRemoteIp();
 		int remotePort = getRemotePort();
 		ConnectionEndpoint endpoint = manager.getEndpoint();
-		
+
 		// Say goodbye to the server
 		flags.firstTime = false;
 		flags.goodbye = true;
@@ -352,18 +356,18 @@ public abstract class ClientCore extends NetworkCore {
 			}
 			getGame().getEventDispatcher().raiseEvent(new OnClientDisconnect(manager, flags.clientId));
 		}
-		
+
 		// Destroy endpoint
 		endpoint.disconnect();
 		endpoint.destroy();
-		
+
 		Logger.info("Disconnected from " + remoteIp + " from port " + remotePort);
 		return true;
 	}
 
 	// Abstract methods
 	protected abstract ConnectionEndpoint internal_connectsocket(String ip, int port) throws Throwable;
-	
+
 	// Getters and setters
 
 	public boolean isConnected() {

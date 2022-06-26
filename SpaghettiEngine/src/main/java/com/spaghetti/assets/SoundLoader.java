@@ -1,15 +1,19 @@
 package com.spaghetti.assets;
 
-import java.nio.*;
+import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
 
-import javax.sound.sampled.*;
+import javax.sound.sampled.AudioFormat;
+import javax.sound.sampled.AudioInputStream;
+import javax.sound.sampled.AudioSystem;
 
 import org.lwjgl.BufferUtils;
 import org.lwjgl.openal.AL10;
 
-import com.spaghetti.audio.*;
+import com.spaghetti.audio.StaticSound;
 import com.spaghetti.interfaces.AssetLoader;
-import com.spaghetti.utils.*;
+import com.spaghetti.utils.ResourceLoader;
+import com.spaghetti.utils.Utils;
 
 public class SoundLoader implements AssetLoader {
 

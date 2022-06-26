@@ -1,6 +1,5 @@
 package com.spaghetti.interfaces;
 
-import com.spaghetti.core.*;
 import com.spaghetti.events.GameEvent;
 
 public interface EventHandler {

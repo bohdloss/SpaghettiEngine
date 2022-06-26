@@ -5,7 +5,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.lang.reflect.Field;
 import java.lang.reflect.Method;
-import java.lang.reflect.Modifier;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 
@@ -23,7 +22,7 @@ import com.spaghetti.core.CoreComponent;
 
 /**
  * Utils is a namespace for common useful functions
- * 
+ *
  * @author bohdloss
  *
  */
@@ -35,7 +34,7 @@ public final class Utils {
 	/**
 	 * Sleeps for the given amount of {@code ms} a and catches the
 	 * InterruptedException
-	 * 
+	 *
 	 * @param ms Amount of milliseconds to sleep for
 	 */
 	public static void sleep(long ms) {
@@ -48,7 +47,7 @@ public final class Utils {
 
 	/**
 	 * Waits until the current time is equal or greater than {@code time}
-	 * 
+	 *
 	 * @param time The time until which to wait
 	 */
 	public static void sleepUntil(long time) {
@@ -73,7 +72,7 @@ public final class Utils {
 	/**
 	 * Sleeps for the given amount of {@code ms} and {@code nanos} and catches the
 	 * InterruptedException
-	 * 
+	 *
 	 * @param ms    Amount of milliseconds to sleep for
 	 * @param nanos Amount of nanosecond to sleep for in addition to the
 	 *              milliseconds
@@ -90,7 +89,7 @@ public final class Utils {
 	 * Keeps reading from the given {@code stream}, until {@code amount} bytes have
 	 * been read, the end of the stream is reached or an exception is thrown by the
 	 * {@code stream}, starting at the given {@code offset} in the {@code buffer}
-	 * 
+	 *
 	 * @param stream The stream to read data from
 	 * @param buffer The buffer in which to read the data
 	 * @param offset The offset in the buffer at which to start writing data
@@ -116,7 +115,7 @@ public final class Utils {
 	 * been read, the end of the stream is reached, an exception is thrown by the
 	 * {@code stream} or {@code timeout} milliseconds have passed since the method
 	 * invocation, starting at the given {@code offset} in the {@code buffer}
-	 * 
+	 *
 	 * @param stream  The stream to read data from
 	 * @param buffer  The buffer in which to read the data
 	 * @param offset  The offset in the buffer at which to start writing data
@@ -149,7 +148,7 @@ public final class Utils {
 	 * been read, the end of the stream is reached or an exception is thrown by the
 	 * {@code stream}, starting at {@code offset + buffer.position()} in the
 	 * {@code buffer}
-	 * 
+	 *
 	 * @param stream The stream to read data from
 	 * @param buffer The buffer in which to read the data
 	 * @param offset The offset that will be added to the buffer's position at which
@@ -181,7 +180,7 @@ public final class Utils {
 
 	/**
 	 * Closes a Closeable interface and catches any exception
-	 * 
+	 *
 	 * @param closeable The closeable interface
 	 * @return {@code false} if an exception was thrown, {@code true} otherwise
 	 */
@@ -196,7 +195,7 @@ public final class Utils {
 
 	/**
 	 * Closes a Socket's input stream and catches any exception
-	 * 
+	 *
 	 * @param socket The Socket whose input stream to close
 	 * @return {@code false} if an exception was thrown, {@code true} otherwise
 	 */
@@ -211,7 +210,7 @@ public final class Utils {
 
 	/**
 	 * Closes a Socket's output stream and catches any exception
-	 * 
+	 *
 	 * @param socket The Socket whose output stream to close
 	 * @return {@code false} if an exception was thrown, {@code true} otherwise
 	 */
@@ -226,7 +225,7 @@ public final class Utils {
 
 	/**
 	 * Returns the boolean value of the bit at {@code pos} index in the {@code num}
-	 * 
+	 *
 	 * @param num The number whose bit is to extract
 	 * @param pos The index at which to extract the bit
 	 * @return The extracted bit in boolean form
@@ -238,7 +237,7 @@ public final class Utils {
 	/**
 	 * Changes the bit at index {@code pos} inside of {@code num} to the value of
 	 * {@code newval}, and returns the resulting edited {@code num}
-	 * 
+	 *
 	 * @param num    The number to edit
 	 * @param pos    The index at which to change the bit
 	 * @param newval The new value to change the bit to
@@ -251,7 +250,7 @@ public final class Utils {
 
 	/**
 	 * Hashes the given string into a {@code long} value
-	 * 
+	 *
 	 * @param str The string to hash
 	 * @return The hash
 	 */
@@ -267,7 +266,7 @@ public final class Utils {
 	/**
 	 * Hashes the given byte array into a {@code long} value, only accounting for
 	 * the bytes starting from {@code offset} until {@code offset + size}
-	 * 
+	 *
 	 * @param mem    The byte array to hash
 	 * @param offset The offset at which to start calculating the hash
 	 * @param size   The amount of bytes to hash after the {@code offset}
@@ -284,7 +283,7 @@ public final class Utils {
 
 	/**
 	 * Hashes the given string into an {@code int} value
-	 * 
+	 *
 	 * @param str The string to hash
 	 * @return The hash
 	 */
@@ -300,7 +299,7 @@ public final class Utils {
 	/**
 	 * Hashes the given byte array into an {@code int} value, only accounting for
 	 * the bytes starting from {@code offset} until {@code offset + size}
-	 * 
+	 *
 	 * @param mem    The byte array to hash
 	 * @param offset The offset at which to start calculating the hash
 	 * @param size   The amount of bytes to hash after the {@code offset}
@@ -317,7 +316,7 @@ public final class Utils {
 
 	/**
 	 * Hashes the given string into a {@code short} value
-	 * 
+	 *
 	 * @param str The string to hash
 	 * @return The hash
 	 */
@@ -333,7 +332,7 @@ public final class Utils {
 	/**
 	 * Hashes the given byte array into a {@code short} value, only accounting for
 	 * the bytes starting from {@code offset} until {@code offset + size}
-	 * 
+	 *
 	 * @param mem    The byte array to hash
 	 * @param offset The offset at which to start calculating the hash
 	 * @param size   The amount of bytes to hash after the {@code offset}
@@ -406,7 +405,7 @@ public final class Utils {
 	 * <p>
 	 * The usage of this function is recommended after every OpenALC call for good
 	 * practice
-	 * 
+	 *
 	 * @param deviceHandle The handle to the OpenALC device from which to retrieve
 	 *                     the error code
 	 */
@@ -526,7 +525,7 @@ public final class Utils {
 
 	/**
 	 * Converts an AIString to a standard java String
-	 * 
+	 *
 	 * @param string The Assimp string to convert
 	 * @return The converted string
 	 */
@@ -550,7 +549,7 @@ public final class Utils {
 	 * <p>
 	 * This method will throw a RuntimeException if the field couldn't be obtained
 	 * because of some exception, or if the field does not exist
-	 * 
+	 *
 	 * @param cls  The class to start searching for the field
 	 * @param name The name of the field to search for
 	 * @return The Field
@@ -563,11 +562,6 @@ public final class Utils {
 					// Remove private restrictions
 					result = cls.getDeclaredField(name);
 					result.setAccessible(true);
-
-					// Remove final restrictions
-					Field modifiers = Field.class.getDeclaredField("modifiers");
-					modifiers.setAccessible(true);
-					modifiers.set(result, result.getModifiers() & ~Modifier.FINAL);
 				} catch (NoSuchFieldException nofield) {
 					cls = cls.getSuperclass();
 				}
@@ -583,7 +577,7 @@ public final class Utils {
 	 * <p>
 	 * If an exception is thrown, it is converted into a {@link RuntimeException} so
 	 * the caller doesn't need to explicitly catch it
-	 * 
+	 *
 	 * @param field The field to read from
 	 * @param obj   The object to read from
 	 * @return The value of the field
@@ -603,7 +597,7 @@ public final class Utils {
 	 * <p>
 	 * If an exception is thrown, it is converted into a {@link RuntimeException} so
 	 * the caller doesn't need to explicitly catch it
-	 * 
+	 *
 	 * @param field The field to write to
 	 * @param obj   The object to write to
 	 * @param value The value to write into the field
@@ -612,11 +606,6 @@ public final class Utils {
 		try {
 			// Remove private restrictions
 			field.setAccessible(true);
-
-			// Remove final restrictions
-			Field modifiers = Field.class.getDeclaredField("modifiers");
-			modifiers.setAccessible(true);
-			modifiers.set(field, field.getModifiers() & ~Modifier.FINAL);
 
 			// Write
 			field.set(obj, value);
@@ -634,7 +623,7 @@ public final class Utils {
 	 * <p>
 	 * This method will throw a RuntimeException if the field couldn't be obtained
 	 * because of some exception, or if the field does not exist
-	 * 
+	 *
 	 * @param cls       The class to start searching for the method
 	 * @param name      The name of the method to search for
 	 * @param arguments The argument types the method accepts

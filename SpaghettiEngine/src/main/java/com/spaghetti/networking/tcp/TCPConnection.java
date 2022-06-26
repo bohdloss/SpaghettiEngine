@@ -9,14 +9,13 @@ import java.nio.channels.SocketChannel;
 import com.spaghetti.core.Game;
 import com.spaghetti.networking.ConnectionEndpoint;
 import com.spaghetti.networking.NetworkBuffer;
-import com.spaghetti.networking.NetworkCore;
 import com.spaghetti.networking.Opcode;
 import com.spaghetti.utils.Utils;
 
 public class TCPConnection extends ConnectionEndpoint {
-	
+
 	protected static final int HEADER_SIZE = Integer.BYTES + Short.BYTES;
-	
+
 	protected SocketChannel socket;
 	protected ByteBuffer packet_header;
 	protected ByteBuffer[] composite = new ByteBuffer[2];
@@ -110,7 +109,7 @@ public class TCPConnection extends ConnectionEndpoint {
 		if(length < 0 || length > 256000) {
 			throw new IllegalStateException("Packet length invalid (" + length + ")");
 		}
-		
+
 		// Read packet body
 		r_buffer.clear();
 		r_buffer.setLimit(length);

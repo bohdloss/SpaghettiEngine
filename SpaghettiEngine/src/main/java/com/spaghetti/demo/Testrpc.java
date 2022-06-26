@@ -1,7 +1,7 @@
 package com.spaghetti.demo;
 
 import com.spaghetti.core.GameObject;
-import com.spaghetti.networking.*;
+import com.spaghetti.networking.RemoteProcedure;
 import com.spaghetti.utils.Logger;
 
 public class Testrpc extends RemoteProcedure {

@@ -5,11 +5,20 @@ import java.nio.ByteBuffer;
 import java.util.ArrayList;
 
 import org.lwjgl.BufferUtils;
-import org.lwjgl.assimp.*;
+import org.lwjgl.assimp.AIAnimation;
+import org.lwjgl.assimp.AICamera;
+import org.lwjgl.assimp.AILight;
+import org.lwjgl.assimp.AIMaterial;
+import org.lwjgl.assimp.AIMesh;
+import org.lwjgl.assimp.AIScene;
+import org.lwjgl.assimp.AITexture;
+import org.lwjgl.assimp.AIVector3D;
+import org.lwjgl.assimp.Assimp;
 
 import com.spaghetti.interfaces.AssetLoader;
 import com.spaghetti.render.Model;
-import com.spaghetti.utils.*;
+import com.spaghetti.utils.ResourceLoader;
+import com.spaghetti.utils.Utils;
 
 public class ModelLoader implements AssetLoader {
 

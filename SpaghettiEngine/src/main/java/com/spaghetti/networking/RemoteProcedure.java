@@ -1,9 +1,11 @@
 package com.spaghetti.networking;
 
 import java.util.HashMap;
-import com.spaghetti.core.*;
-import com.spaghetti.interfaces.Serializer;
+
+import com.spaghetti.core.Game;
+import com.spaghetti.core.GameObject;
 import com.spaghetti.interfaces.RemoteProcedureCallback;
+import com.spaghetti.interfaces.Serializer;
 import com.spaghetti.utils.IdProvider;
 import com.spaghetti.utils.Logger;
 import com.spaghetti.utils.Utils;
@@ -157,11 +159,11 @@ public abstract class RemoteProcedure {
 	public final void setReliable(boolean reliable) {
 		this.reliable = reliable;
 	}
-	
+
 	public final boolean isReliable() {
 		return reliable;
 	}
-	
+
 	public final Object getReturnValue() {
 		return retVal;
 	}

@@ -57,6 +57,11 @@ public class GameOptions {
 		setEngineOption("networkmaxdisconnections", 10);
 		setEngineOption("networkawaittimeout", 10000l);
 		setEngineOption("networkreconnectattempts", 10);
+
+		// Logging
+		setEngineOption("logautocreate", true);
+		setEngineOption("logseverityprint", 1);
+		setEngineOption("logseveritylog", 0);
 	}
 
 	// Public getters and setters

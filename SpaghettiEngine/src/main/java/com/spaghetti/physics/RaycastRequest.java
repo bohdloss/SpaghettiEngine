@@ -5,7 +5,7 @@ import java.util.ArrayList;
 /**
  * RaycastRequest contains the parameters as well as the {@link RaycastHit}
  * return values for {@link Physics#raycast(RaycastRequest)}
- * 
+ *
  * @author bohdloss
  *
  * @param <VecType>    Children classes are required to specify their own

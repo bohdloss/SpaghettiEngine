@@ -1,7 +1,8 @@
 package com.spaghetti.core;
 
 import java.lang.reflect.InvocationTargetException;
-import java.util.*;
+import java.util.ArrayList;
+import java.util.HashMap;
 
 import com.spaghetti.assets.AssetManager;
 import com.spaghetti.events.EventDispatcher;
@@ -25,10 +26,11 @@ public final class Game {
 	// in the same java process
 	protected volatile static ArrayList<Game> games = new ArrayList<>();
 	protected volatile static HashMap<Long, Game> links = new HashMap<>();
+	protected static Object handlerLock = new Object();
 	protected volatile static Handler handler;
 
 	private static void init() {
-		synchronized(handler) {
+		synchronized(handlerLock) {
 			if (handler == null) {
 				handler = new Handler();
 				handler.start();
@@ -79,6 +81,7 @@ public final class Game {
 	private volatile ClientState clientState;
 	private volatile GameOptions options;
 	private volatile InputDispatcher inputDispatcher;
+	private volatile Logger logger;
 
 	// Components
 	private final ArrayList<CoreComponent> components = new ArrayList<>(4);
@@ -110,7 +113,8 @@ public final class Game {
 			Class<? extends ClientCore> clientClass, Class<? extends ServerCore> serverClass,
 			Class<? extends EventDispatcher> eventDispatcherClass, Class<? extends GameOptions> gameOptionsClass,
 			Class<? extends AssetManager> assetManagerClass, Class<? extends InputDispatcher> inputDispatcherClass,
-			Class<? extends ClientState> clientStateClass, Class<? extends GameState> gameStateClass) {
+			Class<? extends ClientState> clientStateClass, Class<? extends GameState> gameStateClass,
+			Class<? extends Logger> loggerClass) {
 		// Sanity checks
 		if (clientClass != null && serverClass != null) {
 			throw new IllegalArgumentException("Cannot have both a client and a server in a Game");
@@ -190,6 +194,7 @@ public final class Game {
 			this.inputDispatcher = inputDispatcherClass.getConstructor(Game.class).newInstance(this);
 			this.gameState = gameStateClass.getConstructor(Game.class).newInstance(this);
 			this.clientState = clientStateClass.getConstructor(Game.class).newInstance(this);
+			this.logger = loggerClass.getConstructor(Game.class).newInstance(this);
 		} catch (InstantiationException e) {
 			throw new RuntimeException("Error initializing an object: class is abstract", e);
 		} catch (InvocationTargetException e) {
@@ -565,6 +570,10 @@ public final class Game {
 		return inputDispatcher;
 	}
 
+	public Logger getLogger() {
+		return logger;
+	}
+
 	// Game state
 
 	public GameState getGameState() {
@@ -583,8 +592,8 @@ public final class Game {
 		return gameState.isLevelActive(name);
 	}
 
-	public void addLevel(String name) {
-		gameState.addLevel(name);
+	public Level addLevel(String name) {
+		return gameState.addLevel(name);
 	}
 
 	public void activateLevel(String name) {
@@ -598,7 +607,7 @@ public final class Game {
 	public void destroyLevel(String name) {
 		gameState.destroyLevel(name);
 	}
-	
+
 	public Level getLevel(String name) {
 		return gameState.getLevel(name);
 	}

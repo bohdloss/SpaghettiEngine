@@ -10,7 +10,7 @@ import com.spaghetti.objects.Camera;
  * <p>
  * The class holds data that is necessary for the client and doesn't often need
  * server synchronization
- * 
+ *
  * @author bohdloss
  *
  */

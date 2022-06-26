@@ -2,20 +2,21 @@ package com.spaghetti.events;
 
 import java.util.ArrayList;
 
-import com.spaghetti.core.*;
-import com.spaghetti.interfaces.*;
-import com.spaghetti.networking.*;
-import com.spaghetti.utils.*;
+import com.spaghetti.core.Game;
+import com.spaghetti.interfaces.EventHandler;
+import com.spaghetti.interfaces.SignalHandler;
+import com.spaghetti.networking.ConnectionManager;
+import com.spaghetti.utils.Logger;
 
 public class EventDispatcher {
-	
+
 	// Reference to owner
 	protected final Game game;
-	
+
 	// Handlers
 	protected ArrayList<SignalHandler> signalHandlers = new ArrayList<>();
 	protected ArrayList<EventHandler> eventHandlers = new ArrayList<>();
-	
+
 	public EventDispatcher(Game game) {
 		this.game = game;
 	}
@@ -64,7 +65,7 @@ public class EventDispatcher {
 	protected void dispatchEvent(GameEvent event) {
 		game.getUpdaterDispatcher().queue(() -> {
 			event.setFrom(game.isClient() ? GameEvent.SERVER : GameEvent.CLIENT);
-	
+
 			if (eventHandlers.size() == 0) {
 				Logger.info(game,
 						"Event " + event.getClass().getSimpleName() + " (from "

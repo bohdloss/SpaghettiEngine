@@ -1,13 +1,21 @@
 package com.spaghetti.networking;
 
-import java.lang.reflect.*;
+import java.lang.reflect.Constructor;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.HashMap;
 
-import com.spaghetti.core.*;
-import com.spaghetti.events.*;
-import com.spaghetti.interfaces.*;
-import com.spaghetti.utils.*;
+import com.spaghetti.core.Game;
+import com.spaghetti.core.GameComponent;
+import com.spaghetti.core.GameObject;
+import com.spaghetti.core.Level;
+import com.spaghetti.events.EventDispatcher;
+import com.spaghetti.events.GameEvent;
+import com.spaghetti.interfaces.Replicable;
+import com.spaghetti.utils.FunctionDispatcher;
+import com.spaghetti.utils.Logger;
+import com.spaghetti.utils.Utils;
 
 public class ConnectionManager {
 
@@ -380,7 +388,7 @@ public class ConnectionManager {
 		if (!GameObject.class.isAssignableFrom(objclass)) {
 			throw new IllegalStateException("Invalid GameObject class");
 		}
-		
+
 		// Attempt to retrieve object from level
 		GameObject object = level.getObject(id);
 
@@ -412,7 +420,7 @@ public class ConnectionManager {
 		}
 		// Remove DELETE flag, used later when checking for out-dated objects
 		me_osetflag.invoke(object, GameObject.DELETE, false);
-		
+
 		// Iterate through components
 		int comp_id = -1;
 		while ((comp_id = r_buffer.getInt()) != -1) {
@@ -433,7 +441,7 @@ public class ConnectionManager {
 			if (component == null) {
 
 				// Build a new instance of it
-				component = (GameComponent) cachedGCConstructor(compclass).newInstance();
+				component = cachedGCConstructor(compclass).newInstance();
 
 				// Set id
 				f_cid.set(component, comp_id);
@@ -467,7 +475,7 @@ public class ConnectionManager {
 			}
 			parent = parent.getParent();
 		}
-		
+
 		endpoint.reliable = true;
 		w_buffer.putByte(Opcode.OBJECT_TREE);
 		w_buffer.putInt(object.getParent() == null ? -1 : object.getParent().getId());
@@ -517,7 +525,7 @@ public class ConnectionManager {
 			}
 			parent = parent.getParent();
 		}
-		
+
 		endpoint.reliable = true;
 		w_buffer.putByte(Opcode.OBJECT_DESTROY);
 		w_buffer.putBoolean(false); // Component flag
@@ -537,8 +545,8 @@ public class ConnectionManager {
 			}
 			parent = parent.getParent();
 		}
-		
-		
+
+
 		endpoint.reliable = true;
 		w_buffer.putByte(Opcode.OBJECT_DESTROY);
 		w_buffer.putBoolean(true); // Component flag
@@ -585,13 +593,13 @@ public class ConnectionManager {
 		if (!needsReplication(obj) || obj.isLocal()) {
 			return;
 		}
-		
+
 		// Metadata
 		w_buffer.putByte(Opcode.GAMEOBJECT);
 		w_buffer.putInt(obj.getId());
 		int pos = w_buffer.getPosition();
 		w_buffer.skip(Short.BYTES); // Allocate memory for skip destination
-		
+
 		// Perform write
 		writeReplicable(obj);
 
@@ -609,7 +617,7 @@ public class ConnectionManager {
 		if(skip < 0) {
 			throw new IllegalStateException("Negative skip value");
 		}
-		
+
 		// Attempt to retrieve object
 		GameObject obj = level.getObject(id);
 
@@ -628,13 +636,13 @@ public class ConnectionManager {
 		if (!needsReplication(comp) || comp.isLocal()) {
 			return;
 		}
-		
+
 		// Metadata
 		w_buffer.putByte(Opcode.GAMEOBJECT);
 		w_buffer.putInt(comp.getId());
 		int pos = w_buffer.getPosition();
 		w_buffer.skip(Short.BYTES); // Allocate memory for skip destination
-		
+
 		// Perform write
 		writeReplicable(comp);
 
@@ -652,7 +660,7 @@ public class ConnectionManager {
 		if(skip < 0) {
 			throw new IllegalStateException("Negative skip value");
 		}
-		
+
 		// Attempt to retrieve object
 		GameComponent comp = level.getComponent(id);
 
@@ -693,7 +701,7 @@ public class ConnectionManager {
 		}
 
 		// Allocate event
-		GameEvent event = (GameEvent) cachedGEConstructor(eventclass).newInstance();
+		GameEvent event = cachedGEConstructor(eventclass).newInstance();
 		f_eid.set(event, event_id);
 
 		// Retrieve event and function dispatchers
@@ -718,10 +726,10 @@ public class ConnectionManager {
 		NetworkBuffer w_buffer = w_buffer();
 		// Is this reliable?
 		endpoint.reliable |= rpc.isReliable();
-		
+
 		// Cache this for the moment we receive a callback
 		rpc_cache.put(rpc.getId(), rpc);
-		
+
 		// Write metadata
 		w_buffer.putInt(rpc.getId());
 		w_buffer.putString(true, rpc.getClass().getName(), NetworkBuffer.UTF_8);
@@ -743,7 +751,7 @@ public class ConnectionManager {
 		}
 
 		// Allocate procedure
-		RemoteProcedure rpc = (RemoteProcedure) cachedRPConstructor(cls).newInstance();
+		RemoteProcedure rpc = cachedRPConstructor(cls).newInstance();
 		f_rpcid.set(rpc, id);
 
 		// Read arguments
@@ -763,7 +771,7 @@ public class ConnectionManager {
 	public void writeRemoteProcedureResponse(RemoteProcedure rpc) {
 		NetworkBuffer w_buffer = w_buffer();
 		endpoint.reliable |= rpc.isReliable();
-		
+
 		if (rpc.hasReturnValue()) {
 			// Write response metadata
 			w_buffer.putByte(Opcode.RP_RESPONSE);
@@ -945,7 +953,7 @@ public class ConnectionManager {
 	public Level getLevel() {
 		return player.getLevel();
 	}
-	
+
 	public NetworkCore getCore() {
 		return core;
 	}
@@ -957,21 +965,21 @@ public class ConnectionManager {
 	public void setForceReplication(boolean forceReplication) {
 		this.forceReplication = forceReplication;
 	}
-	
+
 	public NetworkBuffer w_buffer() {
 		return endpoint.w_buffer;
 	}
-	
+
 	public NetworkBuffer r_buffer() {
 		return endpoint.r_buffer;
 	}
-	
+
 	public void setEndpoint(ConnectionEndpoint endpoint) {
 		this.endpoint = endpoint;
 	}
-	
+
 	public ConnectionEndpoint getEndpoint() {
 		return endpoint;
 	}
-	
+
 }

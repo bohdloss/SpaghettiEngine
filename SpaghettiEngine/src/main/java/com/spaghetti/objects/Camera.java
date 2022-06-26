@@ -5,10 +5,11 @@ import org.joml.Vector2i;
 import org.joml.Vector3f;
 import org.lwjgl.opengl.GL11;
 
-import com.spaghetti.core.*;
+import com.spaghetti.core.GameObject;
 import com.spaghetti.networking.NetworkBuffer;
-import com.spaghetti.render.*;
-import com.spaghetti.utils.*;
+import com.spaghetti.render.FrameBuffer;
+import com.spaghetti.utils.CMath;
+import com.spaghetti.utils.Transform;
 
 public class Camera extends GameObject {
 
@@ -32,7 +33,7 @@ public class Camera extends GameObject {
 	public Camera() {
 		setVisible(true);
 	}
-	
+
 	protected void setProjectionMatrix() {
 		projection.identity().setOrtho(-width / 2, width / 2, -height / 2, height / 2, -1000, 1000);
 		calcScale();
@@ -181,15 +182,15 @@ public class Camera extends GameObject {
 	public void readDataClient(NetworkBuffer buffer) {
 		super.readDataClient(buffer);
 		fov = buffer.getFloat();
-		
+
 		byte flags = buffer.getByte();
-		
+
 		clearColor = (flags & 1) == 1;
 		clearDepth = (flags & (1 << 1)) == 1;
 		clearStencil = (flags & (1 << 2)) == 1;
 		usePosition = (flags & (1 << 3)) == 1;
 		useRotation = (flags & (1 << 4)) == 1;
-		
+
 		calcScale();
 	}
 
@@ -197,14 +198,14 @@ public class Camera extends GameObject {
 	public void writeDataServer(NetworkBuffer buffer) {
 		super.writeDataServer(buffer);
 		buffer.putFloat(fov);
-		
+
 		byte flags = 0;
 		flags |= (clearColor ? 1 : 0);
 		flags |= (clearDepth ? 1 : 0) << 1;
 		flags |= (clearStencil ? 1 : 0) << 2;
 		flags |= (usePosition ? 1 : 0) << 3;
 		flags |= (useRotation ? 1 : 0) << 4;
-		
+
 		buffer.putByte(flags);
 	}
 

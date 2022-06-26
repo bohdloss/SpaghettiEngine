@@ -6,7 +6,6 @@ import com.spaghetti.audio.Sound;
 import com.spaghetti.audio.SoundSource;
 import com.spaghetti.core.Game;
 import com.spaghetti.core.GameObject;
-import com.spaghetti.networking.ConnectionManager;
 import com.spaghetti.networking.RemoteProcedure;
 import com.spaghetti.objects.Mesh;
 import com.spaghetti.render.Material;

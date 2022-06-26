@@ -36,7 +36,7 @@ public class TextureLoader implements AssetLoader {
 		ByteBuffer image_data_copy = MemoryUtil.memAlloc(image_data.capacity()); // Asset's responsibility to dispose of
 																					// this
 		MemoryUtil.memCopy(image_data, image_data_copy);
-		;
+
 		STBImage.stbi_image_free(image_data);
 
 		int type = Texture.COLOR;

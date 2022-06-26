@@ -2,8 +2,8 @@ package com.spaghetti.events;
 
 import com.spaghetti.core.Game;
 import com.spaghetti.interfaces.Replicable;
-import com.spaghetti.networking.NetworkBuffer;
 import com.spaghetti.networking.ConnectionManager;
+import com.spaghetti.networking.NetworkBuffer;
 import com.spaghetti.utils.IdProvider;
 
 public abstract class GameEvent implements Replicable {

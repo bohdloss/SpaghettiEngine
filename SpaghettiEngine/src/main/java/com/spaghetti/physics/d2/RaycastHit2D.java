@@ -1,7 +1,8 @@
 package com.spaghetti.physics.d2;
 
-import com.spaghetti.physics.RaycastHit;
 import org.joml.Vector2f;
+
+import com.spaghetti.physics.RaycastHit;
 
 public class RaycastHit2D extends RaycastHit<Vector2f, Float, RigidBody2D> {
 

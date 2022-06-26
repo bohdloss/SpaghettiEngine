@@ -1,12 +1,13 @@
 package com.spaghetti.audio;
 
 import org.joml.Vector3f;
-import org.lwjgl.openal.*;
+import org.lwjgl.openal.AL10;
 
 import com.spaghetti.core.GameObject;
 import com.spaghetti.networking.NetworkBuffer;
 import com.spaghetti.objects.Camera;
-import com.spaghetti.utils.*;
+import com.spaghetti.utils.Transform;
+import com.spaghetti.utils.Utils;
 
 public class SoundSource extends GameObject {
 
@@ -131,7 +132,7 @@ public class SoundSource extends GameObject {
 		Vector3f currentpos = transform.position;
 		Vector3f currentvel = new Vector3f();
 		currentpos.sub(lastpos, currentvel);
-		
+
 		lastpos.set(currentpos);
 		AL10.alSource3f(id, AL10.AL_POSITION, currentpos.x, currentpos.y, currentpos.z);
 		if (delta != 0) { // Avoid getting Infinity or NaN as velocity

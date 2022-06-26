@@ -7,6 +7,7 @@ import java.nio.ByteOrder;
 
 import org.lwjgl.BufferUtils;
 import org.lwjgl.openal.AL10;
+
 import com.spaghetti.interfaces.StreamProvider;
 import com.spaghetti.utils.Logger;
 import com.spaghetti.utils.Utils;

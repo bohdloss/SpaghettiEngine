@@ -1,7 +1,8 @@
 package com.spaghetti.demo.player;
 
 import com.spaghetti.core.GameObject;
-import com.spaghetti.input.*;
+import com.spaghetti.input.Keyboard;
+import com.spaghetti.input.KeyboardInput;
 import com.spaghetti.objects.Camera;
 import com.spaghetti.objects.Mesh;
 import com.spaghetti.physics.d2.RigidBody2D;
@@ -40,15 +41,15 @@ public class Player extends GameObject {
 			getGame().setLocalCamera(camera);
 
 			// Initialize controller
-//			addComponent(controller = new PlayerController());
-//			addComponent(input = createKeyBindings());
-//			input.bindController(controller);
+			addComponent(controller = new PlayerController());
+			addComponent(input = createKeyBindings());
+			input.bindController(controller);
 
 			// Initialize body
-//			body = new RigidBody2D();
-//			addComponent(body);
-//			body.setCanRotate(false);
-//			body.setFriction(0.3f);
+			body = new RigidBody2D();
+			addComponent(body);
+			body.setCanRotate(false);
+			body.setFriction(0.3f);
 
 			// Initialize player model
 			mesh = new Mesh();

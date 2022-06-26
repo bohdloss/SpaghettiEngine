@@ -9,7 +9,7 @@ public class TCPClient extends ClientCore {
 	public void initialize0() throws Throwable {
 		super.initialize0();
 	}
-	
+
 	@Override
 	public ConnectionEndpoint internal_connectsocket(String ip, int port) throws Throwable {
 		TCPConnection endpoint = new TCPConnection();

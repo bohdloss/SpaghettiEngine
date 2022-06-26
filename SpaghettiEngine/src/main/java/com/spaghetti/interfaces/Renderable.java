@@ -1,7 +1,5 @@
 package com.spaghetti.interfaces;
 
-import org.joml.Vector3f;
-
 import com.spaghetti.objects.Camera;
 import com.spaghetti.utils.Transform;
 

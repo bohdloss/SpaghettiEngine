@@ -22,9 +22,9 @@ public class OnClientKicked extends GameEvent {
 	public long getClientId() {
 		return clientId;
 	}
-	
+
 	public String getReason() {
 		return reason;
 	}
-	
+
 }

@@ -20,5 +20,5 @@ public class OnClientUnbanned extends GameEvent {
 	public long getClientId() {
 		return clientId;
 	}
-	
+
 }

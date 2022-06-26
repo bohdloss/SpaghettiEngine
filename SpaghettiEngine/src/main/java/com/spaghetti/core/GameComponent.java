@@ -1,8 +1,10 @@
 package com.spaghetti.core;
 
-import com.spaghetti.interfaces.*;
-import com.spaghetti.networking.NetworkBuffer;
+import com.spaghetti.interfaces.Renderable;
+import com.spaghetti.interfaces.Replicable;
+import com.spaghetti.interfaces.Updatable;
 import com.spaghetti.networking.ConnectionManager;
+import com.spaghetti.networking.NetworkBuffer;
 import com.spaghetti.objects.Camera;
 import com.spaghetti.utils.IdProvider;
 import com.spaghetti.utils.Logger;
@@ -22,20 +24,20 @@ public abstract class GameComponent implements Updatable, Renderable, Replicable
 			return Utils.bitAt(flags, flag);
 		}
 	}
-	
+
 	public final void triggerAlloc() {
 		if(!getGame().isHeadless() && getRenderCacheIndex() == -1) {
 			setRenderCacheIndex(getGame().getRenderer().allocCache());
 		}
 	}
-	
+
 	public final void triggerDealloc() {
 		if(!getGame().isHeadless() && getRenderCacheIndex() != -1) {
 			getGame().getRenderer().deallocCache(getRenderCacheIndex());
 			setRenderCacheIndex(-1);
 		}
 	}
-	
+
 	// O is attached flag
 	public static final int ATTACHED = 0;
 	// 1 is destroyed flag
@@ -134,10 +136,10 @@ public abstract class GameComponent implements Updatable, Renderable, Replicable
 		} else {
 			transform = getGame().getRenderer().getCache(cache_index);
 		}
-		
+
 		render(renderer, delta, transform);
 	}
-	
+
 	@Override
 	public void render(Camera renderer, float delta, Transform transform) {
 	}
@@ -149,7 +151,7 @@ public abstract class GameComponent implements Updatable, Renderable, Replicable
 		if(!internal_getflag(AWAKE)) {
 			return;
 		}
-		
+
 		commonUpdate(delta);
 		if (getGame().isClient()) {
 			clientUpdate(delta);
@@ -222,7 +224,7 @@ public abstract class GameComponent implements Updatable, Renderable, Replicable
 	public final boolean isVisible() {
 		return internal_getflag(VISIBLE);
 	}
-	
+
 	public final void setVisible(boolean visible) {
 		internal_setflag(VISIBLE, visible);
 		if(isInitialized() && visible) {
@@ -231,15 +233,15 @@ public abstract class GameComponent implements Updatable, Renderable, Replicable
 			triggerDealloc();
 		}
 	}
-	
+
 	public final boolean isAwake() {
 		return internal_getflag(AWAKE);
 	}
-	
+
 	public final void setAwake(boolean awake) {
 		internal_setflag(AWAKE, awake);
 	}
-	
+
 	public final void setRenderCacheIndex(int index) {
 		synchronized(flags_lock) {
 			int mask = Integer.MAX_VALUE >> 16;
@@ -248,13 +250,13 @@ public abstract class GameComponent implements Updatable, Renderable, Replicable
 			flags |= write;
 		}
 	}
-	
+
 	public final int getRenderCacheIndex() {
 		synchronized(flags_lock) {
 			return flags >> 16;
 		}
 	}
-	
+
 	// Override for more precise control
 	@Override
 	public boolean needsReplication(ConnectionManager connection) {

@@ -2,9 +2,11 @@ package com.spaghetti.demo;
 
 import org.joml.Vector2i;
 
-import com.spaghetti.core.*;
-import com.spaghetti.networking.tcp.*;
-import com.spaghetti.render.*;
+import com.spaghetti.core.Game;
+import com.spaghetti.core.GameBuilder;
+import com.spaghetti.networking.tcp.TCPClient;
+import com.spaghetti.networking.tcp.TCPServer;
+import com.spaghetti.render.RendererCore;
 
 public class MultiplayerDemo {
 

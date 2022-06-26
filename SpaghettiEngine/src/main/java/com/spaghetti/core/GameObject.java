@@ -6,9 +6,12 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 
 import org.joml.Vector3f;
-import com.spaghetti.interfaces.*;
-import com.spaghetti.networking.NetworkBuffer;
+
+import com.spaghetti.interfaces.Renderable;
+import com.spaghetti.interfaces.Replicable;
+import com.spaghetti.interfaces.Updatable;
 import com.spaghetti.networking.ConnectionManager;
+import com.spaghetti.networking.NetworkBuffer;
 import com.spaghetti.objects.Camera;
 import com.spaghetti.utils.IdProvider;
 import com.spaghetti.utils.Logger;
@@ -70,13 +73,13 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 			return Utils.bitAt(flags, flag);
 		}
 	}
-	
+
 	public final void triggerAlloc() {
 		if(!getGame().isHeadless() && getRenderCacheIndex() == -1) {
 			setRenderCacheIndex(getGame().getRenderer().allocCache());
 		}
 	}
-	
+
 	public final void triggerAllocRecursive() {
 		if(!getGame().isHeadless()) {
 			triggerAlloc();
@@ -84,14 +87,14 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 			children.forEach((id, object) -> object.triggerAllocRecursive());
 		}
 	}
-	
+
 	public final void triggerDealloc() {
 		if(!getGame().isHeadless() && getRenderCacheIndex() != -1) {
 			getGame().getRenderer().deallocCache(getRenderCacheIndex());
 			setRenderCacheIndex(-1);
 		}
 	}
-	
+
 	public final void triggerDeallocRecursive() {
 		if(!getGame().isHeadless()) {
 			triggerDealloc();
@@ -99,7 +102,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 			children.forEach((id, object) -> object.triggerDeallocRecursive());
 		}
 	}
-	
+
 	public final void forEachChild(BiConsumer<Integer, GameObject> consumer) {
 		children.forEach(consumer);
 	}
@@ -645,33 +648,33 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 	public final boolean isVisible() {
 		return internal_getflag(VISIBLE);
 	}
-	
+
 	public final void setVisible(boolean visible) {
 		// Change flag and synchronize with cache
 		internal_setflag(VISIBLE, visible);
 		if(isInitialized() && visible) {
 			triggerAlloc();
-			
+
 			// Force an update on components and children since this object is now visible
 			components.forEach((id, component) -> component.setVisible(component.isVisible()));
 			children.forEach((id, object) -> object.setVisible(object.isVisible()));
 		} else {
 			triggerDealloc();
-			
+
 			// Deallocate all components and children cache since this object is now invisible
 			triggerDeallocRecursive();
 		}
-		
+
 	}
-	
+
 	public final boolean isAwake() {
 		return internal_getflag(AWAKE);
 	}
-	
+
 	public final void setAwake(boolean awake) {
 		internal_setflag(AWAKE, awake);
 	}
-	
+
 	public final void setRenderCacheIndex(int index) {
 		synchronized(flags_lock) {
 			int mask = Integer.MAX_VALUE >> 16;
@@ -680,13 +683,13 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 			flags |= write;
 		}
 	}
-	
+
 	public final int getRenderCacheIndex() {
 		synchronized(flags_lock) {
 			return flags >> 16;
 		}
 	}
-	
+
 	// Override for more precise control
 	@Override
 	public boolean needsReplication(ConnectionManager connection) {
@@ -698,7 +701,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 	protected final void setReplicateFlag(boolean flag) {
 		internal_setflag(REPLICATE, flag);
 	}
-	
+
 	// World interaction
 
 	protected final Vector3f relativePosition = new Vector3f();
@@ -1140,7 +1143,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		if(!internal_getflag(AWAKE)) {
 			return;
 		}
-		
+
 		components.forEach((id, component) -> {
 			if (component != null) {
 				component.update(delta);
@@ -1166,7 +1169,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 	 * trigger errors or, in the worst scenario, a SIGSEGV signal (Segmentation
 	 * fault) shutting down the entire server (Which might even be a dedicated
 	 * server as a whole)
-	 * 
+	 *
 	 * @param delta
 	 */
 	protected void serverUpdate(float delta) {
@@ -1176,7 +1179,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 	/**
 	 * Here doing such things may still cause exceptions or weird and hard to debug
 	 * errors so by design it is best not to include such code in update methods
-	 * 
+	 *
 	 * @param delta
 	 */
 	protected void clientUpdate(float delta) {
@@ -1186,7 +1189,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 	/**
 	 * Happens on both server and client regardless So follow all the warnings
 	 * reported on the serverUpdate method plus the ones on clientUpdate
-	 * 
+	 *
 	 * @param delta
 	 */
 	protected void commonUpdate(float delta) {
@@ -1197,7 +1200,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		if(!internal_getflag(VISIBLE)) {
 			return;
 		}
-		
+
 		components.forEach((id, component) -> {
 			if (component != null) {
 				component.render(renderer, delta);
@@ -1215,7 +1218,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 		} else {
 			transform = getGame().getRenderer().getCache(cache_index);
 		}
-		
+
 		if(this != renderer) {
 			render(renderer, delta, transform);
 		}
@@ -1225,7 +1228,7 @@ public abstract class GameObject implements Updatable, Renderable, Replicable {
 			}
 		});
 	}
-	
+
 	@Override
 	public void render(Camera renderer, float delta, Transform transform) {
 	}

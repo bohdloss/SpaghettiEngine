@@ -5,7 +5,7 @@ import com.spaghetti.networking.NetworkBuffer;
 
 /**
  * Physics is the base class for any n-dimensional physics library
- * 
+ *
  * @author bohdloss
  */
 public abstract class Physics extends GameObject {
@@ -19,7 +19,7 @@ public abstract class Physics extends GameObject {
 
 	/**
 	 * Advance the physics simulation by a given amount of time
-	 * 
+	 *
 	 * @param delta The time in milliseconds
 	 */
 	public abstract void solve(float delta);
@@ -27,7 +27,7 @@ public abstract class Physics extends GameObject {
 	/**
 	 * Cast a ray from {@code request.beginning} to {@code request.end} and save the
 	 * results in {@code request.hits}
-	 * 
+	 *
 	 * @param request The {@link RaycastRequest} object
 	 */
 	public abstract void raycast(RaycastRequest<?, ?, ?> request);
@@ -38,14 +38,14 @@ public abstract class Physics extends GameObject {
 
 	/**
 	 * Retrieves the amount of physic bodies currently in the world
-	 * 
+	 *
 	 * @return The amount of bodies
 	 */
 	public abstract int getBodyCount();
 
 	/**
 	 * Retrieves the physic body at the given index in the body list
-	 * 
+	 *
 	 * @param index The index of the body to retrieve
 	 * @return The body at that position
 	 */
@@ -55,14 +55,14 @@ public abstract class Physics extends GameObject {
 
 	/**
 	 * Retrieves the world's current gravitational acceleration vector
-	 * 
+	 *
 	 * @param pointer The vector the gravity value will be saved in
 	 */
 	public abstract void getGravity(Object pointer);
 
 	/**
 	 * Changes the world's gravitational acceleration vector
-	 * 
+	 *
 	 * @param vec The new gravity vector
 	 */
 	public abstract void setGravity(Object vec);

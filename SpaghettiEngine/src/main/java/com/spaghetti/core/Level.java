@@ -1,14 +1,14 @@
 package com.spaghetti.core;
 
-import java.lang.reflect.*;
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
 import java.util.ArrayList;
 import java.util.ConcurrentModificationException;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 import java.util.function.Consumer;
 
-import com.spaghetti.interfaces.*;
-import com.spaghetti.networking.*;
+import com.spaghetti.interfaces.Updatable;
 import com.spaghetti.render.RendererCore;
 import com.spaghetti.utils.Transform;
 import com.spaghetti.utils.Utils;
@@ -32,7 +32,7 @@ public final class Level implements Updatable {
 	public Level(String name) {
 		this.name = name;
 	}
-	
+
 	protected void onBeginPlay() {
 		for (GameObject obj : objects) {
 			obj.onbegin_forward();
@@ -178,7 +178,7 @@ public final class Level implements Updatable {
 					object.update(delta);
 				}
 			});
-			
+
 			// Attempt to update render cache
 			RendererCore renderer = getGame().getRenderer();
 			if(!getGame().isHeadless() && !renderer.isFrameFlag()) {
@@ -186,9 +186,9 @@ public final class Level implements Updatable {
 					o_ordered.forEach((id, object) -> {
 						if (object != null) {
 							int cache_index = object.getRenderCacheIndex();
-							
+
 							if(cache_index != -1) {
-								
+
 								Transform transform = renderer.getCache(cache_index);
 								object.getWorldPosition(transform.position);
 								object.getWorldRotation(transform.rotation);
@@ -196,13 +196,13 @@ public final class Level implements Updatable {
 							}
 						}
 					});
-					
+
 					c_ordered.forEach((id, component) -> {
 						if (component != null) {
 							int cache_index = component.getRenderCacheIndex();
-							
+
 							if(cache_index != -1) {
-								
+
 								GameObject object = component.getOwner();
 								Transform transform = renderer.getCache(cache_index);
 								object.getWorldPosition(transform.position);

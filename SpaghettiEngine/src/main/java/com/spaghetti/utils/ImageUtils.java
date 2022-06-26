@@ -8,7 +8,7 @@ import org.lwjgl.system.MemoryUtil;
 /**
  * ImageUtils is a namespace for functions related to image manipulation through
  * ByteBuffer's
- * 
+ *
  * @author bohdloss
  *
  */
@@ -21,7 +21,7 @@ public final class ImageUtils {
 	 * Allocates a new ByteBuffer on the heap for a RGBA formatted image, having a
 	 * size of {@code width * height * 4} bytes <br>
 	 * The returned ByteBuffer is not guaranteed to be zeroed
-	 * 
+	 *
 	 * @param width  The width of the image
 	 * @param height The height of the image
 	 * @return The ByteBuffer representing the allocated image
@@ -34,7 +34,7 @@ public final class ImageUtils {
 	 * Deallocates the specified ByteBuffer image from the heap <br>
 	 * Freeing a ByteBuffer allocated in any other method other than with
 	 * {@link #allocateImage(int, int)} will result in undefined behavior
-	 * 
+	 *
 	 * @param image
 	 */
 	public static void freeImage(ByteBuffer image) {
@@ -46,7 +46,7 @@ public final class ImageUtils {
 	 * If passed {@code null} as the output parameter a new buffer will be allocated
 	 * with {@link #allocateImage(int, int)} using the size of the image as
 	 * arguments
-	 * 
+	 *
 	 * @param image  The image to convert
 	 * @param output The ByteBuffer to store the result in
 	 * @return The converted byte buffer

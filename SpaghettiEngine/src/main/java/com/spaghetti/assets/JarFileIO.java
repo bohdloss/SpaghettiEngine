@@ -3,8 +3,11 @@ package com.spaghetti.assets;
 import java.nio.ByteBuffer;
 
 import org.lwjgl.BufferUtils;
-import org.lwjgl.assimp.*;
+import org.lwjgl.assimp.AIFile;
+import org.lwjgl.assimp.AIFileIO;
+import org.lwjgl.assimp.Assimp;
 import org.lwjgl.system.MemoryUtil;
+
 import com.spaghetti.utils.Logger;
 import com.spaghetti.utils.ResourceLoader;
 

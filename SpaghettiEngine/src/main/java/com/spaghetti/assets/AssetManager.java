@@ -2,12 +2,19 @@ package com.spaghetti.assets;
 
 import java.util.HashMap;
 
-import com.spaghetti.audio.*;
-import com.spaghetti.core.*;
-import com.spaghetti.events.*;
-import com.spaghetti.interfaces.*;
-import com.spaghetti.render.*;
-import com.spaghetti.utils.*;
+import com.spaghetti.audio.Sound;
+import com.spaghetti.core.Game;
+import com.spaghetti.events.Signals;
+import com.spaghetti.interfaces.AssetLoader;
+import com.spaghetti.render.Material;
+import com.spaghetti.render.Model;
+import com.spaghetti.render.Shader;
+import com.spaghetti.render.ShaderProgram;
+import com.spaghetti.render.Texture;
+import com.spaghetti.utils.FunctionDispatcher;
+import com.spaghetti.utils.Logger;
+import com.spaghetti.utils.ResourceLoader;
+import com.spaghetti.utils.Utils;
 
 /**
  * A class that manages assets and their dependencies, including loading and
@@ -23,7 +30,7 @@ import com.spaghetti.utils.*;
  * {@link #destroy()}<br>
  * This class is still usable (by calling the three methods listed before) after
  * {@link #destroy()}
- * 
+ *
  * @author bohdloss
  */
 public class AssetManager {
@@ -71,7 +78,7 @@ public class AssetManager {
 	 * this class nor it's subclasses
 	 * <p>
 	 * Refer to the documentation of {@link #GameBuilder}
-	 * 
+	 *
 	 * @param game The game this asset manager is to be associated with
 	 */
 	public AssetManager(Game game) {
@@ -104,7 +111,7 @@ public class AssetManager {
 	 * This method attempts to fill an asset with the data associated with it, and
 	 * if it fails, it tries to fill it with its default data. If both operations
 	 * fail, it must throw a {@link RuntimeException}
-	 * 
+	 *
 	 * @param asset The asset to fill
 	 */
 	protected void fillAsset(SheetEntry asset) {
@@ -158,7 +165,7 @@ public class AssetManager {
 	 * <p>
 	 * On success, this method must call destroy first, and then register all the
 	 * assets, and after that the {@code ready} flag must be set
-	 * 
+	 *
 	 * @param sheetLocation The relative location to read the file from
 	 * @return Whether or not the operation succeeded
 	 */
@@ -244,7 +251,7 @@ public class AssetManager {
 		 * The only function provided by this interface is similar to
 		 * {@link AssetManager}'s load operations so as to allow them being passed as
 		 * lambda and converted into a {@link LoadFunction} easily
-		 * 
+		 *
 		 * @param name The name of the asset to load
 		 * @return The value returned by the load operation, representing failure or
 		 *         success
@@ -256,7 +263,7 @@ public class AssetManager {
 	 * This methods retrieves and possibly loads the dependencies of a given
 	 * {@code asset} using the provided {@code loadFunc} when loading is considered
 	 * necessary
-	 * 
+	 *
 	 * @param asset    The asset whose dependencies to load
 	 * @param loadFunc The function to load the dependencies with
 	 * @return Whether or not at least one dependency had to be loaded
@@ -302,13 +309,13 @@ public class AssetManager {
 	 * issues, using {@link #loadAssetNow(String)}
 	 * <p>
 	 * No guarantee is made as to when or if the asset will succeed or fail to load
-	 * 
+	 *
 	 * @param name The name of the asset to load
 	 * @return Returns {@code true} if the asset is being loaded, {@code false} if
 	 *         the request has been discarded
 	 */
 	public boolean loadAssetLazy(String name) {
-		Logger.loading("[loadAssetLazy] " + name);
+		Logger.debug("[loadAssetLazy] " + name);
 		if (!checkAsset(name) || game.isHeadless()) {
 			return false;
 		}
@@ -371,7 +378,7 @@ public class AssetManager {
 	 * <p>
 	 * It is guaranteed that when this function returns, the asset will have either
 	 * succeeded or failed in loading
-	 * 
+	 *
 	 * @param name The name of the asset to load
 	 * @return Returns {@code true} if the asset has been successfully loaded,
 	 *         {@code false} otherwise
@@ -432,7 +439,7 @@ public class AssetManager {
 	 * It is guaranteed that when this function returns, the asset will have either
 	 * succeeded or failed in loading, unless the current thread is not the RENDERER
 	 * thread
-	 * 
+	 *
 	 * @param name The name of the asset to load
 	 * @return Returns {@code true} if the asset has been successfully loaded,
 	 *         {@code false} otherwise or if the current thread is not the RENDERER
@@ -492,7 +499,7 @@ public class AssetManager {
 	 * parameter<br>
 	 * Else {@link #loadAssetNow(String)} will be called with {@code name} as the
 	 * parameter
-	 * 
+	 *
 	 * @param name The name of the asset to load
 	 * @param lazy Whether or not the user prefers a lazy load method
 	 * @return Returns the value returned by the chosen function
@@ -516,7 +523,7 @@ public class AssetManager {
 	 * <p>
 	 * The implementation of this method makes use of
 	 * {@link #loadAssetAuto(String, boolean)}
-	 * 
+	 *
 	 * @param lazy The {@code lazy} parameter that will be forwarded to
 	 *             {@link #loadAssetAuto(String, boolean)}
 	 * @return This function performs a bitwise AND between each call to
@@ -546,7 +553,7 @@ public class AssetManager {
 	 * <p>
 	 * If the unloading process fails, the asset may still be flagged as unloaded,
 	 * as defined by {@link Asset#unload()}
-	 * 
+	 *
 	 * @param name The name of the asset to unload
 	 * @return Returns {@code true} if the asset has been successfully unloaded,
 	 *         {@code false} otherwise
@@ -602,7 +609,7 @@ public class AssetManager {
 	 * <p>
 	 * If the unloading process fails, the asset may still be flagged as unloaded,
 	 * as defined by {@link Asset#unload()}
-	 * 
+	 *
 	 * @param name The name of the asset to unload
 	 * @return Returns {@code true} if the asset has been successfully unloaded,
 	 *         {@code false} otherwise or if the current thread is not the RENDERER
@@ -650,7 +657,7 @@ public class AssetManager {
 	 * parameter<br>
 	 * Else {@link #unloadAssetNow(String)} will be called with {@code name} as the
 	 * parameter
-	 * 
+	 *
 	 * @param name The name of the asset to unload
 	 * @return Returns the value returned by the chosen function
 	 */
@@ -669,7 +676,7 @@ public class AssetManager {
 	 * <p>
 	 * The implementation of this method makes use of
 	 * {@link #unloadAssetAuto(String)}
-	 * 
+	 *
 	 * @return This function performs a bitwise AND between each call to
 	 *         {@link #unloadAssetAuto(String)}, so if any of the calls to said
 	 *         function fails, {@code false} will be returned at the end of the
@@ -694,7 +701,7 @@ public class AssetManager {
 
 	/**
 	 * Retrieves the type of the asset denoted by {@code name} and returns it
-	 * 
+	 *
 	 * @param name The name of the asset
 	 * @return The type of the asset
 	 * @throws NullPointerException If the asset is not present
@@ -709,7 +716,7 @@ public class AssetManager {
 	/**
 	 * Registers a custom {@code loader} for the given {@code assetType}<br>
 	 * This method can override existing loaders and default loaders
-	 * 
+	 *
 	 * @param assetType The asset type to register the loader for
 	 * @param loader    The {@link AssetLoader}
 	 * @throws IllegalArgumentException If either {@code assetType} or
@@ -725,7 +732,7 @@ public class AssetManager {
 	/**
 	 * Unregisters a loader for the given {@code assetType}<br>
 	 * This method can unregister existing loaders and default loaders
-	 * 
+	 *
 	 * @param assetType The asset type to unregister the loader for
 	 * @throws IllegalArgumentException If {@code assetType} is null
 	 */
@@ -744,7 +751,7 @@ public class AssetManager {
 	 * You can use this method to override existing assets, even internal ones
 	 * <p>
 	 * The ready flag will be set after this operation succeeds
-	 * 
+	 *
 	 * @param assetName      The name of the asset to register
 	 * @param assetType      The type of the asset
 	 * @param assetArguments The arguments that will be used when loading it
@@ -788,7 +795,7 @@ public class AssetManager {
 	 * even internal ones
 	 * <p>
 	 * The ready flag will be set after this operation succeeds
-	 * 
+	 *
 	 * @param assetName      The name of the asset to register
 	 * @param assetType      The type of the asset
 	 * @param assetArguments The arguments that will be used when loading it
@@ -830,7 +837,7 @@ public class AssetManager {
 	 * Unregisters an asset entry<br>
 	 * You can use this method to unregister existing assets, even internal ones
 	 * (though it is not recommended)
-	 * 
+	 *
 	 * @param assetName The name of the asset to unregister
 	 * @throws IllegalArgumentException If {@code assetName} is null
 	 */
@@ -845,7 +852,7 @@ public class AssetManager {
 	/**
 	 * This method retrieves and returns the {@link AssetLoader} registered for
 	 * {@code  assetType}
-	 * 
+	 *
 	 * @param assetType The asset type to retrieve the loader for
 	 * @return The {@link AssetLoader}
 	 * @throws IllegalArgumentException If {@code assetType} is null
@@ -861,7 +868,7 @@ public class AssetManager {
 	/**
 	 * Checks for the ready flag and if the asset denoted by {@code name} exists and
 	 * returns {@code true} if both checks succeed
-	 * 
+	 *
 	 * @param name The name of the asset to perform the check on
 	 * @return {@code true} if the checks succeeded, {@code false} otherwise
 	 */
@@ -884,7 +891,7 @@ public class AssetManager {
 	 * returns null if it doesn't<br>
 	 * Otherwise checks if the asset is loaded, and if not it is lazy loaded, then
 	 * it is returned in both cases
-	 * 
+	 *
 	 * @param name The name of the asset
 	 * @return The {@link Asset}
 	 */
@@ -905,7 +912,7 @@ public class AssetManager {
 	 * null if it doesn't<br>
 	 * Otherwise checks if the asset is loaded, and if not it is lazy loaded, then
 	 * it is returned in both cases
-	 * 
+	 *
 	 * @param name The name of the asset
 	 * @return The {@link Asset}
 	 * @throws ClassCastException If the requested asset is not actually of type
@@ -920,7 +927,7 @@ public class AssetManager {
 	 * null if it doesn't<br>
 	 * Otherwise checks if the asset is loaded, and if not it is lazy loaded, then
 	 * it is returned in both cases
-	 * 
+	 *
 	 * @param name The name of the asset
 	 * @return The {@link Asset}
 	 * @throws ClassCastException If the requested asset is not actually of type
@@ -935,7 +942,7 @@ public class AssetManager {
 	 * returns null if it doesn't<br>
 	 * Otherwise checks if the asset is loaded, and if not it is lazy loaded, then
 	 * it is returned in both cases
-	 * 
+	 *
 	 * @param name The name of the asset
 	 * @return The {@link Asset}
 	 * @throws ClassCastException If the requested asset is not actually of type
@@ -950,7 +957,7 @@ public class AssetManager {
 	 * null if it doesn't<br>
 	 * Otherwise checks if the asset is loaded, and if not it is lazy loaded, then
 	 * it is returned in both cases
-	 * 
+	 *
 	 * @param name The name of the asset
 	 * @return The {@link Asset}
 	 * @throws ClassCastException If the requested asset is not actually of type
@@ -965,7 +972,7 @@ public class AssetManager {
 	 * null if it doesn't<br>
 	 * Otherwise checks if the asset is loaded, and if not it is lazy loaded, then
 	 * it is returned in both cases
-	 * 
+	 *
 	 * @param name The name of the asset
 	 * @return The {@link Asset}
 	 * @throws ClassCastException If the requested asset is not actually of type
@@ -980,7 +987,7 @@ public class AssetManager {
 	 * null if it doesn't<br>
 	 * Otherwise checks if the asset is loaded, and if not it is lazy loaded, then
 	 * it is returned in both cases
-	 * 
+	 *
 	 * @param name The name of the asset
 	 * @return The {@link Asset}
 	 * @throws ClassCastException If the requested asset is not actually of type
@@ -997,7 +1004,7 @@ public class AssetManager {
 	 * returns null if it doesn't<br>
 	 * Otherwise checks if the asset is loaded, and if not it is loaded on the fly,
 	 * then it is returned in both cases
-	 * 
+	 *
 	 * @param name The name of the asset
 	 * @return The {@link Asset}
 	 */
@@ -1018,7 +1025,7 @@ public class AssetManager {
 	 * null if it doesn't<br>
 	 * Otherwise checks if the asset is loaded, and if not it is loaded on the fly,
 	 * then it is returned in both cases
-	 * 
+	 *
 	 * @param name The name of the asset
 	 * @return The {@link Asset}
 	 * @throws ClassCastException If the requested asset is not actually of type
@@ -1033,7 +1040,7 @@ public class AssetManager {
 	 * null if it doesn't<br>
 	 * Otherwise checks if the asset is loaded, and if not it is loaded on the fly,
 	 * then it is returned in both cases
-	 * 
+	 *
 	 * @param name The name of the asset
 	 * @return The {@link Asset}
 	 * @throws ClassCastException If the requested asset is not actually of type
@@ -1048,7 +1055,7 @@ public class AssetManager {
 	 * returns null if it doesn't<br>
 	 * Otherwise checks if the asset is loaded, and if not it is loaded on the fly,
 	 * then it is returned in both cases
-	 * 
+	 *
 	 * @param name The name of the asset
 	 * @return The {@link Asset}
 	 * @throws ClassCastException If the requested asset is not actually of type
@@ -1063,7 +1070,7 @@ public class AssetManager {
 	 * null if it doesn't<br>
 	 * Otherwise checks if the asset is loaded, and if not it is loaded on the fly,
 	 * then it is returned in both cases
-	 * 
+	 *
 	 * @param name The name of the asset
 	 * @return The {@link Asset}
 	 * @throws ClassCastException If the requested asset is not actually of type
@@ -1078,7 +1085,7 @@ public class AssetManager {
 	 * null if it doesn't<br>
 	 * Otherwise checks if the asset is loaded, and if not it is loaded on the fly,
 	 * then it is returned in both cases
-	 * 
+	 *
 	 * @param name The name of the asset
 	 * @return The {@link Asset}
 	 * @throws ClassCastException If the requested asset is not actually of type
@@ -1093,7 +1100,7 @@ public class AssetManager {
 	 * null if it doesn't<br>
 	 * Otherwise checks if the asset is loaded, and if not it is loaded on the fly,
 	 * then it is returned in both cases
-	 * 
+	 *
 	 * @param name The name of the asset
 	 * @return The {@link Asset}
 	 * @throws ClassCastException If the requested asset is not actually of type
@@ -1108,7 +1115,7 @@ public class AssetManager {
 	/**
 	 * Checks if the asset denoted by {@code name} is currently busy (being loaded,
 	 * unloaded, etc)
-	 * 
+	 *
 	 * @param name The name of the asset to check
 	 * @return Whether or not the asset is busy
 	 * @throws NullPointerException if the asset is not present
@@ -1119,7 +1126,7 @@ public class AssetManager {
 
 	/**
 	 * Retrieves the asset denoted by {@code name}
-	 * 
+	 *
 	 * @param name The name of the asset
 	 * @return The asset or {@code null} if if it doesn't exist
 	 */
@@ -1130,7 +1137,7 @@ public class AssetManager {
 
 	/**
 	 * Returns the {@link Game} instance associated with this object
-	 * 
+	 *
 	 * @return The {@link Game} instance
 	 */
 	public final Game getGame() {
@@ -1139,7 +1146,7 @@ public class AssetManager {
 
 	/**
 	 * Retrieves the ready flag
-	 * 
+	 *
 	 * @return The ready flag
 	 */
 	public final boolean isReady() {

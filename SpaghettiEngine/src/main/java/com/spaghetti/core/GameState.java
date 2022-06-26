@@ -1,7 +1,6 @@
 package com.spaghetti.core;
 
 import java.lang.reflect.Field;
-import java.util.ArrayList;
 import java.util.HashMap;
 
 import com.spaghetti.input.Controller;
@@ -53,13 +52,15 @@ public class GameState {
 		return levels.get(name).isAttached();
 	}
 
-	public void addLevel(String name) {
+	public Level addLevel(String name) {
 		if(!levels.containsKey(name)) {
 			Level level = new Level(name);
 			levels.put(name, level);
+			return level;
 		}
+		return null;
 	}
-	
+
 	public void activateLevel(String name) {
 		Level level = levels.get(name);
 		level.onBeginPlay();
@@ -71,7 +72,7 @@ public class GameState {
 			activateLevel(level.getName());
 		}
 	}
-	
+
 	public void deactivateLevel(String name) {
 		Level level = levels.get(name);
 		level.onEndPlay();
@@ -83,7 +84,7 @@ public class GameState {
 			deactivateLevel(level.getName());
 		}
 	}
-	
+
 	public void destroyLevel(String name) {
 		Level level = levels.get(name);
 		level.destroy();
@@ -95,32 +96,32 @@ public class GameState {
 			destroyLevel(level.getName());
 		}
 	}
-	
+
 	public Level getLevel(String name) {
 		return levels.get(name);
 	}
-	
+
 	// Player management
-	
+
 	public void registerPlayer(Long token, Controller<?> player) {
 		if(token == null || player == null) {
 			return;
 		}
 		players.put(token, player);
 	}
-	
+
 	public void unregisterPlayer(Long token) {
 		players.remove(token);
 	}
-	
+
 	public Controller<?> getPlayer(Long token) {
 		return players.get(token);
 	}
-	
+
 	public void unregisterAllPlayers() {
 		players.clear();
 	}
-	
+
 	// Speed
 
 	public float getTickMultiplier() {

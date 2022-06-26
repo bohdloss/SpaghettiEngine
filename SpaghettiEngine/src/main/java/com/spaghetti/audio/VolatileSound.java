@@ -3,6 +3,7 @@ package com.spaghetti.audio;
 import java.nio.ByteBuffer;
 
 import org.lwjgl.openal.AL10;
+
 import com.spaghetti.utils.Utils;
 
 public class VolatileSound extends StaticSound {

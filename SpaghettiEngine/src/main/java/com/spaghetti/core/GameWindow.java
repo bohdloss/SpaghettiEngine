@@ -13,7 +13,9 @@ import org.lwjgl.opengl.GL11;
 
 import com.spaghetti.interfaces.Function;
 import com.spaghetti.objects.Camera;
-import com.spaghetti.utils.*;
+import com.spaghetti.utils.ImageUtils;
+import com.spaghetti.utils.Logger;
+import com.spaghetti.utils.ResourceLoader;
 
 public final class GameWindow {
 
