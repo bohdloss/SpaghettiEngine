@@ -1,21 +1,25 @@
 package com.spaghetti.render;
 
+import com.spaghetti.utils.ExceptionUtil;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL15;
 import org.lwjgl.opengl.GL20;
 
 import com.spaghetti.assets.Asset;
 import com.spaghetti.core.Game;
-import com.spaghetti.utils.Utils;
 
 public class Model extends Asset {
 
 	public static Model get(String name) {
-		return Game.getGame().getAssetManager().model(name);
+		return Game.getInstance().getAssetManager().getAndLazyLoadAsset(name);
 	}
 
 	public static Model require(String name) {
-		return Game.getGame().getAssetManager().requireModel(name);
+		return Game.getInstance().getAssetManager().getAndInstantlyLoadAsset(name);
+	}
+
+	public static Model getDefault() {
+		return Game.getInstance().getAssetManager().getDefaultAsset("Model");
 	}
 
 	protected int draw_count;
@@ -32,8 +36,8 @@ public class Model extends Asset {
 	}
 
 	@Override
-	public void setData(Object... objects) {
-		if (valid()) {
+	public void setData(Object[] objects) {
+		if (isValid()) {
 			return;
 		}
 
@@ -61,39 +65,43 @@ public class Model extends Asset {
 
 		draw_count = indices.length;
 		v_id = GL15.glGenBuffers();
-		Utils.glError();
+		ExceptionUtil.glError();
 		GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, v_id);
-		Utils.glError();
+		ExceptionUtil.glError();
 		GL15.glBufferData(GL15.GL_ARRAY_BUFFER, vertices, GL15.GL_STATIC_DRAW);
-		Utils.glError();
+		ExceptionUtil.glError();
 		t_id = GL15.glGenBuffers();
-		Utils.glError();
+		ExceptionUtil.glError();
 		GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, t_id);
-		Utils.glError();
+		ExceptionUtil.glError();
 		GL15.glBufferData(GL15.GL_ARRAY_BUFFER, tex_coords, GL15.GL_STATIC_DRAW);
-		Utils.glError();
+		ExceptionUtil.glError();
 		n_id = GL15.glGenBuffers();
-		Utils.glError();
+		ExceptionUtil.glError();
 		GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, n_id);
-		Utils.glError();
+		ExceptionUtil.glError();
 		GL15.glBufferData(GL15.GL_ARRAY_BUFFER, normals, GL15.GL_STATIC_DRAW);
-		Utils.glError();
+		ExceptionUtil.glError();
 		i_id = GL15.glGenBuffers();
-		Utils.glError();
+		ExceptionUtil.glError();
 		GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, i_id);
-		Utils.glError();
+		ExceptionUtil.glError();
 		GL15.glBufferData(GL15.GL_ARRAY_BUFFER, indices, GL15.GL_STATIC_DRAW);
-		Utils.glError();
+		ExceptionUtil.glError();
 
 		GL15.glBindBuffer(GL15.GL_ELEMENT_ARRAY_BUFFER, 0);
-		Utils.glError();
+		ExceptionUtil.glError();
 		GL15.glBindBuffer(GL15.GL_ARRAY_BUFFER, 0);
-		Utils.glError();
+		ExceptionUtil.glError();
 
 	}
 
 	public void render() {
-		if (!valid()) {
+		if (!isValid()) {
+			Model base = getDefault();
+			if(this != base) {
+				base.render();
+			}
 			return;
 		}
 
@@ -138,13 +146,13 @@ public class Model extends Asset {
 	@Override
 	protected void unload0() {
 		GL15.glDeleteBuffers(v_id);
-		Utils.glError();
+		ExceptionUtil.glError();
 		GL15.glDeleteBuffers(t_id);
-		Utils.glError();
+		ExceptionUtil.glError();
 		GL15.glDeleteBuffers(n_id);
-		Utils.glError();
+		ExceptionUtil.glError();
 		GL15.glDeleteBuffers(i_id);
-		Utils.glError();
+		ExceptionUtil.glError();
 	}
 
 	public int getDrawCount() {

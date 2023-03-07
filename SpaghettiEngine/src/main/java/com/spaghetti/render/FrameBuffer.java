@@ -2,6 +2,7 @@ package com.spaghetti.render;
 
 import java.nio.ByteBuffer;
 
+import com.spaghetti.utils.ExceptionUtil;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL30;
 
@@ -9,7 +10,6 @@ import com.spaghetti.assets.Asset;
 import com.spaghetti.core.Game;
 import com.spaghetti.core.GameWindow;
 import com.spaghetti.utils.Logger;
-import com.spaghetti.utils.Utils;
 
 public class FrameBuffer extends Asset {
 
@@ -18,8 +18,8 @@ public class FrameBuffer extends Asset {
 	protected int width, height;
 
 	public FrameBuffer(int width, int height) {
-		setData(new Texture((ByteBuffer) null, width, height, Texture.COLOR),
-				new Texture((ByteBuffer) null, width, height, Texture.DEPTH));
+		setData(new Object[] {new Texture((ByteBuffer) null, width, height, Texture.COLOR),
+				new Texture((ByteBuffer) null, width, height, Texture.DEPTH)});
 		load();
 	}
 
@@ -27,8 +27,8 @@ public class FrameBuffer extends Asset {
 	}
 
 	@Override
-	public void setData(Object... objects) {
-		if (valid()) {
+	public void setData(Object[] objects) {
+		if (isValid()) {
 			return;
 		}
 
@@ -57,7 +57,7 @@ public class FrameBuffer extends Asset {
 
 		// Create frame buffer
 		id = GL30.glGenFramebuffers();
-		Utils.glError();
+		ExceptionUtil.glError();
 
 		// Attach color
 		attachColor(color);
@@ -88,7 +88,7 @@ public class FrameBuffer extends Asset {
 			}
 			GL30.glFramebufferTexture2D(GL30.GL_DRAW_FRAMEBUFFER, GL30.GL_COLOR_ATTACHMENT0, GL11.GL_TEXTURE_2D,
 					cast.getId(), 0);
-			Utils.glError();
+			ExceptionUtil.glError();
 
 		} else if (RenderBuffer.class.isAssignableFrom(object.getClass())) {
 
@@ -99,7 +99,7 @@ public class FrameBuffer extends Asset {
 			}
 			GL30.glFramebufferRenderbuffer(GL30.GL_DRAW_FRAMEBUFFER, GL30.GL_COLOR_ATTACHMENT0, GL30.GL_RENDERBUFFER,
 					cast.getId());
-			Utils.glError();
+			ExceptionUtil.glError();
 
 		}
 		internal_stop();
@@ -121,7 +121,7 @@ public class FrameBuffer extends Asset {
 			}
 			GL30.glFramebufferTexture2D(GL30.GL_DRAW_FRAMEBUFFER, GL30.GL_DEPTH_ATTACHMENT, GL11.GL_TEXTURE_2D,
 					cast.getId(), 0);
-			Utils.glError();
+			ExceptionUtil.glError();
 
 		} else if (RenderBuffer.class.isAssignableFrom(object.getClass())) {
 
@@ -132,7 +132,7 @@ public class FrameBuffer extends Asset {
 			}
 			GL30.glFramebufferRenderbuffer(GL30.GL_DRAW_FRAMEBUFFER, GL30.GL_DEPTH_ATTACHMENT, GL30.GL_RENDERBUFFER,
 					cast.getId());
-			Utils.glError();
+			ExceptionUtil.glError();
 
 		}
 		internal_stop();
@@ -140,7 +140,7 @@ public class FrameBuffer extends Asset {
 	}
 
 	public void use() {
-		if (!valid()) {
+		if (!isValid()) {
 			return;
 		}
 
@@ -151,7 +151,7 @@ public class FrameBuffer extends Asset {
 	}
 
 	public void stop() {
-		GameWindow window = Game.getGame().getWindow();
+		GameWindow window = Game.getInstance().getWindow();
 		internal_stop();
 		GL11.glViewport(0, 0, window.getWidth(), window.getHeight());
 		GL11.glOrtho(-window.getWidth() / 2, window.getWidth() / 2, -window.getHeight() / 2, window.getHeight() / 2, -1,
@@ -162,7 +162,7 @@ public class FrameBuffer extends Asset {
 	protected void unload0() {
 		GL11.glGetError();
 		GL30.glDeleteFramebuffers(id);
-		Utils.glError();
+		ExceptionUtil.glError();
 	}
 
 	protected void internal_use() {

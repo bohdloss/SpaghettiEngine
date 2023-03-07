@@ -5,10 +5,9 @@ import java.net.UnknownHostException;
 import java.util.ArrayList;
 
 import com.spaghetti.core.CoreComponent;
-import com.spaghetti.core.GameComponent;
-import com.spaghetti.core.GameObject;
+import com.spaghetti.world.GameComponent;
+import com.spaghetti.world.GameObject;
 import com.spaghetti.events.GameEvent;
-import com.spaghetti.interfaces.NetworkFunction;
 import com.spaghetti.networking.ConnectionEndpoint.Priority;
 import com.spaghetti.networking.events.OnClientBanned;
 import com.spaghetti.networking.events.OnClientConnect;
@@ -16,7 +15,7 @@ import com.spaghetti.networking.events.OnClientDisconnect;
 import com.spaghetti.networking.events.OnConnectionRefused;
 import com.spaghetti.networking.events.OnInvalidToken;
 import com.spaghetti.utils.Logger;
-import com.spaghetti.utils.Utils;
+import com.spaghetti.utils.ThreadUtil;
 
 public abstract class ClientCore extends NetworkCore {
 
@@ -207,7 +206,7 @@ public abstract class ClientCore extends NetworkCore {
 			if(giveUp) {
 				break;
 			}
-			Utils.sleep(1000);
+			ThreadUtil.sleep(1000);
 			if (internal_connect(ip, port, false, flags.clientId)) {
 				status = true;
 				break;

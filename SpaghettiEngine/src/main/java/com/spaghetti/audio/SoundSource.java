@@ -1,13 +1,14 @@
 package com.spaghetti.audio;
 
+import com.spaghetti.networking.ConnectionManager;
+import com.spaghetti.utils.ExceptionUtil;
 import org.joml.Vector3f;
 import org.lwjgl.openal.AL10;
 
-import com.spaghetti.core.GameObject;
+import com.spaghetti.world.GameObject;
 import com.spaghetti.networking.NetworkBuffer;
-import com.spaghetti.objects.Camera;
+import com.spaghetti.render.Camera;
 import com.spaghetti.utils.Transform;
-import com.spaghetti.utils.Utils;
 
 public class SoundSource extends GameObject {
 
@@ -53,14 +54,14 @@ public class SoundSource extends GameObject {
 			if (id != 0) {
 				AL10.alGetError();
 				AL10.alSourceStop(id);
-				Utils.alError();
+				ExceptionUtil.alError();
 				AL10.alSourcei(id, AL10.AL_LOOPING, 0);
-				Utils.alError();
+				ExceptionUtil.alError();
 				if (sound != null) {
 					sound.stop(this);
 				}
 				AL10.alDeleteSources(id);
-				Utils.alError();
+				ExceptionUtil.alError();
 				id = 0;
 			}
 			return null;
@@ -76,8 +77,8 @@ public class SoundSource extends GameObject {
 	}
 
 	@Override
-	public void writeDataServer(NetworkBuffer buffer) {
-		super.writeDataServer(buffer);
+	public void writeDataServer(ConnectionManager manager, NetworkBuffer buffer) {
+		super.writeDataServer(manager, buffer);
 
 		// Sound
 		buffer.putString(true, sound == null ? "" : sound.getName(), NetworkBuffer.UTF_8);
@@ -91,12 +92,12 @@ public class SoundSource extends GameObject {
 	}
 
 	@Override
-	public void readDataClient(NetworkBuffer buffer) {
-		super.readDataClient(buffer);
+	public void readDataClient(ConnectionManager manager, NetworkBuffer buffer) {
+		super.readDataClient(manager, buffer);
 
 		// Sound
 		String name = buffer.getString(true, NetworkBuffer.UTF_8);
-		setSound(name.equals("") ? null : getGame().getAssetManager().sound(name));
+		setSound(name.equals("") ? null : getGame().getAssetManager().getAndLazyLoadAsset(name));
 
 		// Variables
 		status = buffer.getByte() & 0xFF;
@@ -120,12 +121,12 @@ public class SoundSource extends GameObject {
 
 	@Override
 	public void render(Camera renderer, float delta, Transform transform) {
-		if (sound == null || !sound.valid()) {
+		if (sound == null || !sound.isValid()) {
 			return;
 		}
 		if (id == 0) {
 			id = AL10.alGenSources();
-			Utils.alError();
+			ExceptionUtil.alError();
 		}
 
 		// Update position and velocity

@@ -25,9 +25,9 @@ And you can do the following with it
 - Easily manage networking for multiplayer
 - (WIP) Switch between TCP and UDP protocols without changing a line of code
 - Run servers
-- (WIP) Physics
+- Physics
 - Play sounds and music
-- (SOON) Microphone input
+- Microphone input
 
 ### How to set it up
 
@@ -70,102 +70,79 @@ The code is:
 ```java
 // Initialize an instance
 GameBuilder builder = new GameBuilder();
-builder.setUpdater(new Updater());
-builder.setRenderer(new Renderer());
+builder.enableRenderer();
+builder.enableUpdater();
 
 Game myGame = builder.build();
+
+// Set the gamemode to the demo mode (or your own one)
+GameState state = game.getGameState();
+state.setGameMode(new DemoMode(state));
 
 // Start game threads (will initialize the provided components)
 myGame.begin();
 ```
-Where Renderer is already implemented in the core package of the engine, while you will have to implement your own Updater class, and Client can be null
-
-### Implement Updater class
-
-In the near future level management will be made easier and overriding the Updater core optional
-
-You will have to create a new class that extends Updater and implement 3 methods:
-- Initialization code
-- Loop code
-- Termination code
-
-The code of an example class is:
-```java
-// Extends Updater
-public class MyUpdater extends Updater {
-
-  protected void initialize0() {
-    super.initialize0();
-    // Initializing code goes here and not in the constructor
-  }
-  
-  // This code will be executed in a loop whenever possible
-  // Delta is the time passed since the last call to this method
-  protected void loopEvents(float delta) {
-    super.loopEvents(delta);
-  }
-
-  protected void terminate0() {
-    super.terminate0();
-    // Termination code here
-  }
-
-}
-```
-- The initialize0() function will be called when the thread starts, which happens to be when begin() is called on a Game object
-- The loopEvents(float delta) function will be called every frame with a delta parameter, indicating the time passed since the last call
-- The terminate0() function will be called when the game quits to dispose of unused resources
 
 ### How to create a Level and place a rotating Mesh into it
 
-This lets you display your first images on screen
+You will need to create a new ```GameMode``` class and put your initialization code inside
+
 
 ```java
-private Level myLevel;
-private Mesh myMesh;
+public class MyGameMode {
+    
+    private Level myLevel;
+    private Mesh myMesh;
 
-protected void initialize0() {
-	// Create a new Level
-	myLevel = new Level();
-	
-	// Attach the level to the game
-	// getGame() returns a reference to the current Game instance
-	this.getGame().attachLevel(myLevel);
-	
-	/*
-	* You will need a Camera to render the scene
-	*/
-	Camera camera = new Camera();
-	/*
-	* Create a mesh to place in the level
-	* You will have to provide a Model and a Material too
-	*/
-	myMesh = new Mesh(Model.get("apple_model"), Material.get("apple_mat"));
-	
-	// Add our objects to the level
-	myLevel.addObject(camera);
-	myLevel.addObject(mesh);
-	
-	// Now the Renderer will use this camera to render the scene
-	getGame().attachCamera(camera);
+    protected void initialize0() {
+        // Abort the initialization in multiplayer unless we are the server
+        if (!game.hasAuthority()) {
+            return;
+        }
+        
+        // Create a new Level
+        myLevel = game.addLevel("myLevel");
+        
+        // Set the level as the active one
+        game.activateLevel("myLevel");
+
+        /*
+         * You will need a Camera to render the scene
+         */
+        Camera camera = new Camera();
+        /*
+         * Create a mesh to place in the level
+         * You will have to provide a Model and a Material too
+         */
+        myMesh = new RotatingMesh(Model.get("apple_model"), Material.get("apple_mat"));
+
+        // Add our objects to the level
+        myLevel.addObject(camera);
+        myLevel.addObject(mesh);
+
+        // Now the Renderer will use this camera to render the scene
+        game.setLocalCamera(camera);
+    }
 }
 ```
 This will create a Camera to render your scene and a Mesh to be rendered
 
-To rotate the mesh:
+To rotate the mesh, write the following class to extends the Mesh class:
 ```java
-// Store the rotation
-private float i;
+public class RotatingMesh {
+    // Store the rotation
+    private float i;
 
-public void loopEvents(float delta) {
-	super.loopEvents(delta);
-	
-	// Take delta into account to be framerate-independent
-	i += 0.05 * this.getGame().getTickMultiplier(delta);
-	
-	// Change the rotation
-	myMesh.setPitch(i);
+    @Override
+    public void commonUpdate(float delta) {
+        super.commonUpdate(delta);
 
+        // Multiply by delta to rotate at a constant speed
+        i += 0.05 * delta;
+
+        // Change the rotation
+        setPitch(i);
+    }
 }
 ```
 All the following code can be found in the demo pacakge of this repository (```com.spaghetti.demo```)
@@ -183,15 +160,14 @@ Each line in the file indicates a different asset
 Lines that are empty or start with // will be ignored
 
 Each word in a line, separated by 1 space, indicates the following:
-- First word: asset type (choose between - shader / shaderprogram / material / texture / model / sound / music)
+- First word: asset type (choose between - VertexShader / FragmentShader / ShaderProgram / Material / Texture / Model / Sound / Music)
 - Second word: asset name
 - All the other words are arguments
 
 Here is the full documentation for the arguments that are needed for each asset type:
 
-1) Shader
+1) VertexShader / FragmentShader
   - Shader location
-  - Shader type (vertex / fragment / geometry / tess_control / tess_evaluation)
   
 2) ShaderProgram
   - List of names of Shader-assets
@@ -218,6 +194,4 @@ Here is the full documentation for the arguments that are needed for each asset 
 The difference between sound and music is that when played music is being streamed, while a sound is fully loaded into memory beforehand.
 Use Sound for relatively short audio files and Music for long ones. Please note that streaming from disk might have a performance impact.
   
-This ```.txt``` file type may be referred to as Asset Sheet later in the documentation
-
-An example of an asset sheet can be found in the folder ```/res/main.txt``` of this repository
+This ```.txt``` file type is referred to as the "Asset Sheet" inside the  ```AssetManager```

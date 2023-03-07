@@ -1,13 +1,11 @@
 package com.spaghetti.demo;
 
-import java.util.Random;
-
-import com.spaghetti.core.Level;
+import com.spaghetti.world.Level;
 import com.spaghetti.demo.player.Player;
 import com.spaghetti.input.UpdaterCore;
-import com.spaghetti.objects.Camera;
-import com.spaghetti.objects.Mesh;
-import com.spaghetti.objects.UntransformedMesh;
+import com.spaghetti.render.Camera;
+import com.spaghetti.render.Mesh;
+import com.spaghetti.render.UntransformedMesh;
 import com.spaghetti.physics.Physics;
 import com.spaghetti.physics.RigidBody.BodyType;
 import com.spaghetti.physics.d2.Physics2D;
@@ -118,30 +116,6 @@ public class MyUpdater extends UpdaterCore {
 	@Override
 	protected void terminate0() throws Throwable {
 		super.terminate0();
-	}
-
-}
-
-class MovingMesh extends Mesh {
-
-	public MovingMesh(Model model, Material material) {
-		super(model, material);
-	}
-
-	public MovingMesh() {
-		super();
-	}
-
-	float random = new Random().nextFloat() * 7;
-
-	float i = 0;
-
-	@Override
-	public void commonUpdate(float delta) {
-		i += 10 * getGame().getTickMultiplier(delta);
-
-		float mod = (float) Math.sin(i);
-		setRelativePosition((float) Math.cos(random) * mod, (float) Math.sin(random) * mod, 0);
 	}
 
 }

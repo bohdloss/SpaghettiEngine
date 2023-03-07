@@ -34,6 +34,7 @@ public class GameOptions {
 		setEngineOption("renderresolution", new Vector2i(resolution));
 		setEngineOption("stoptimeout", 10000l); // 10 s
 		setEngineOption("assetsheet", "/res/main.txt");
+		setEngineOption("assets.internalSheet", "/internal/internal_assets.txt");
 
 		// Game window
 		setEngineOption("windowsize", new Vector2i(400, 400));
@@ -67,27 +68,27 @@ public class GameOptions {
 	// Public getters and setters
 
 	public static void ssetEngineOption(String name, Object value) {
-		Game.getGame().getOptions().setEngineOption(name, value);
+		Game.getInstance().getOptions().setEngineOption(name, value);
 	}
 
 	public static Object sngetEngineOption(String name) {
-		return Game.getGame().getOptions().ngetEngineOption(name);
+		return Game.getInstance().getOptions().ngetEngineOption(name);
 	}
 
 	public static <T> T sgetEngineOption(String name) {
-		return Game.getGame().getOptions().<T>getEngineOption(name);
+		return Game.getInstance().getOptions().<T>getEngineOption(name);
 	}
 
 	public static void ssetOption(String name, Object value) {
-		Game.getGame().getOptions().setOption(name, value);
+		Game.getInstance().getOptions().setOption(name, value);
 	}
 
 	public static Object sngetOption(String name) {
-		return Game.getGame().getOptions().ngetOption(name);
+		return Game.getInstance().getOptions().ngetOption(name);
 	}
 
 	public static <T> T sgetOption(String name) {
-		return Game.getGame().getOptions().<T>getOption(name);
+		return Game.getInstance().getOptions().<T>getOption(name);
 	}
 
 	public void setEngineOption(String name, Object value) {

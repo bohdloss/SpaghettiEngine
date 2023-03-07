@@ -28,7 +28,7 @@ public final class Mouse {
 	public static final int LAST = GLFW.GLFW_MOUSE_BUTTON_LAST;
 
 	public static boolean buttonpressed(int button) {
-		Game game = Game.getGame();
+		Game game = Game.getInstance();
 		return (game.isServer() || game.isHeadless()) ? false : game.getWindow().mouseDown(button);
 	}
 

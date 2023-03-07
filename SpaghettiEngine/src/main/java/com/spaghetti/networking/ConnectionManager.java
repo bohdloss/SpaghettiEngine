@@ -7,15 +7,15 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 import com.spaghetti.core.Game;
-import com.spaghetti.core.GameComponent;
-import com.spaghetti.core.GameObject;
-import com.spaghetti.core.Level;
+import com.spaghetti.utils.ReflectionUtil;
+import com.spaghetti.world.GameComponent;
+import com.spaghetti.world.GameObject;
+import com.spaghetti.world.Level;
 import com.spaghetti.events.EventDispatcher;
 import com.spaghetti.events.GameEvent;
-import com.spaghetti.interfaces.Replicable;
 import com.spaghetti.utils.FunctionDispatcher;
 import com.spaghetti.utils.Logger;
-import com.spaghetti.utils.Utils;
+import com.spaghetti.utils.ThreadUtil;
 
 public class ConnectionManager {
 
@@ -28,23 +28,23 @@ public class ConnectionManager {
 	protected static final Identity IDENTITY = new Identity();
 
 	// "Id" fields
-	protected static final Field f_oid = Utils.getPrivateField(GameObject.class, "id");
-	protected static final Field f_cid = Utils.getPrivateField(GameComponent.class, "id");
-	protected static final Field f_eid = Utils.getPrivateField(GameEvent.class, "id");
-	protected static final Field f_rpcid = Utils.getPrivateField(RemoteProcedure.class, "id");
+	protected static final Field f_oid = ReflectionUtil.getPrivateField(GameObject.class, "id");
+	protected static final Field f_cid = ReflectionUtil.getPrivateField(GameComponent.class, "id");
+	protected static final Field f_eid = ReflectionUtil.getPrivateField(GameEvent.class, "id");
+	protected static final Field f_rpcid = ReflectionUtil.getPrivateField(RemoteProcedure.class, "id");
 
 	// Flag management methods
-	protected static final Method me_osetflag = Utils.getPrivateMethod(GameObject.class, "internal_setflag", int.class,
+	protected static final Method me_osetflag = ReflectionUtil.getPrivateMethod(GameObject.class, "internal_setflag", int.class,
 			boolean.class);
-	protected static final Method me_csetflag = Utils.getPrivateMethod(GameComponent.class, "internal_setflag",
+	protected static final Method me_csetflag = ReflectionUtil.getPrivateMethod(GameComponent.class, "internal_setflag",
 			int.class, boolean.class);
-	protected static final Method me_ogetflag = Utils.getPrivateMethod(GameObject.class, "internal_getflag", int.class);
-	protected static final Method me_cgetflag = Utils.getPrivateMethod(GameComponent.class, "internal_getflag",
+	protected static final Method me_ogetflag = ReflectionUtil.getPrivateMethod(GameObject.class, "internal_getflag", int.class);
+	protected static final Method me_cgetflag = ReflectionUtil.getPrivateMethod(GameComponent.class, "internal_getflag",
 			int.class);
 
 	// RemoteProcedure related
-	protected static final Field f_rpcready = Utils.getPrivateField(RemoteProcedure.class, "ready");
-	protected static final Field f_rpcerror = Utils.getPrivateField(RemoteProcedure.class, "error");
+	protected static final Field f_rpcready = ReflectionUtil.getPrivateField(RemoteProcedure.class, "ready");
+	protected static final Field f_rpcerror = ReflectionUtil.getPrivateField(RemoteProcedure.class, "error");
 
 	// Cache
 	protected static final HashMap<String, Class<?>> m_clss = new HashMap<>();
@@ -55,6 +55,7 @@ public class ConnectionManager {
 	// Reference to owner
 	protected NetworkCore core;
 	protected ConnectionEndpoint endpoint;
+	protected NetworkBuffer writeBuffer, readBuffer;
 
 	// Flags
 	public boolean forceReplication;
@@ -140,34 +141,30 @@ public class ConnectionManager {
 	// Internal utility
 
 	protected boolean needsReplication(Replicable replicable) {
-		return replicable.needsReplication(this) || forceReplication;
+		return (replicable.needsReplication(this) || forceReplication) && !replicable.isLocal();
 	}
 
 	protected void writeReplicable(Replicable obj) {
-		NetworkBuffer w_buffer = w_buffer();
 		if (getGame().isClient()) {
-			obj.writeDataClient(w_buffer);
+			obj.writeDataClient(this, writeBuffer);
 		} else {
-			obj.writeDataServer(w_buffer);
+			obj.writeDataServer(this, writeBuffer);
 		}
 	}
 
 	protected void readReplicable(Replicable obj) {
-		NetworkBuffer r_buffer = r_buffer();
 		if (getGame().isClient()) {
-			obj.readDataClient(r_buffer);
+			obj.readDataClient(this, readBuffer);
 		} else {
-			obj.readDataServer(r_buffer);
+			obj.readDataServer(this, readBuffer);
 		}
 	}
 
 	// Read / Write interfaces
 
 	public void parsePacket() throws Throwable {
-		NetworkBuffer r_buffer = r_buffer();
 		byte opcode;
-		Level level = getLevel();
-		while ((opcode = r_buffer.getByte()) != Opcode.END) {
+		while ((opcode = readBuffer.getByte()) != Opcode.END) {
 			switch (opcode) {
 			default:
 				invalid(opcode);
@@ -176,10 +173,10 @@ public class ConnectionManager {
 				readLevelStructure();
 				break;
 			case Opcode.GAMEOBJECT:
-				readObjectReplication(level);
+				readObjectReplication();
 				break;
 			case Opcode.GAMECOMPONENT:
-				readComponentReplication(level);
+				readComponentReplication();
 				break;
 			case Opcode.GAMEEVENT:
 				readGameEvent();
@@ -197,10 +194,10 @@ public class ConnectionManager {
 				readRPCAcknowledgement();
 				break;
 			case Opcode.OBJECT_TREE:
-				readObjectTree(level);
+				readObjectTree();
 				break;
 			case Opcode.OBJECT_DESTROY:
-				readObjectDestruction(level);
+				readObjectDestruction();
 				break;
 			}
 		}
@@ -217,65 +214,63 @@ public class ConnectionManager {
 
 	// Quick update on objects that need it
 	public void writeCompleteReplication() {
-		NetworkBuffer w_buffer = w_buffer();
 		Level level = getLevel();
-		w_buffer.putByte(Opcode.DATA);
+		writeBuffer.putByte(Opcode.DATA);
 
 		// Write objects
 		level.forEachActualObject((id, object) -> {
 
 			// Should we write?
-			if (needsReplication(object) && !object.isLocal()) {
+			if (needsReplication(object)) {
 
 				// Write binary metadata
-				w_buffer.putInt(object.getId());
-				int pos = w_buffer.getPosition();
-				w_buffer.skip(Short.BYTES); // Allocate memory for skip destination
+				writeBuffer.putInt(object.getId());
+				int pos = writeBuffer.getPosition();
+				writeBuffer.skip(Short.BYTES); // Allocate memory for skip destination
 
 				// Write object data
 				writeReplicable(object);
 
 				// More metadata
-				int off = w_buffer.getPosition() - pos - Short.BYTES;
-				w_buffer.putShortAt(pos, (short) off); // Write destination
+				int off = writeBuffer.getPosition() - pos - Short.BYTES;
+				writeBuffer.putShortAt(pos, (short) off); // Write destination
 			}
 		});
-		w_buffer.putInt(-1);
+		writeBuffer.putInt(-1);
 
 		// Write components
 		level.forEachComponent((id, component) -> {
 
 			// Should we write?
-			if (needsReplication(component) && !component.isLocal()) {
+			if (needsReplication(component)) {
 
 				// Write binary metadata
-				w_buffer.putInt(component.getId());
-				int pos = w_buffer.getPosition();
-				w_buffer.skip(Short.BYTES); // Allocate memory for skip destination
+				writeBuffer.putInt(component.getId());
+				int pos = writeBuffer.getPosition();
+				writeBuffer.skip(Short.BYTES); // Allocate memory for skip destination
 
 				// Write component data
 				writeReplicable(component);
 
 				// More metadata
-				int off = w_buffer.getPosition() - (pos + Short.BYTES);
-				w_buffer.putShortAt(pos, (short) off); // Write destination
+				int off = writeBuffer.getPosition() - (pos + Short.BYTES);
+				writeBuffer.putShortAt(pos, (short) off); // Write destination
 			}
 
 		});
 
-		w_buffer.putInt(-1);
+		writeBuffer.putInt(-1);
 	}
 
 	public void readCompleteReplication() {
-		NetworkBuffer r_buffer = r_buffer();
 		Level level = getLevel();
 
 		// Read objects
 		int id = -1;
-		while ((id = r_buffer.getInt()) != -1) {
+		while ((id = readBuffer.getInt()) != -1) {
 
 			// Read metadata and validate
-			short skip = r_buffer.getShort();
+			short skip = readBuffer.getShort();
 			if (skip < 0) {
 				throw new IllegalStateException("Negative skip value");
 			}
@@ -283,7 +278,7 @@ public class ConnectionManager {
 
 			// Do we skip?
 			if (object == null) {
-				r_buffer.skip(skip);
+				readBuffer.skip(skip);
 				continue;
 			}
 
@@ -292,10 +287,10 @@ public class ConnectionManager {
 		}
 
 		// Read components
-		while ((id = r_buffer.getInt()) != -1) {
+		while ((id = readBuffer.getInt()) != -1) {
 
 			// Get and validate metadata
-			short skip = r_buffer.getShort();
+			short skip = readBuffer.getShort();
 			if (skip < 0) {
 				throw new IllegalStateException("Negative skip value");
 			}
@@ -303,7 +298,7 @@ public class ConnectionManager {
 
 			// Shall we skip?
 			if (component == null) {
-				r_buffer.skip(skip);
+				readBuffer.skip(skip);
 				continue;
 			}
 
@@ -314,20 +309,18 @@ public class ConnectionManager {
 
 	// Serialization of level
 	public void writeLevelStructure() {
-		NetworkBuffer w_buffer = w_buffer();
 		if (getGame().isClient()) {
 			throw new IllegalStateException("Clients can't send level structure");
 		}
 		Level level = getLevel();
 
 		// Write metadata
-		w_buffer.putByte(Opcode.LEVEL);
+		writeBuffer.putByte(Opcode.LEVEL);
 		level.forEachObject(this::writeObjectStructure);
-		w_buffer.putByte(Opcode.STOP);
+		writeBuffer.putByte(Opcode.STOP);
 	}
 
 	public void readLevelStructure() throws Throwable {
-		NetworkBuffer r_buffer = r_buffer();
 		if (getGame().isServer()) {
 			throw new IllegalStateException("Servers can't receive level structure");
 		}
@@ -339,7 +332,7 @@ public class ConnectionManager {
 		level.forEachObject(object -> recursive_flag(object, false));
 
 		// Check for item flag
-		while (r_buffer.getByte() == Opcode.ITEM) {
+		while (readBuffer.getByte() == Opcode.ITEM) {
 			readObjectStructure(level, (GameObject) null);
 		}
 
@@ -352,7 +345,6 @@ public class ConnectionManager {
 
 	// Initialization of objects
 	protected void writeObjectStructure(GameObject obj) {
-		NetworkBuffer w_buffer = w_buffer();
 		// We shouldn't write this object
 		if (obj.isLocal()) {
 			return;
@@ -360,28 +352,27 @@ public class ConnectionManager {
 		endpoint.reliable = true;
 		forceReplication = true;
 
-		w_buffer.putInt(obj.getId()); // Put id of the object
-		w_buffer.putString(true, obj.getClass().getName(), NetworkBuffer.UTF_8); // Put class of the object
+		writeBuffer.putInt(obj.getId()); // Put id of the object
+		writeBuffer.putString(true, obj.getClass().getName(), NetworkBuffer.UTF_8); // Put class of the object
 
 		obj.forEachComponent((id, component) -> {
 
 			// We should write the component
 			if (!component.isLocal()) {
-				w_buffer.putInt(component.getId()); // Put id of component
-				w_buffer.putString(true, component.getClass().getName(), NetworkBuffer.UTF_8); // Put class of component
+				writeBuffer.putInt(component.getId()); // Put id of component
+				writeBuffer.putString(true, component.getClass().getName(), NetworkBuffer.UTF_8); // Put class of component
 			}
 		});
-		w_buffer.putInt(-1); // Put stop flag on components
+		writeBuffer.putInt(-1); // Put stop flag on components
 
 		obj.forEachChild((id, child) -> writeObjectStructure(child));
-		w_buffer.putInt(-1); // Put stop flag on children
+		writeBuffer.putInt(-1); // Put stop flag on children
 	}
 
 	protected void readObjectStructure(Level level, GameObject parent) throws Throwable {
-		NetworkBuffer r_buffer = r_buffer();
 		// Get class name and id of the object
-		int id = r_buffer.getInt();
-		String clazz = r_buffer.getString(true, NetworkBuffer.UTF_8);
+		int id = readBuffer.getInt();
+		String clazz = readBuffer.getString(true, NetworkBuffer.UTF_8);
 
 		// Retrieve the class and check if it is valid
 		Class<?> objclass = cachedClass(clazz);
@@ -423,10 +414,10 @@ public class ConnectionManager {
 
 		// Iterate through components
 		int comp_id = -1;
-		while ((comp_id = r_buffer.getInt()) != -1) {
+		while ((comp_id = readBuffer.getInt()) != -1) {
 
 			// Get id and class name of the component
-			String comp_clazz = r_buffer.getString(true, NetworkBuffer.UTF_8);
+			String comp_clazz = readBuffer.getString(true, NetworkBuffer.UTF_8);
 
 			// Retrieve the component class and check if it is valid
 			Class<?> compclass = cachedClass(comp_clazz);
@@ -459,14 +450,13 @@ public class ConnectionManager {
 		}
 
 		// Recursively perform this on all children
-		while (r_buffer.getInt() != -1) {
-			r_buffer.skip(-Integer.BYTES);
+		while (readBuffer.getInt() != -1) {
+			readBuffer.skip(-Integer.BYTES);
 			readObjectStructure(level, object);
 		}
 	}
 
 	public void writeObjectTree(GameObject object) {
-		NetworkBuffer w_buffer = w_buffer();
 		// Any object with a local parent cannot be replicated
 		GameObject parent = object;
 		while(parent != null) {
@@ -477,19 +467,20 @@ public class ConnectionManager {
 		}
 
 		endpoint.reliable = true;
-		w_buffer.putByte(Opcode.OBJECT_TREE);
-		w_buffer.putInt(object.getParent() == null ? -1 : object.getParent().getId());
+		writeBuffer.putByte(Opcode.OBJECT_TREE);
+		writeBuffer.putInt(object.getParent() == null ? -1 : object.getParent().getId());
 		writeObjectStructure(object);
 	}
 
-	public void readObjectTree(Level level) throws Throwable {
-		NetworkBuffer r_buffer = r_buffer();
-		int parent_id = r_buffer.getInt();
-		GameObject parent = parent_id == -1 ? null : level.getObject(parent_id);
+	public void readObjectTree() throws Throwable {
+		Level level = getLevel();
+		
+		int parent_id = readBuffer.getInt();
+		GameObject parent = (parent_id == -1) ? null : level.getObject(parent_id);
 
 		// Retrieve class in advance for security checks
-		r_buffer.skip(Integer.BYTES); // Skip object id
-		String clazz = r_buffer.getString(true, NetworkBuffer.UTF_8);
+		readBuffer.skip(Integer.BYTES); // Skip object id
+		String clazz = readBuffer.getString(true, NetworkBuffer.UTF_8);
 
 		// Retrieve the class and check if it is valid
 		Class<?> objclass = cachedClass(clazz);
@@ -498,7 +489,7 @@ public class ConnectionManager {
 		}
 
 		// Set back position
-		r_buffer.skip(-Integer.BYTES);
+		readBuffer.skip(-Integer.BYTES);
 
 		// First flag all objects as deletable
 		// this will be reverted by readChildren
@@ -516,7 +507,6 @@ public class ConnectionManager {
 
 	// Destruction of objects
 	public void writeObjectDestruction(GameObject object) {
-		NetworkBuffer w_buffer = w_buffer();
 		// Any object with a local parent cannot be replicated
 		GameObject parent = object;
 		while(parent != null) {
@@ -527,13 +517,12 @@ public class ConnectionManager {
 		}
 
 		endpoint.reliable = true;
-		w_buffer.putByte(Opcode.OBJECT_DESTROY);
-		w_buffer.putBoolean(false); // Component flag
-		w_buffer.putInt(object.getId());
+		writeBuffer.putByte(Opcode.OBJECT_DESTROY);
+		writeBuffer.putBoolean(false); // Component flag
+		writeBuffer.putInt(object.getId());
 	}
 
 	public void writeComponentDestruction(GameComponent component) {
-		NetworkBuffer w_buffer = w_buffer();
 		// Any component that is local or has a local parent cannot be replicated
 		if (component.isLocal()) {
 			return;
@@ -548,16 +537,17 @@ public class ConnectionManager {
 
 
 		endpoint.reliable = true;
-		w_buffer.putByte(Opcode.OBJECT_DESTROY);
-		w_buffer.putBoolean(true); // Component flag
-		w_buffer.putInt(component.getId());
+		writeBuffer.putByte(Opcode.OBJECT_DESTROY);
+		writeBuffer.putBoolean(true); // Component flag
+		writeBuffer.putInt(component.getId());
 	}
 
-	public void readObjectDestruction(Level level) {
-		NetworkBuffer r_buffer = r_buffer();
+	public void readObjectDestruction() {
+		Level level = getLevel();
+		
 		// Retrieve component boolean and id
-		boolean isComp = r_buffer.getBoolean();
-		int id = r_buffer.getInt();
+		boolean isComp = readBuffer.getBoolean();
+		int id = readBuffer.getInt();
 
 		// No common interface for both components and objects
 		if (isComp) {
@@ -589,31 +579,30 @@ public class ConnectionManager {
 
 	// Serialization of single objects / components
 	public void writeObjectReplication(GameObject obj) {
-		NetworkBuffer w_buffer = w_buffer();
-		if (!needsReplication(obj) || obj.isLocal()) {
+		if (!needsReplication(obj)) {
 			return;
 		}
 
 		// Metadata
-		w_buffer.putByte(Opcode.GAMEOBJECT);
-		w_buffer.putInt(obj.getId());
-		int pos = w_buffer.getPosition();
-		w_buffer.skip(Short.BYTES); // Allocate memory for skip destination
+		writeBuffer.putByte(Opcode.GAMEOBJECT);
+		writeBuffer.putInt(obj.getId());
+		int pos = writeBuffer.getPosition();
+		writeBuffer.skip(Short.BYTES); // Allocate memory for skip destination
 
 		// Perform write
 		writeReplicable(obj);
 
 		// More metadata
-		int off = w_buffer.getPosition() - pos - Short.BYTES;
-		w_buffer.putShortAt(pos, (short) off);
+		int off = writeBuffer.getPosition() - pos - Short.BYTES;
+		writeBuffer.putShortAt(pos, (short) off);
 	}
 
-	public void readObjectReplication(Level level) {
-		NetworkBuffer r_buffer = r_buffer();
-
+	public void readObjectReplication() {
+		Level level = getLevel();
+		
 		// Read metadata
-		int id = r_buffer.getInt();
-		short skip = r_buffer.getShort();
+		int id = readBuffer.getInt();
+		short skip = readBuffer.getShort();
 		if(skip < 0) {
 			throw new IllegalStateException("Negative skip value");
 		}
@@ -623,7 +612,7 @@ public class ConnectionManager {
 
 		// Failed
 		if (obj == null || obj.isLocal()) {
-			r_buffer.skip(skip);
+			readBuffer.skip(skip);
 			return;
 		}
 
@@ -632,31 +621,30 @@ public class ConnectionManager {
 	}
 
 	public void writeComponentReplication(GameComponent comp) {
-		NetworkBuffer w_buffer = w_buffer();
-		if (!needsReplication(comp) || comp.isLocal()) {
+		if (!needsReplication(comp)) {
 			return;
 		}
 
 		// Metadata
-		w_buffer.putByte(Opcode.GAMEOBJECT);
-		w_buffer.putInt(comp.getId());
-		int pos = w_buffer.getPosition();
-		w_buffer.skip(Short.BYTES); // Allocate memory for skip destination
+		writeBuffer.putByte(Opcode.GAMEOBJECT);
+		writeBuffer.putInt(comp.getId());
+		int pos = writeBuffer.getPosition();
+		writeBuffer.skip(Short.BYTES); // Allocate memory for skip destination
 
 		// Perform write
 		writeReplicable(comp);
 
 		// More metadata
-		int off = w_buffer.getPosition() - pos - Short.BYTES;
-		w_buffer.putShortAt(pos, (short) off);
+		int off = writeBuffer.getPosition() - pos - Short.BYTES;
+		writeBuffer.putShortAt(pos, (short) off);
 	}
 
-	public void readComponentReplication(Level level) {
-		NetworkBuffer r_buffer = r_buffer();
-
+	public void readComponentReplication() {
+		Level level = getLevel();
+		
 		// Read metadata
-		int id = r_buffer.getInt();
-		short skip = r_buffer.getShort();
+		int id = readBuffer.getInt();
+		short skip = readBuffer.getShort();
 		if(skip < 0) {
 			throw new IllegalStateException("Negative skip value");
 		}
@@ -666,7 +654,7 @@ public class ConnectionManager {
 
 		// Failed
 		if (comp == null || comp.isLocal()) {
-			r_buffer.skip(skip);
+			readBuffer.skip(skip);
 			return;
 		}
 
@@ -677,22 +665,20 @@ public class ConnectionManager {
 	// Game events
 
 	public void writeGameEvent(GameEvent event) {
-		NetworkBuffer w_buffer = w_buffer();
 		if (event.isLocal()) {
 			return;
 		}
-		w_buffer.putByte(Opcode.GAMEEVENT);
+		writeBuffer.putByte(Opcode.GAMEEVENT);
 
-		w_buffer.putString(event.getClass().getName());
-		w_buffer.putInt(event.getId());
+		writeBuffer.putString(event.getClass().getName());
+		writeBuffer.putInt(event.getId());
 		writeReplicable(event);
 	}
 
 	public void readGameEvent() throws Throwable {
-		NetworkBuffer r_buffer = r_buffer();
 		// Obtain event metadata
-		String event_class = r_buffer.getString();
-		int event_id = r_buffer.getInt();
+		String event_class = readBuffer.getString();
+		int event_id = readBuffer.getInt();
 
 		// Check validity of the class
 		Class<?> eventclass = cachedClass(event_class);
@@ -723,7 +709,6 @@ public class ConnectionManager {
 
 	// Remote procedure calls
 	public void writeRemoteProcedure(RemoteProcedure rpc) {
-		NetworkBuffer w_buffer = w_buffer();
 		// Is this reliable?
 		endpoint.reliable |= rpc.isReliable();
 
@@ -731,18 +716,17 @@ public class ConnectionManager {
 		rpc_cache.put(rpc.getId(), rpc);
 
 		// Write metadata
-		w_buffer.putInt(rpc.getId());
-		w_buffer.putString(true, rpc.getClass().getName(), NetworkBuffer.UTF_8);
+		writeBuffer.putInt(rpc.getId());
+		writeBuffer.putString(true, rpc.getClass().getName(), NetworkBuffer.UTF_8);
 
 		// Write arguments
-		rpc.writeArgs(w_buffer);
+		rpc.writeArgs(writeBuffer);
 	}
 
 	public void readRemoteProcedure() throws Throwable {
-		NetworkBuffer r_buffer = r_buffer();
 		// Get some metadata
-		int id = r_buffer.getInt();
-		String clazz = r_buffer.getString(true, NetworkBuffer.UTF_8);
+		int id = readBuffer.getInt();
+		String clazz = readBuffer.getString(true, NetworkBuffer.UTF_8);
 
 		// Check if class is valid
 		Class<?> cls = cachedClass(clazz);
@@ -755,7 +739,7 @@ public class ConnectionManager {
 		f_rpcid.set(rpc, id);
 
 		// Read arguments
-		rpc.readArgs(r_buffer);
+		rpc.readArgs(readBuffer);
 
 		// Dispatch RemoteProcedure execution to the updater thread
 		getGame().getUpdaterDispatcher().queue(() -> {
@@ -769,28 +753,26 @@ public class ConnectionManager {
 	}
 
 	public void writeRemoteProcedureResponse(RemoteProcedure rpc) {
-		NetworkBuffer w_buffer = w_buffer();
 		endpoint.reliable |= rpc.isReliable();
 
 		if (rpc.hasReturnValue()) {
 			// Write response metadata
-			w_buffer.putByte(Opcode.RP_RESPONSE);
-			w_buffer.putInt(rpc.getId());
+			writeBuffer.putByte(Opcode.RP_RESPONSE);
+			writeBuffer.putInt(rpc.getId());
 
 			// Write return value
-			rpc.writeReturn(w_buffer);
+			rpc.writeReturn(writeBuffer);
 		} else {
 			// Write acknowledgement metadata
-			w_buffer.putByte(Opcode.RP_ACKNOWLEDGEMENT);
-			w_buffer.putInt(rpc.getId());
-			w_buffer.putBoolean(rpc.isError()); // Needed explicitly here
+			writeBuffer.putByte(Opcode.RP_ACKNOWLEDGEMENT);
+			writeBuffer.putInt(rpc.getId());
+			writeBuffer.putBoolean(rpc.isError()); // Needed explicitly here
 		}
 	}
 
 	public void readRemoteProcedureResponse() throws Throwable {
-		NetworkBuffer r_buffer = r_buffer();
 		// Get metadata
-		int id = r_buffer.getInt();
+		int id = readBuffer.getInt();
 
 		// Obtain saved procedure
 		RemoteProcedure rpc = rpc_cache.remove(id);
@@ -807,7 +789,7 @@ public class ConnectionManager {
 		}
 
 		// Read return value
-		rpc.readReturn(r_buffer);
+		rpc.readReturn(readBuffer);
 		f_rpcready.set(rpc, true); // Can be reused
 
 		// Queue callback to updater thread
@@ -815,9 +797,8 @@ public class ConnectionManager {
 	}
 
 	public void readRPCAcknowledgement() throws Throwable {
-		NetworkBuffer r_buffer = r_buffer();
 		// Read metadata
-		int id = r_buffer.getInt();
+		int id = readBuffer.getInt();
 
 		// Retrieve saved procedure
 		RemoteProcedure rpc = rpc_cache.remove(id);
@@ -829,7 +810,7 @@ public class ConnectionManager {
 		}
 
 		// Error occurred remotely?
-		boolean error = r_buffer.getBoolean();
+		boolean error = readBuffer.getBoolean();
 
 		// Set flags
 		f_rpcerror.set(rpc, error);
@@ -842,18 +823,16 @@ public class ConnectionManager {
 	// Utility methods
 
 	protected void invalid(byte opcode) {
-		NetworkBuffer r_buffer = r_buffer();
 		Logger.error(
 				"Remote host sent an invalid operation (" + (opcode & 0xff) + ") : the connection will be terminated");
-		error_log(r_buffer);
+		error_log(readBuffer);
 		throw new IllegalStateException();
 	}
 
 	protected void invalid_privilege(byte opcode) {
-		NetworkBuffer r_buffer = r_buffer();
 		Logger.warning("Remote client doesn't have enough permission to perform the following operation ("
 				+ (opcode & 0xff) + ") : the connection will be terminated");
-		error_log(r_buffer);
+		error_log(readBuffer);
 		throw new IllegalStateException();
 	}
 
@@ -966,15 +945,11 @@ public class ConnectionManager {
 		this.forceReplication = forceReplication;
 	}
 
-	public NetworkBuffer w_buffer() {
-		return endpoint.w_buffer;
-	}
-
-	public NetworkBuffer r_buffer() {
-		return endpoint.r_buffer;
-	}
-
 	public void setEndpoint(ConnectionEndpoint endpoint) {
+		if(endpoint != null) {
+			writeBuffer = endpoint.writeBuffer;
+			readBuffer = endpoint.readBuffer;
+		}
 		this.endpoint = endpoint;
 	}
 

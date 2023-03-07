@@ -1,6 +1,6 @@
 package com.spaghetti.demo;
 
-import com.spaghetti.core.GameObject;
+import com.spaghetti.world.GameObject;
 import com.spaghetti.networking.RemoteProcedure;
 import com.spaghetti.utils.Logger;
 

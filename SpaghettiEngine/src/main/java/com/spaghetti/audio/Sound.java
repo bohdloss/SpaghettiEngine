@@ -5,15 +5,16 @@ import java.util.HashMap;
 
 import com.spaghetti.assets.Asset;
 import com.spaghetti.core.Game;
+import com.spaghetti.render.Material;
 
 public abstract class Sound extends Asset {
 
 	public static Sound get(String name) {
-		return Game.getGame().getAssetManager().sound(name);
+		return Game.getInstance().getAssetManager().getAndLazyLoadAsset(name);
 	}
 
 	public static Sound require(String name) {
-		return Game.getGame().getAssetManager().requireSound(name);
+		return Game.getInstance().getAssetManager().getAndInstantlyLoadAsset(name);
 	}
 
 	public static final int DETACHED = -1, STOPPED = 0, PLAYING = 1, PAUSED = 2;

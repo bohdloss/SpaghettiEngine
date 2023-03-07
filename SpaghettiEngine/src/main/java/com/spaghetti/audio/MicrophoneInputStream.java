@@ -5,14 +5,15 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.List;
 
+import com.spaghetti.utils.ExceptionUtil;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.openal.AL11;
 import org.lwjgl.openal.ALC10;
 import org.lwjgl.openal.ALC11;
 import org.lwjgl.openal.ALUtil;
 
-import com.spaghetti.utils.CMath;
-import com.spaghetti.utils.Utils;
+import com.spaghetti.utils.MathUtil;
+import com.spaghetti.utils.ThreadUtil;
 
 public class MicrophoneInputStream extends InputStream {
 
@@ -64,7 +65,7 @@ public class MicrophoneInputStream extends InputStream {
 
 		// Trying opening device
 		device_handle = ALC11.alcCaptureOpenDevice(deviceName, frequency, format, tempBufferSize);
-		Utils.alcError(device_handle);
+		ExceptionUtil.alcError(device_handle);
 
 		// Check if device failed to open
 		if (device_handle == 0) {
@@ -73,7 +74,7 @@ public class MicrophoneInputStream extends InputStream {
 
 		// Start capturing audio
 		ALC11.alcCaptureStart(device_handle);
-		Utils.alcError(device_handle);
+		ExceptionUtil.alcError(device_handle);
 
 		// Initialize secondary buffer
 		secondary_buffer = BufferUtils.createByteBuffer(secondaryBufferSize);
@@ -90,7 +91,7 @@ public class MicrophoneInputStream extends InputStream {
 	public int read() throws IOException {
 		// Block until the sample is available
 		while (available() == 0) {
-			Utils.sleep(1);
+			ThreadUtil.sleep(1);
 		}
 
 		if (remaining_bias > 0) {
@@ -101,7 +102,7 @@ public class MicrophoneInputStream extends InputStream {
 		// Capture exactly 1 sample
 		secondary_buffer.clear();
 		ALC11.alcCaptureSamples(device_handle, secondary_buffer, 1);
-		Utils.alcError(device_handle);
+		ExceptionUtil.alcError(device_handle);
 
 		// Convert it to 0-255 value range
 		return secondary_buffer.get(0) & 0xFF;
@@ -127,13 +128,13 @@ public class MicrophoneInputStream extends InputStream {
 		secondary_buffer.clear();
 
 		// Calculate maximum amount that can be captured
-		int toCapture = (int) CMath.clampMax(available(), secondary_buffer.capacity());
-		toCapture = (int) CMath.clampMax(toCapture, length);
+		int toCapture = (int) MathUtil.clampMax(available(), secondary_buffer.capacity());
+		toCapture = (int) MathUtil.clampMax(toCapture, length);
 
 		// We have some emptiness to put in the buffer
 		if (remaining_bias > 0) {
 			// Find maximum amount of empty we can put and decrease emptiness counter
-			int copy_bias = (int) CMath.clampMax(remaining_bias, toCapture);
+			int copy_bias = (int) MathUtil.clampMax(remaining_bias, toCapture);
 			remaining_bias -= copy_bias;
 
 			// Put the emptiness
@@ -155,7 +156,7 @@ public class MicrophoneInputStream extends InputStream {
 
 		// Capture
 		ALC11.alcCaptureSamples(device_handle, secondary_buffer, toCapture);
-		Utils.alcError(device_handle);
+		ExceptionUtil.alcError(device_handle);
 		secondary_buffer.position(secondary_buffer.position() + toCapture);
 
 		// Copy to java array
@@ -172,7 +173,7 @@ public class MicrophoneInputStream extends InputStream {
 		// We may have some emptiness to skip
 		if (remaining_bias > 0) {
 			// Find maximum amount of empty we can put and decrease emptiness counter
-			int ignore_bias = (int) CMath.clampMax(remaining_bias, amount);
+			int ignore_bias = (int) MathUtil.clampMax(remaining_bias, amount);
 			remaining_bias -= ignore_bias;
 
 			// We used every chance to skip, just return immediately
@@ -185,13 +186,13 @@ public class MicrophoneInputStream extends InputStream {
 		// Keep capturing into buffer and ignore
 		while (remaining > 0) {
 			// Calculate maximum amount that can be captured
-			int toCapture = (int) CMath.clampMax(available(), secondary_buffer.capacity());
-			toCapture = (int) CMath.clampMax(toCapture, remaining);
+			int toCapture = (int) MathUtil.clampMax(available(), secondary_buffer.capacity());
+			toCapture = (int) MathUtil.clampMax(toCapture, remaining);
 
 			// Capture
 			secondary_buffer.clear();
 			ALC11.alcCaptureSamples(device_handle, secondary_buffer, toCapture);
-			Utils.alcError(device_handle);
+			ExceptionUtil.alcError(device_handle);
 
 			// Decrease counter
 			remaining -= toCapture;
@@ -202,16 +203,16 @@ public class MicrophoneInputStream extends InputStream {
 	@Override
 	public int available() throws IOException {
 		int available = ALC10.alcGetInteger(device_handle, ALC11.ALC_CAPTURE_SAMPLES);
-		Utils.alcError(device_handle);
+		ExceptionUtil.alcError(device_handle);
 		return available + remaining_bias;
 	}
 
 	@Override
 	public void close() throws IOException {
 		ALC11.alcCaptureStop(device_handle);
-		Utils.alcError(device_handle);
+		ExceptionUtil.alcError(device_handle);
 		ALC10.alcCloseDevice(device_handle);
-		Utils.alcError(device_handle);
+		ExceptionUtil.alcError(device_handle);
 	}
 
 	@Override

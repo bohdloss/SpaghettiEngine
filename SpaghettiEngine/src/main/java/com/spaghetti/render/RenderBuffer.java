@@ -1,9 +1,9 @@
 package com.spaghetti.render;
 
+import com.spaghetti.utils.ExceptionUtil;
 import org.lwjgl.opengl.GL30;
 
 import com.spaghetti.assets.Asset;
-import com.spaghetti.utils.Utils;
 
 public class RenderBuffer extends Asset {
 
@@ -15,7 +15,7 @@ public class RenderBuffer extends Asset {
 	protected int type;
 
 	public RenderBuffer(int width, int height, int type) {
-		setData(width, height, type);
+		setData(new Object[] {width, height, type});
 		load();
 	}
 
@@ -23,8 +23,8 @@ public class RenderBuffer extends Asset {
 	}
 
 	@Override
-	public void setData(Object... objects) {
-		if (valid()) {
+	public void setData(Object[] objects) {
+		if (isValid()) {
 			return;
 		}
 
@@ -48,7 +48,7 @@ public class RenderBuffer extends Asset {
 		// Generate valid id
 
 		id = GL30.glGenRenderbuffers();
-		Utils.glError();
+		ExceptionUtil.glError();
 
 		// Bind w_buffer
 
@@ -57,7 +57,7 @@ public class RenderBuffer extends Asset {
 		// Allocate w_buffer storage
 
 		GL30.glRenderbufferStorage(GL30.GL_RENDERBUFFER, type, width, height);
-		Utils.glError();
+		ExceptionUtil.glError();
 
 	}
 
@@ -80,7 +80,7 @@ public class RenderBuffer extends Asset {
 	@Override
 	protected void unload0() {
 		GL30.glDeleteRenderbuffers(id);
-		Utils.glError();
+		ExceptionUtil.glError();
 	}
 
 }

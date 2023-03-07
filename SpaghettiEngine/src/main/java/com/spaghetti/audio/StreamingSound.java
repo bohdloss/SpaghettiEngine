@@ -5,14 +5,20 @@ import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
+import com.spaghetti.core.Game;
+import com.spaghetti.utils.ExceptionUtil;
+import com.spaghetti.utils.StreamUtil;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.openal.AL10;
 
-import com.spaghetti.interfaces.StreamProvider;
 import com.spaghetti.utils.Logger;
-import com.spaghetti.utils.Utils;
+import com.spaghetti.utils.ThreadUtil;
 
 public class StreamingSound extends Sound {
+
+	public static Sound getDefault() {
+		return Game.getInstance().getAssetManager().getDefaultAsset("Music");
+	}
 
 	public static final int NUM_BUFFERS = 4;
 	public static final int BUFFER_SIZE = 65536;
@@ -26,7 +32,7 @@ public class StreamingSound extends Sound {
 	protected int buffersize;
 
 	@Override
-	public void setData(Object... objects) {
+	public void setData(Object[] objects) {
 		this.format = (int) objects[0];
 		this.frequency = (int) objects[1];
 		this.bps = (int) objects[2];
@@ -77,7 +83,7 @@ public class StreamingSound extends Sound {
 			buffers = new VolatileSound[inst.numbuffers];
 			for (int i = 0; i < buffers.length; i++) {
 				buffers[i] = new VolatileSound();
-				buffers[i].setData(inst.format, BufferUtils.createByteBuffer(inst.buffersize), inst.frequency);
+				buffers[i].setData(new Object[] {inst.format, BufferUtils.createByteBuffer(inst.buffersize), inst.frequency});
 				buffers[i].load();
 			}
 		}
@@ -122,7 +128,7 @@ public class StreamingSound extends Sound {
 				// Read some data
 				ByteBuffer data = buffer.getData();
 				data.clear();
-				int read = Utils.effectiveRead(input, data, 0, data.capacity());
+				int read = StreamUtil.effectiveRead(input, data, 0, data.capacity());
 
 				// Reorder bytes
 				if (data.order() != inst.byteOrder) {
@@ -209,7 +215,7 @@ public class StreamingSound extends Sound {
 				for (int i = 0; i < processed; i++) {
 					VolatileSound buffer = structure.buffers[structure.playIndex];
 					AL10.alSourceUnqueueBuffers(source.getSourceId(), new int[] { buffer.getId() });
-					Utils.alError();
+					ExceptionUtil.alError();
 
 					structure.increasePlay();
 				}
@@ -224,7 +230,7 @@ public class StreamingSound extends Sound {
 					buffer.copyData();
 
 					AL10.alSourceQueueBuffers(source.getSourceId(), buffer.getId());
-					Utils.alError();
+					ExceptionUtil.alError();
 
 					structure.increaseLoad();
 				}
@@ -234,7 +240,7 @@ public class StreamingSound extends Sound {
 		// Wait for the source to actually finish if the finished flag is on
 		if (structure.finished) {
 			int alstate = AL10.alGetSourcei(source.getSourceId(), AL10.AL_SOURCE_STATE);
-			Utils.alError();
+			ExceptionUtil.alError();
 
 			if (alstate == AL10.AL_STOPPED) {
 
@@ -242,12 +248,12 @@ public class StreamingSound extends Sound {
 				if (source.isSourceLooping()) {
 					// Stop the source
 					AL10.alSourceStop(source.getSourceId());
-					Utils.alError();
+					ExceptionUtil.alError();
 
 					// Remove all buffers
 					for (VolatileSound buffer : structure.buffers) {
 						AL10.alSourceUnqueueBuffers(source.getSourceId(), new int[] { buffer.getId() });
-						Utils.alError();
+						ExceptionUtil.alError();
 					}
 
 					// Reset structure
@@ -288,28 +294,28 @@ public class StreamingSound extends Sound {
 
 					// Queue buffer
 					AL10.alSourceQueueBuffers(source.getSourceId(), buffer.getId());
-					Utils.alError();
+					ExceptionUtil.alError();
 				}
 
 				structure.firstTime = false;
 			}
 			AL10.alSourcePlay(source.getSourceId());
-			Utils.alError();
+			ExceptionUtil.alError();
 			break;
 		case PAUSED:
 			// Simply pause source
 			AL10.alSourcePause(source.getSourceId());
-			Utils.alError();
+			ExceptionUtil.alError();
 			break;
 		case STOPPED:
 			// Stop source to mark all buffers as queued
 			AL10.alSourceStop(source.getSourceId());
-			Utils.alError();
+			ExceptionUtil.alError();
 
 			// Unqueue all buffers
 			for (VolatileSound buffer : structure.buffers) {
 				AL10.alSourceUnqueueBuffers(source.getSourceId(), new int[] { buffer.getId() });
-				Utils.alError();
+				ExceptionUtil.alError();
 			}
 
 			// Destroy structure

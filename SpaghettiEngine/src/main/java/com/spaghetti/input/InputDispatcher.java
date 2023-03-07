@@ -7,8 +7,7 @@ import org.lwjgl.glfw.GLFW;
 
 import com.spaghetti.core.Game;
 import com.spaghetti.core.GameWindow;
-import com.spaghetti.interfaces.InputListener;
-import com.spaghetti.utils.CMath;
+import com.spaghetti.utils.MathUtil;
 import com.spaghetti.utils.Logger;
 
 public class InputDispatcher {
@@ -47,7 +46,7 @@ public class InputDispatcher {
 			// of the window, ignore the event
 			x = pointer.x;
 			y = pointer.y;
-			if (CMath.inrange(pointer.x, 0, window.getWidth()) && CMath.inrange(pointer.y, 0, window.getHeight())) {
+			if (MathUtil.inRange(pointer.x, 0, window.getWidth()) && MathUtil.inRange(pointer.y, 0, window.getHeight())) {
 				fireMouseEvent(MouseEvent.MOVE, 0, false);
 			}
 		}

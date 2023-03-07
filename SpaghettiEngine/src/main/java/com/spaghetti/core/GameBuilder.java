@@ -9,6 +9,7 @@ import com.spaghetti.networking.ServerCore;
 import com.spaghetti.render.RendererCore;
 import com.spaghetti.utils.GameOptions;
 import com.spaghetti.utils.Logger;
+import com.spaghetti.world.GameState;
 
 public final class GameBuilder {
 
@@ -34,6 +35,11 @@ public final class GameBuilder {
 		return updater;
 	}
 
+	public GameBuilder enableUpdater() {
+		updater = UpdaterCore.class;
+		return this;
+	}
+
 	public GameBuilder setRenderer(Class<? extends RendererCore> renderer) {
 		this.renderer = renderer;
 		return this;
@@ -41,6 +47,11 @@ public final class GameBuilder {
 
 	public Class<? extends RendererCore> getRenderer() {
 		return renderer;
+	}
+
+	public GameBuilder enableRenderer() {
+		renderer = RendererCore.class;
+		return this;
 	}
 
 	public GameBuilder setClient(Class<? extends ClientCore> client) {
@@ -52,6 +63,11 @@ public final class GameBuilder {
 		return client;
 	}
 
+	public GameBuilder enableClient() {
+		client = ClientCore.class;
+		return this;
+	}
+
 	public GameBuilder setServer(Class<? extends ServerCore> server) {
 		this.server = server;
 		return this;
@@ -59,6 +75,11 @@ public final class GameBuilder {
 
 	public Class<? extends ServerCore> getServer() {
 		return server;
+	}
+
+	public GameBuilder enableServer() {
+		server = ServerCore.class;
+		return this;
 	}
 
 	public GameBuilder setEventDispatcherClass(Class<? extends EventDispatcher> cls) {

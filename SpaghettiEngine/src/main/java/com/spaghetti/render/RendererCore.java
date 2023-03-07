@@ -3,6 +3,8 @@ package com.spaghetti.render;
 import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 
+import com.spaghetti.assets.loaders.*;
+import com.spaghetti.core.events.ExitRequestedEvent;
 import org.joml.Matrix4d;
 import org.joml.Vector3f;
 import org.lwjgl.glfw.GLFW;
@@ -21,9 +23,8 @@ import org.lwjgl.system.MemoryUtil;
 import com.spaghetti.assets.AssetManager;
 import com.spaghetti.core.CoreComponent;
 import com.spaghetti.core.GameWindow;
-import com.spaghetti.objects.Camera;
-import com.spaghetti.utils.CMath;
-import com.spaghetti.utils.GLException;
+import com.spaghetti.exceptions.GLException;
+import com.spaghetti.utils.MathUtil;
 import com.spaghetti.utils.Logger;
 import com.spaghetti.utils.Transform;
 
@@ -75,8 +76,8 @@ public class RendererCore extends CoreComponent {
 	public void initialize0() throws Throwable {
 
 		// Init window and obtain asset manager
-		this.window.winInit(getGame());
-		this.assetManager = getGame().getAssetManager();
+		window.winInit(getGame());
+		assetManager = getGame().getAssetManager();
 
 		// Initializes OpenGL
 		window.makeContextCurrent();
@@ -84,11 +85,11 @@ public class RendererCore extends CoreComponent {
 		GL43.glDebugMessageCallback((source, type, id, severity, length, message, userParam) -> {
 			String message_str = MemoryUtil.memUTF8(message, length);
 			if(severity <= GL43.GL_DEBUG_SEVERITY_NOTIFICATION) {
-				Logger.info(getGame(), "[NOTIFICATION] OpenGL: ");
-				Logger.info(getGame(), "[NOTIFICATION] " + message_str);
+				Logger.debug(getGame(), "[NOTIFICATION] OpenGL: ");
+				Logger.debug(getGame(), "[NOTIFICATION] " + message_str);
 			} else if(severity <= GL43.GL_DEBUG_SEVERITY_LOW) {
-				Logger.warning(getGame(), "[LOW] OpenGL: ");
-				Logger.warning(getGame(), "[LOW] " + message_str);
+				Logger.debug(getGame(), "[LOW] OpenGL: ");
+				Logger.debug(getGame(), "[LOW] " + message_str);
 			} else {
 				GLException error = new GLException(source, type, id, severity, message_str);
 
@@ -110,20 +111,13 @@ public class RendererCore extends CoreComponent {
 			}
 		}, 0);
 
-		GL11.glEnable(GL11.GL_TEXTURE_2D);
-		GL11.glEnable(GL11.GL_BLEND);
-		GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-//		GL11.glEnable(GL11.GL_CULL_FACE);
-		GL11.glEnable(GL11.GL_DEPTH_TEST);
-		GL11.glDepthFunc(GL11.GL_LEQUAL);
-		GL11.glDisable(GL11.GL_LIGHTING);
-		GLFW.glfwSwapInterval(0);
-
-		sceneRenderer = new Model(new float[] { -1f, 1f, 0f, 1f, 1f, 0f, 1f, -1f, 0f, -1f, -1f, 0 },
-				new float[] { 0f, 0f, 1f, 0f, 1f, 1f, 0f, 1f }, new float[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-				new int[] { 0, 1, 2, 2, 3, 0 });
-
-		defaultShader = ShaderProgram.require("rendererSP");
+		// Register asset loaders
+		assetManager.registerAssetLoader("Model", new ModelLoader());
+		assetManager.registerAssetLoader("VertexShader", new VertexShaderLoader());
+		assetManager.registerAssetLoader("FragmentShader", new FragmentShaderLoader());
+		assetManager.registerAssetLoader("ShaderProgram", new ShaderProgramLoader());
+		assetManager.registerAssetLoader("Texture", new TextureLoader());
+		assetManager.registerAssetLoader("Material", new MaterialLoader());
 
 		if (openal) {
 			// Initializes OpenAL output
@@ -134,7 +128,31 @@ public class RendererCore extends CoreComponent {
 			ALC10.alcMakeContextCurrent(alContext);
 			ALC10.alcProcessContext(alContext);
 			alCapabilities = AL.createCapabilities(alcCapabilities);
+
+			// Register audio assets
+
+			assetManager.registerAssetLoader("Music", new MusicLoader());
+			assetManager.registerAssetLoader("Sound", new SoundLoader());
 		}
+
+		// Load asset sheets
+		assetManager.loadAssetSheet(getGame().getEngineOption("assets.internalSheet"));
+		assetManager.loadAssetSheet(getGame().getEngineOption("assetsheet"));
+
+		GL11.glEnable(GL11.GL_TEXTURE_2D);
+		GL11.glEnable(GL11.GL_BLEND);
+		GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+//		GL11.glEnable(GL11.GL_CULL_FACE);
+		GL11.glEnable(GL11.GL_DEPTH_TEST);
+		GL11.glDepthFunc(GL11.GL_LEQUAL);
+		GL11.glDisable(GL11.GL_LIGHTING);
+		GLFW.glfwSwapInterval(1);
+
+		sceneRenderer = new Model(new float[] { -1f, 1f, 0f, 1f, 1f, 0f, 1f, -1f, 0f, -1f, -1f, 0 },
+				new float[] { 0f, 0f, 1f, 0f, 1f, 1f, 0f, 1f }, new float[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+				new int[] { 0, 1, 2, 2, 3, 0 });
+
+		defaultShader = ShaderProgram.require("rendererSP");
 	}
 
 	@Override
@@ -186,7 +204,13 @@ public class RendererCore extends CoreComponent {
 			GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_STENCIL_BUFFER_BIT);
 
 			if (window.shouldClose()) {
-				getGame().stopAsync();
+				ExitRequestedEvent event = new ExitRequestedEvent();
+				getGame().getEventDispatcher().raiseEvent(event);
+				if(event.isCancelled()) {
+					window.setShouldClose(false);
+				} else {
+					getGame().stopAsync();
+				}
 			}
 
 			Camera camera = getCamera();
@@ -227,8 +251,10 @@ public class RendererCore extends CoreComponent {
 
 				// Reset render matrix
 				renderMatrix.identity();
+
 				// Calculate the scale
-				float scale = CMath.min(window.getWidth() / camera.getTargetRatio(), window.getHeight());
+				float scale = MathUtil.min(window.getWidth() / camera.getTargetRatio(), window.getHeight());
+
 				// Scale the matrix accordingly dividing by window size
 				renderMatrix.scale((scale * camera.getTargetRatio()) / window.getWidth(), -scale / window.getHeight(),
 						1);
@@ -281,7 +307,7 @@ public class RendererCore extends CoreComponent {
 			if(!renderCache_alloc[i]) {
 				renderCache_alloc[i] = true;
 
-				Logger.info("Allocted render cache at index " + i);
+				//Logger.info("Allocated render cache at index " + i);
 
 				return i;
 			}
@@ -294,7 +320,7 @@ public class RendererCore extends CoreComponent {
 			return;
 		}
 
-		Logger.info("Deallocated render cache at index " + index);
+		//Logger.info("Deallocated render cache at index " + index);
 
 		renderCache_alloc[index] = false;
 	}

@@ -1,7 +1,7 @@
 package com.spaghetti.input;
 
-import com.spaghetti.interfaces.InputListener;
-import com.spaghetti.utils.Utils;
+import com.spaghetti.utils.HashUtil;
+import com.spaghetti.utils.ThreadUtil;
 
 public class KeyboardInput extends InputDevice implements InputListener {
 
@@ -104,7 +104,7 @@ public class KeyboardInput extends InputDevice implements InputListener {
 	// Key-binding management
 
 	public void bindKeydownCmd(int key, String command) {
-		binding_kdown[key] = Utils.intHash(command);
+		binding_kdown[key] = HashUtil.intHash(command);
 	}
 
 	public void unbindKeydownCmd(int key) {
@@ -112,7 +112,7 @@ public class KeyboardInput extends InputDevice implements InputListener {
 	}
 
 	public void bindKeyupCmd(int key, String command) {
-		binding_kup[key] = Utils.intHash(command);
+		binding_kup[key] = HashUtil.intHash(command);
 	}
 
 	public void unbindKeyupCmd(int key) {
@@ -134,7 +134,7 @@ public class KeyboardInput extends InputDevice implements InputListener {
 	// Mouse-binding management
 
 	public void bindBtndownCmd(int button, String command) {
-		binding_mdown[button] = Utils.intHash(command);
+		binding_mdown[button] = HashUtil.intHash(command);
 	}
 
 	public void unbindBtndownCmd(int button) {
@@ -142,7 +142,7 @@ public class KeyboardInput extends InputDevice implements InputListener {
 	}
 
 	public void bindBtnupCmd(int button, String command) {
-		binding_mup[button] = Utils.intHash(command);
+		binding_mup[button] = HashUtil.intHash(command);
 	}
 
 	public void unbindBtnupCmd(int button) {
@@ -164,7 +164,7 @@ public class KeyboardInput extends InputDevice implements InputListener {
 	// Move / Scroll -binding management
 
 	public void bindScrollCmd(int direction, String command) {
-		binding_mscroll[direction] = Utils.intHash(command);
+		binding_mscroll[direction] = HashUtil.intHash(command);
 	}
 
 	public void unbindScrollCmd(int direction) {
@@ -198,7 +198,7 @@ public class KeyboardInput extends InputDevice implements InputListener {
 	}
 
 	public void bindMoveCmd(String command) {
-		binding_mmove = Utils.intHash(command);
+		binding_mmove = HashUtil.intHash(command);
 	}
 
 	public void unbindMoveCmd() {

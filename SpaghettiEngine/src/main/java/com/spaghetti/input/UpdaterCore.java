@@ -3,9 +3,12 @@ package com.spaghetti.input;
 import com.spaghetti.core.CoreComponent;
 import com.spaghetti.core.Game;
 import com.spaghetti.utils.Logger;
-import com.spaghetti.utils.Utils;
+import com.spaghetti.utils.ThreadUtil;
 
 public class UpdaterCore extends CoreComponent {
+
+	protected int fps;
+	protected long lastCheck;
 
 	@Override
 	protected void loopEvents(float delta) throws Throwable {
@@ -22,7 +25,14 @@ public class UpdaterCore extends CoreComponent {
 			game.getGameState().update(delta);
 		} catch (Throwable t) {
 			Logger.error("Level generated an exception:", t);
-			Utils.sleep(100); // Remove later
+			// Prevent exception spam (exceptions too fast may prevent the stacktrace from generating)
+			ThreadUtil.sleep(100);
+		}
+		fps++;
+		if (System.currentTimeMillis() >= lastCheck + 1000) {
+			Logger.info(fps + " UPS");
+			fps = 0;
+			lastCheck = System.currentTimeMillis();
 		}
 	}
 
@@ -33,7 +43,7 @@ public class UpdaterCore extends CoreComponent {
 
 	@Override
 	protected void preTerminate() throws Throwable {
-		getGame().getGameState().destroyAllLevels();
+		getGame().getGameState().destroy();
 	}
 
 	@Override

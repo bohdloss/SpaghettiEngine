@@ -4,7 +4,7 @@ import com.spaghetti.events.GameEvent;
 
 public class OnPing extends GameEvent {
 
-	protected long ping;
+	protected final long ping;
 
 	public OnPing(long ping) {
 		this.ping = ping;

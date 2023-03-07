@@ -5,8 +5,8 @@ import com.spaghetti.networking.ConnectionManager;
 
 public class OnClientDisconnect extends GameEvent {
 
-	protected ConnectionManager client;
-	protected long clientId;
+	protected final ConnectionManager client;
+	protected final long clientId;
 
 	public OnClientDisconnect(ConnectionManager client, long clientId) {
 		this.client = client;

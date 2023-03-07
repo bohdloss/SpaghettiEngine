@@ -3,6 +3,8 @@ package com.spaghetti.render;
 import java.awt.image.BufferedImage;
 import java.nio.ByteBuffer;
 
+import com.spaghetti.audio.Sound;
+import com.spaghetti.utils.ExceptionUtil;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL13;
@@ -12,16 +14,19 @@ import org.lwjgl.system.MemoryUtil;
 import com.spaghetti.assets.Asset;
 import com.spaghetti.core.Game;
 import com.spaghetti.utils.ImageUtils;
-import com.spaghetti.utils.Utils;
 
 public class Texture extends Asset {
 
 	public static Texture get(String name) {
-		return Game.getGame().getAssetManager().texture(name);
+		return Game.getInstance().getAssetManager().getAndLazyLoadAsset(name);
 	}
 
 	public static Texture require(String name) {
-		return Game.getGame().getAssetManager().requireTexture(name);
+		return Game.getInstance().getAssetManager().getAndInstantlyLoadAsset(name);
+	}
+
+	public static Texture getDefault() {
+		return Game.getInstance().getAssetManager().getDefaultAsset("Texture");
 	}
 
 	public static final int COLOR = GL30.GL_RGBA;
@@ -40,17 +45,17 @@ public class Texture extends Asset {
 	protected void setParameters(ByteBuffer buffer, int width, int height, int type, int mode) {
 		// Bind
 		GL11.glBindTexture(GL11.GL_TEXTURE_2D, id);
-		Utils.glError();
+		ExceptionUtil.glError();
 
 		// Set mag and min filters
 		GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MIN_FILTER, mode);
-		Utils.glError();
+		ExceptionUtil.glError();
 		GL11.glTexParameteri(GL11.GL_TEXTURE_2D, GL11.GL_TEXTURE_MAG_FILTER, mode);
-		Utils.glError();
+		ExceptionUtil.glError();
 
 		// Set texture data
 		GL11.glTexImage2D(GL11.GL_TEXTURE_2D, 0, type, width, height, 0, type, GL11.GL_UNSIGNED_BYTE, buffer);
-		Utils.glError();
+		ExceptionUtil.glError();
 
 		// Free buffer
 		MemoryUtil.memFree(buffer);
@@ -68,7 +73,7 @@ public class Texture extends Asset {
 	}
 
 	public Texture(ByteBuffer buffer, int width, int height, int type, int mode) {
-		setData(buffer, width, height, type, mode);
+		setData(new Object[] {buffer, width, height, type, mode});
 		load();
 	}
 
@@ -82,8 +87,8 @@ public class Texture extends Asset {
 	}
 
 	@Override
-	public void setData(Object... objects) {
-		if (valid()) {
+	public void setData(Object[] objects) {
+		if (isValid()) {
 			return;
 		}
 
@@ -103,7 +108,7 @@ public class Texture extends Asset {
 	protected void load0() {
 		// Generate a valid id for this texture
 		id = GL11.glGenTextures();
-		Utils.glError();
+		ExceptionUtil.glError();
 
 		try {
 			setParameters(buffer, width, height, type, mode);
@@ -119,7 +124,11 @@ public class Texture extends Asset {
 	}
 
 	public void use(int sampler) {
-		if (!valid()) {
+		if (!isValid()) {
+			Texture base = getDefault();
+			if(this != base) {
+				base.use(sampler);
+			}
 			return;
 		}
 		if (sampler >= 0 && sampler <= 31) {
@@ -131,7 +140,7 @@ public class Texture extends Asset {
 	@Override
 	protected void unload0() {
 		GL11.glDeleteTextures(id);
-		Utils.glError();
+		ExceptionUtil.glError();
 	}
 
 	public int getId() {

@@ -48,11 +48,9 @@ public class JarFileIO {
 				return max;
 			});
 
+			// Writing is not allowed
 			file_inst.WriteProc((pFile, pBuffer, memB, count) -> 0);
-
-			file_inst.FlushProc(pFile -> {
-				// Nothing, writing is not allowed
-			});
+			file_inst.FlushProc(pFile -> {});
 
 			file_inst.FileSizeProc(pFile -> raw_buffer.limit());
 

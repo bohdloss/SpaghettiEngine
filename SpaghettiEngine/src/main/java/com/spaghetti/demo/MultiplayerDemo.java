@@ -59,9 +59,9 @@ public class MultiplayerDemo {
 		client2.getInputDispatcher().registerListener(new MyKeyListener());
 
 		// Set the server to depend on the client
-		server.depends(client1);
-		client1.depends(client2);
-		client2.depends(server);
+		server.depend(client1);
+		client1.depend(client2);
+		client2.depend(server);
 
 		// Initialize
 		client1.begin();

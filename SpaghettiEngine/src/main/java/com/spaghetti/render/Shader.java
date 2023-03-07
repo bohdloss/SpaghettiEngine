@@ -1,5 +1,6 @@
 package com.spaghetti.render;
 
+import com.spaghetti.utils.ExceptionUtil;
 import org.lwjgl.opengl.GL11;
 import org.lwjgl.opengl.GL20;
 import org.lwjgl.opengl.GL32;
@@ -7,16 +8,15 @@ import org.lwjgl.opengl.GL40;
 
 import com.spaghetti.assets.Asset;
 import com.spaghetti.core.Game;
-import com.spaghetti.utils.Utils;
 
-public final class Shader extends Asset {
+public abstract class Shader extends Asset {
 
 	public static Shader get(String name) {
-		return Game.getGame().getAssetManager().shader(name);
+		return Game.getInstance().getAssetManager().getAndLazyLoadAsset(name);
 	}
 
 	public static Shader require(String name) {
-		return Game.getGame().getAssetManager().requireShader(name);
+		return Game.getInstance().getAssetManager().getAndInstantlyLoadAsset(name);
 	}
 
 	public static final int VERTEX_SHADER = GL20.GL_VERTEX_SHADER;
@@ -29,7 +29,7 @@ public final class Shader extends Asset {
 	protected String source;
 	protected int type;
 
-	private static final boolean validateType(int type) {
+	protected static final boolean validateType(int type) {
 		return type == VERTEX_SHADER || type == FRAGMENT_SHADER || type == GEOMETRY_SHADER
 				|| type == TESS_CONTROL_SHADER || type == TESS_EVALUATION_SHADER;
 	}
@@ -38,13 +38,13 @@ public final class Shader extends Asset {
 	}
 
 	public Shader(String source, int type) {
-		setData(source, type);
+		setData(new Object[] {source, type});
 		load();
 	}
 
 	@Override
-	public void setData(Object... objects) {
-		if (valid()) {
+	public void setData(Object[] objects) {
+		if (isValid()) {
 			return;
 		}
 
@@ -66,14 +66,14 @@ public final class Shader extends Asset {
 
 		// Create usable shader id
 		id = GL20.glCreateShader(type);
-		Utils.glError();
+		ExceptionUtil.glError();
 
 		try {
 
 			GL20.glShaderSource(id, source);
-			Utils.glError();
+			ExceptionUtil.glError();
 			GL20.glCompileShader(id);
-			Utils.glError();
+			ExceptionUtil.glError();
 
 			if (GL20.glGetShaderi(id, GL20.GL_COMPILE_STATUS) == GL11.GL_FALSE) {
 				throw new IllegalArgumentException("Compiler error: " + GL20.glGetShaderInfoLog(id));
@@ -93,11 +93,11 @@ public final class Shader extends Asset {
 	@Override
 	protected void unload0() {
 		GL20.glDeleteShader(id);
-		Utils.glError();
+		ExceptionUtil.glError();
 	}
 
 	public int getId() {
-		return isUnloaded() ? 0 : id;
+		return isValid() ? id : 0;
 	}
 
 	public String getSource() {

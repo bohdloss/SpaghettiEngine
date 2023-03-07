@@ -1,29 +1,19 @@
 package com.spaghetti.utils;
 
 import java.lang.reflect.Method;
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.List;
+import java.util.*;
 import java.util.Map.Entry;
-import java.util.Random;
-
-import com.spaghetti.interfaces.Function;
 
 public final class FunctionDispatcher {
 
 	// This class allows other threads to assign some tasks to the main thread
 	// This can be useful for example when another thread needs to perform OpenGL
 	// calls
+	private List<FunctionWrapper> callQueue = new ArrayList<>();
+	private Map<Long, FunctionWrapper> callMap = new HashMap<>();
 
-	private HashMap<Long, Function> calls = new HashMap<>();
-	private HashMap<Long, Object> returnValues = new HashMap<>();
-	private List<Long> hasReturn = new ArrayList<>();
-	private HashMap<Long, Throwable> exceptions = new HashMap<>();
-	private List<Long> hasException = new ArrayList<>();
-	private List<Long> ignoreReturn = new ArrayList<>();
-	private Random random;
-
-	private Thread thread;
+	private final Random random;
+	private final Thread thread;
 
 	// Queue using reflection
 
@@ -56,7 +46,7 @@ public final class FunctionDispatcher {
 			return queue(toQueue, ignoreReturnValue);
 
 		} catch (Throwable t) {
-			throw new IllegalArgumentException();
+			throw new IllegalArgumentException(t);
 		}
 
 	}
@@ -71,6 +61,14 @@ public final class FunctionDispatcher {
 		return queue(function, false);
 	}
 
+	public synchronized long queueVoid(VoidFunction function) {
+		return queue(function, false);
+	}
+
+	public synchronized long queueVoid(VoidFunction function, boolean ignoreReturnValue) {
+		return queue(function, ignoreReturnValue);
+	}
+
 	public synchronized long queue(Function function, boolean ignoreReturnValue) {
 		if (function == null) {
 			throw new IllegalArgumentException();
@@ -79,24 +77,27 @@ public final class FunctionDispatcher {
 		// Make sure the random number is unique
 		long rand = 0;
 		while (true) {
-			Utils.sleep(1);
+			ThreadUtil.sleep(1);
 			rand = random.nextLong();
 
-			if (!calls.containsKey(rand) && !returnValues.containsKey(rand) && !hasReturn.contains(rand)
-					&& !exceptions.containsKey(rand) && !hasException.contains(rand) && !ignoreReturn.contains(rand)) {
+			if(!callMap.containsKey(rand) && !callQueue.contains(rand)) {
 				break;
 			}
 		}
 
-		if (ignoreReturnValue) {
-			ignoreReturn.add(rand);
-		}
+		// Initialize struct
+		FunctionWrapper wrapper = new FunctionWrapper();
+		wrapper.id = rand;
+		wrapper.function = function;
+		wrapper.ignoreReturnValue = ignoreReturnValue;
 
 		if (thread.getId() == Thread.currentThread().getId()) {
-			processFunction(rand, function);
+			processFunction(wrapper);
 		} else {
-			calls.put(rand, function);
+			callQueue.add(wrapper);
 		}
+
+		callMap.put(wrapper.id, wrapper);
 		return rand;
 	}
 
@@ -104,53 +105,55 @@ public final class FunctionDispatcher {
 
 	public Object quickQueue(Function function) {
 		long func = queue(function);
-		Object ret;
-		try {
-			ret = waitReturnValue(func);
-		} catch (Throwable e) {
-			ret = e;
-		}
-		return ret;
+		return waitReturnValue(func);
 	}
 
-	public Object waitReturnValue(long funcId) throws Throwable {
-		if (ignoresReturnValue(funcId)) {
+	public Object quickQueueVoid(VoidFunction function) {
+		long func = queueVoid(function);
+		return waitReturnValue(func);
+	}
+
+	public Object waitReturnValue(long funcId) {
+		FunctionWrapper wrapper = callMap.get(funcId);
+		if (wrapper.ignoreReturnValue) {
 			return null;
 		}
-		while (!hasReturnValue(funcId) && !hasException(funcId)) {
-			Utils.sleep(1);
+		while (!wrapper.finished) {
+			ThreadUtil.sleep(1);
 		}
 		return getReturnValue(funcId);
 	}
 
 	public void waitFor(long funcId) {
-		while (calls.containsKey(funcId)) {
-			Utils.sleep(1);
+		FunctionWrapper wrapper = callMap.get(funcId);
+		while (!wrapper.finished) {
+			ThreadUtil.sleep(1);
 		}
+		callMap.remove(funcId);
 	}
 
 	public synchronized boolean hasReturnValue(long funcId) {
-		return hasReturn.contains(funcId);
+		FunctionWrapper wrapper = callMap.get(funcId);
+		return wrapper.finished && wrapper.returnValue != null;
 	}
 
 	public synchronized boolean hasException(long funcId) {
-		return hasException.contains(funcId);
+		FunctionWrapper wrapper = callMap.get(funcId);
+		return wrapper.finished && wrapper.exception != null;
 	}
 
 	public synchronized boolean ignoresReturnValue(long funcId) {
-		return ignoreReturn.contains(funcId);
+		return callMap.get(funcId).ignoreReturnValue;
 	}
 
-	public synchronized Object getReturnValue(long funcId) throws Throwable {
+	public synchronized Object getReturnValue(long funcId) {
+		FunctionWrapper wrapper = callMap.get(funcId);
 		if (hasException(funcId)) {
-			hasException.remove(funcId);
-			throw exceptions.remove(funcId);
-		} else if (hasReturnValue(funcId)) {
-			hasReturn.remove(funcId);
-			return returnValues.remove(funcId);
-		} else {
-			return null;
+			callMap.remove(funcId);
+			throw new DispatcherException(wrapper.exception);
 		}
+		callMap.remove(funcId);
+		return wrapper.returnValue;
 	}
 
 	public synchronized void computeEvents(int amount) {
@@ -158,40 +161,42 @@ public final class FunctionDispatcher {
 			return;
 		}
 
-		int i = 0;
-		for (Entry<Long, Function> entry : calls.entrySet()) {
-			if (i >= amount) {
-				return;
-			}
-			processFunction(entry.getKey(), entry.getValue());
-			i++;
+		for (int i = 0; i < (int) MathUtil.min(amount, callQueue.size()); i++) {
+			processFunction(callQueue.get(0));
+			callQueue.remove(0);
 		}
-		calls.clear();
 	}
 
 	public synchronized void computeEvents() {
 		computeEvents(Integer.MAX_VALUE);
 	}
 
-	private synchronized void processFunction(long id, Function function) {
+	private synchronized void processFunction(FunctionWrapper wrapper) {
 		try {
-			Object ret = function.execute();
-			if (!ignoreReturn.contains(id)) {
-				returnValues.put(id, ret);
-				hasReturn.add(id);
+			Object ret = wrapper.function.execute();
+			if (!wrapper.ignoreReturnValue) {
+				wrapper.returnValue = ret;
 			}
 		} catch (Throwable e) {
-			if (!ignoreReturn.contains(id)) {
-				hasException.add(id);
-				exceptions.put(id, e);
+			if (!wrapper.ignoreReturnValue) {
+				wrapper.exception = e;
 			}
 		} finally {
-			ignoreReturn.remove(id);
+			wrapper.finished = true;
 		}
 	}
 
 	public synchronized int getAmount() {
-		return calls.size();
+		return callQueue.size();
+	}
+
+	private static class FunctionWrapper {
+		public long id;
+		public Function function;
+		public Object returnValue;
+		public Throwable exception;
+		public boolean ignoreReturnValue;
+		public boolean finished;
 	}
 
 }

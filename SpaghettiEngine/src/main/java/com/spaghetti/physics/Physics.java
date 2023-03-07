@@ -1,6 +1,7 @@
 package com.spaghetti.physics;
 
-import com.spaghetti.core.GameObject;
+import com.spaghetti.world.GameObject;
+import com.spaghetti.networking.ConnectionManager;
 import com.spaghetti.networking.NetworkBuffer;
 
 /**
@@ -78,12 +79,12 @@ public abstract class Physics extends GameObject {
 	// Interfaces
 
 	@Override
-	public void writeDataServer(NetworkBuffer buffer) {
+	public void writeDataServer(ConnectionManager manager, NetworkBuffer buffer) {
 		buffer.putFloat(framerate);
 	}
 
 	@Override
-	public void readDataClient(NetworkBuffer buffer) {
+	public void readDataClient(ConnectionManager manager, NetworkBuffer buffer) {
 		framerate = buffer.getFloat();
 	}
 

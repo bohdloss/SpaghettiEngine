@@ -14,8 +14,8 @@ public class Logger {
 
 	public static final Object loggerLock = new Object();
 
-	protected SimpleDateFormat printFormatter = new SimpleDateFormat("dd/MM/yyyy hh:mm:ss");
-	protected SimpleDateFormat logFormatter = new SimpleDateFormat("dd_MM_yyyy_hh_mm_ss");
+	protected SimpleDateFormat printFormatter = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss.SSS");
+	protected SimpleDateFormat logFormatter = new SimpleDateFormat("dd_MM_yyyy_HH_mm");
 
 	protected static final String[] CODES = {"DEBUG", "INFO", "LOADING", "WARNING", "ERROR", "FATAL"};
 	public static final int DEBUG_SEVERITY = 0, MIN_SEVERITY = DEBUG_SEVERITY;
@@ -26,6 +26,8 @@ public class Logger {
 	public static final int FATAL_SEVERITY = 5, MAX_SEVERITY = FATAL_SEVERITY;
 
 	protected Game game;
+	protected Logger superLogger;
+	protected String superPrefix;
 	protected int printSeverity = -2;
 	protected int logSeverity = -2;
 	protected PrintStream logDevice;
@@ -34,19 +36,30 @@ public class Logger {
 		this.game = game;
 	}
 
+	protected Logger(Logger superLogger, String superPrefix) {
+		this.superLogger = superLogger;
+		this.superPrefix = "[" + superPrefix + "] ";
+	}
+
+	public Logger getSubLogger(String prefix) {
+		return new Logger(this, prefix);
+	}
+
 	// Utility
 
 	protected String getPrintDate() {
-		Date date = new Date();
-		return "[" + printFormatter.format(date) + "]";
+		return "[" + printFormatter.format(new Date()) + "]";
 	}
 
 	protected String getLogDate() {
-		Date date = new Date();
-		return logFormatter.format(date);
+		return logFormatter.format(new Date());
 	}
 
 	protected void print(int severity, String string) {
+		if(superLogger != null) {
+			superLogger.print(severity, superPrefix + string);
+			return;
+		}
 		if(printSeverity < -1 || logSeverity < -1) {
 			printSeverity = game.<Integer>getEngineOption("logseverityprint");
 			logSeverity = game.<Integer>getEngineOption("logseveritylog");
@@ -58,7 +71,7 @@ public class Logger {
 		}
 
 		String line = getPrintDate() + "[GAME " + game.getIndex() + "][" + thread() + "][" +
-				CODES[(int) CMath.clamp(severity, MIN_SEVERITY, MAX_SEVERITY)] + "]: " + string;
+				CODES[(int) MathUtil.clamp(severity, MIN_SEVERITY, MAX_SEVERITY)] + "]: " + string;
 
 		// Print to console
 		if(severity >= printSeverity) {
@@ -117,7 +130,7 @@ public class Logger {
 	}
 
 	protected static Logger logger() {
-		return Game.getGame().getLogger();
+		return Game.getInstance().getLogger();
 	}
 
 	protected static Logger logger(Game game) {

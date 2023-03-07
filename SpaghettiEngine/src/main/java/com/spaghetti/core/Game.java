@@ -5,37 +5,42 @@ import java.util.ArrayList;
 import java.util.HashMap;
 
 import com.spaghetti.assets.AssetManager;
+import com.spaghetti.core.events.GameStartedEvent;
+import com.spaghetti.core.events.GameStoppingEvent;
 import com.spaghetti.events.EventDispatcher;
-import com.spaghetti.events.Signals;
 import com.spaghetti.input.Controller;
 import com.spaghetti.input.InputDispatcher;
 import com.spaghetti.input.UpdaterCore;
 import com.spaghetti.networking.ClientCore;
 import com.spaghetti.networking.NetworkCore;
 import com.spaghetti.networking.ServerCore;
-import com.spaghetti.objects.Camera;
+import com.spaghetti.render.Camera;
 import com.spaghetti.render.RendererCore;
 import com.spaghetti.utils.FunctionDispatcher;
 import com.spaghetti.utils.GameOptions;
 import com.spaghetti.utils.Logger;
-import com.spaghetti.utils.Utils;
+import com.spaghetti.utils.ThreadUtil;
+import com.spaghetti.world.GameObject;
+import com.spaghetti.world.GameState;
+import com.spaghetti.world.Level;
 
 public final class Game {
 
 	// Support for multiple instances of the engine
 	// in the same java process
-	protected volatile static ArrayList<Game> games = new ArrayList<>();
-	protected volatile static HashMap<Long, Game> links = new HashMap<>();
+	protected static ArrayList<Game> games = new ArrayList<>();
+	protected static HashMap<Long, Game> links = new HashMap<>();
 	protected static Object handlerLock = new Object();
-	protected volatile static Handler handler;
+	protected static HandlerThread handlerThread;
 
 	private static void init() {
 		synchronized(handlerLock) {
-			if (handler == null) {
-				handler = new Handler();
-				handler.start();
-				while (handler.dispatcher == null) {
-					Utils.sleep(1);
+			if (handlerThread == null) {
+				HandlerThread newThread = new HandlerThread();
+				handlerThread = newThread;
+				newThread.start();
+				while (newThread.dispatcher == null) {
+					ThreadUtil.sleep(1);
 				}
 			}
 		}
@@ -49,13 +54,13 @@ public final class Game {
 			}
 		}
 
-		handler.stop = true;
+		handlerThread.stop = true;
 	}
 
 	// Wait for all instances to finish
 	public static void waitAll() {
 		while (true) {
-			Utils.sleep(1);
+			ThreadUtil.sleep(1);
 			boolean found = false;
 			for (Game current : games) {
 				if (current != null && !current.isStopped()) {
@@ -70,7 +75,12 @@ public final class Game {
 
 	// Static Thread-based methods
 
-	public static Game getGame() {
+	/**
+	 * Retrieves the Game instance the current thread is linked to
+	 *
+	 * @return The Game instance
+	 */
+	public static Game getInstance() {
 		return links.get(Thread.currentThread().getId());
 	}
 
@@ -106,7 +116,7 @@ public final class Game {
 	private final boolean isClient;
 	private final boolean isServer;
 	private final boolean isMultiplayer;
-	private final boolean hasAutority;
+	private final boolean hasAuthority;
 
 	// Constructors using custom classes
 	public Game(Class<? extends UpdaterCore> updaterClass, Class<? extends RendererCore> rendererClass,
@@ -210,11 +220,11 @@ public final class Game {
 		this.isMultiplayer = client != null || server != null;
 		this.isClient = (client != null || server == null) || !isMultiplayer;
 		this.isServer = (client == null || server != null) && isMultiplayer;
-		this.hasAutority = server != null || !isMultiplayer;
+		this.hasAuthority = server != null || !isMultiplayer;
 	}
 
 	// If the provided game instance dies, this instance does too
-	public void depends(Game game) {
+	public void depend(Game game) {
 		if (game == null) {
 			throw new NullPointerException();
 		}
@@ -224,7 +234,7 @@ public final class Game {
 	}
 
 	// Reverts the effects of depends()
-	public void not_depends(Game game) {
+	public void unDepend(Game game) {
 		if (game == null) {
 			throw new NullPointerException();
 		}
@@ -263,10 +273,6 @@ public final class Game {
 
 		Logger.loading(this, "Allocating assets...");
 		starting = true;
-		// Allocate asset manager
-		if (assetManager != null) {
-			assetManager.loadAssetSheet(options.getEngineOption("assetsheet"));
-		}
 
 		// First start all threads
 
@@ -319,7 +325,7 @@ public final class Game {
 		init = true;
 		starting = false;
 
-		eventDispatcher.raiseSignal(Signals.SIGSTART);
+		eventDispatcher.raiseEvent(new GameStartedEvent(this));
 
 		Logger.info(this, "Ready!");
 	}
@@ -367,8 +373,8 @@ public final class Game {
 
 		// Raise shutdown signal
 
-		Logger.info(this, "Dispatching stop signal...");
-		eventDispatcher.raiseSignal(Signals.SIGSTOP);
+		Logger.info(this, "Dispatching stop event...");
+		eventDispatcher.raiseEvent(new GameStoppingEvent(this));
 
 		// Allow finalization to begin
 
@@ -475,7 +481,7 @@ public final class Game {
 
 	// Returns true if this game is either a server or not multiplayer at all
 	public boolean hasAuthority() {
-		return hasAutority;
+		return hasAuthority;
 	}
 
 	public boolean isDead() {
@@ -511,7 +517,7 @@ public final class Game {
 	}
 
 	public float getTickMultiplier(float delta) {
-		return (delta / 1000) * gameState.getTickMultiplier();
+		return (delta / 1000f) * gameState.getTickMultiplier();
 	}
 
 	public long getUpdaterId() {

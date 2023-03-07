@@ -31,6 +31,14 @@ public final class IdProvider {
 		return res;
 	}
 
+	public static void freeId(Game instance, int id) {
+		// Retrieve existing ids
+		ArrayList<Integer> ids = games.get(instance);
+		if(ids != null) {
+			ids.remove(id);
+		}
+	}
+
 	private static int genId() {
 		// Reserve -1, 0 and 1
 		int rand = 0;

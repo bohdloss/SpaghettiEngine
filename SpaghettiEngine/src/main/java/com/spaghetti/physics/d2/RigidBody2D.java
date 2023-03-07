@@ -15,10 +15,10 @@ import org.joml.Vector3f;
 
 import com.spaghetti.networking.ConnectionManager;
 import com.spaghetti.networking.NetworkBuffer;
-import com.spaghetti.objects.Camera;
+import com.spaghetti.render.Camera;
 import com.spaghetti.physics.Physics;
 import com.spaghetti.physics.RigidBody;
-import com.spaghetti.utils.CMath;
+import com.spaghetti.utils.MathUtil;
 import com.spaghetti.utils.Transform;
 
 public class RigidBody2D extends RigidBody<Vector2f, Float> {
@@ -85,7 +85,7 @@ public class RigidBody2D extends RigidBody<Vector2f, Float> {
 
 		// Apply scale
 		getOwner().getWorldScale(ptr);
-		if (!CMath.equals(ptr.x, last_scale.x, 0.001f) || !CMath.equals(ptr.y, last_scale.y, 0.001f)) {
+		if (!MathUtil.equals(ptr.x, last_scale.x, 0.001f) || !MathUtil.equals(ptr.y, last_scale.y, 0.001f)) {
 			// The scale changed since the last time
 			float diffx = ptr.x / last_scale.x;
 			float diffy = ptr.y / last_scale.y;
@@ -416,8 +416,8 @@ public class RigidBody2D extends RigidBody<Vector2f, Float> {
 			switch (bodyShape.m_type) {
 			case POLYGON:
 				// Translate box2d's Vec2 types back to Vector2f
-				PolygonShape pshape = (PolygonShape) bodyShape;
-				Vec2[] vertices = pshape.m_vertices;
+				PolygonShape pShape = (PolygonShape) bodyShape;
+				Vec2[] vertices = pShape.m_vertices;
 				for (Vec2 vertex : vertices) {
 					_buffer.addVertex(new Vector2f(vertex.x, vertex.y));
 				}
@@ -425,8 +425,8 @@ public class RigidBody2D extends RigidBody<Vector2f, Float> {
 
 			case CIRCLE:
 				// Simply copy the radius
-				CircleShape cshape = (CircleShape) bodyShape;
-				_buffer.setRadius(cshape.getRadius());
+				CircleShape cShape = (CircleShape) bodyShape;
+				_buffer.setRadius(cShape.getRadius());
 				break;
 			default:
 				_buffer.clear();
@@ -699,8 +699,8 @@ public class RigidBody2D extends RigidBody<Vector2f, Float> {
 	}
 
 	@Override
-	public void writeDataServer(NetworkBuffer buffer) {
-		super.writeDataServer(buffer);
+	public void writeDataServer(ConnectionManager manager, NetworkBuffer buffer) {
+		super.writeDataServer(manager, buffer);
 		buffer.putFloat(body.getPosition().x);
 		buffer.putFloat(body.getPosition().y);
 		buffer.putFloat(body.getAngle());
@@ -710,8 +710,8 @@ public class RigidBody2D extends RigidBody<Vector2f, Float> {
 	}
 
 	@Override
-	public void readDataClient(NetworkBuffer buffer) {
-		super.readDataClient(buffer);
+	public void readDataClient(ConnectionManager manager, NetworkBuffer buffer) {
+		super.readDataClient(manager, buffer);
 		float posx = buffer.getFloat();
 		float posy = buffer.getFloat();
 		float posang = buffer.getFloat();
@@ -727,7 +727,7 @@ public class RigidBody2D extends RigidBody<Vector2f, Float> {
 	}
 
 	@Override
-	public boolean needsReplication(ConnectionManager client) {
+	public boolean needsReplication(ConnectionManager manager) {
 		return false;
 	}
 

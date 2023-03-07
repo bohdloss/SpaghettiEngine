@@ -1,16 +1,21 @@
-// aaaaa
-texture coolness /res/cool_image.jpg
-material aaa coolness defaultSP
-texture t_character /res/character.png
-material m_character t_character defaultSP
-// apple
-texture apple_color /res/apple/apple.png
-material apple_mat apple_color defaultSP
-model apple_model /res/apple/apple.obj find Apple
-// skybox
-texture t_skybox /res/skybox/skybox.png
-material m_skybox t_skybox defaultSP
-// sound
-sound sb_bruh /res/bruh.wav
-music sb_wind /res/wind.wav
-music music_30sec /res/30sec.wav
+// Test
+Texture coolness /res/cool_image.jpg
+Material aaa coolness defaultSP
+
+// Character
+Texture t_character /res/character.png
+Material m_character t_character defaultSP
+
+// Apple texture and model
+Texture apple_color /res/apple/apple.png
+Material apple_mat apple_color defaultSP
+Model apple_model /res/apple/apple.obj find Apple
+
+// Skybox
+Texture t_skybox /res/skybox/skybox.png
+Material m_skybox t_skybox defaultSP
+
+// Test sounds
+Sound sb_bruh /res/bruh.wav
+Music sb_wind /res/wind.wav
+Music music_30sec /res/30sec.wav

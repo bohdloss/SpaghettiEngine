@@ -3,12 +3,10 @@ package com.spaghetti.networking;
 import java.util.HashMap;
 
 import com.spaghetti.core.Game;
-import com.spaghetti.core.GameObject;
-import com.spaghetti.interfaces.RemoteProcedureCallback;
-import com.spaghetti.interfaces.Serializer;
+import com.spaghetti.world.GameObject;
 import com.spaghetti.utils.IdProvider;
 import com.spaghetti.utils.Logger;
-import com.spaghetti.utils.Utils;
+import com.spaghetti.utils.ThreadUtil;
 
 public abstract class RemoteProcedure {
 
@@ -36,7 +34,7 @@ public abstract class RemoteProcedure {
 	private boolean reliable;
 
 	public RemoteProcedure() {
-		id = IdProvider.newId(Game.getGame());
+		id = IdProvider.newId(Game.getInstance());
 		ready = true;
 		error = false;
 		reliable = true;
@@ -72,7 +70,7 @@ public abstract class RemoteProcedure {
 
 		System.arraycopy(args, 0, arguments, 0, Math.min(args.length, arguments.length));
 
-		Game game = Game.getGame();
+		Game game = Game.getInstance();
 		if (game.isClient()) {
 			game.getClient().queueRPC(this);
 		} else {
@@ -83,7 +81,7 @@ public abstract class RemoteProcedure {
 
 	public Object waitCompletion() {
 		while (!ready) {
-			Utils.sleep(1);
+			ThreadUtil.sleep(1);
 		}
 		return error ? null : retVal;
 	}

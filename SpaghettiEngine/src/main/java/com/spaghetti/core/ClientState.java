@@ -1,8 +1,8 @@
 package com.spaghetti.core;
 
 import com.spaghetti.input.Controller;
-import com.spaghetti.interfaces.Replicable;
-import com.spaghetti.objects.Camera;
+import com.spaghetti.render.Camera;
+import com.spaghetti.world.GameObject;
 
 /**
  * ClientState can be subject to changes by the server, but for the most part is
@@ -14,7 +14,7 @@ import com.spaghetti.objects.Camera;
  * @author bohdloss
  *
  */
-public class ClientState implements Replicable {
+public class ClientState {
 
 	protected final Game game;
 
@@ -25,7 +25,7 @@ public class ClientState implements Replicable {
 	public ClientState(Game game) {
 		this.game = game;
 	}
-
+	
 	// Getters and setters
 
 	public void setLocalCamera(Camera camera) {

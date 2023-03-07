@@ -1,5 +1,6 @@
 package com.spaghetti.physics.d2;
 
+import com.spaghetti.networking.ConnectionManager;
 import org.jbox2d.callbacks.RayCastCallback;
 import org.jbox2d.common.Vec2;
 import org.jbox2d.dynamics.Body;
@@ -7,10 +8,10 @@ import org.jbox2d.dynamics.World;
 import org.joml.Vector2f;
 
 import com.spaghetti.networking.NetworkBuffer;
-import com.spaghetti.objects.Camera;
+import com.spaghetti.render.Camera;
 import com.spaghetti.physics.Physics;
 import com.spaghetti.physics.RaycastRequest;
-import com.spaghetti.utils.CMath;
+import com.spaghetti.utils.MathUtil;
 import com.spaghetti.utils.Transform;
 
 public class Physics2D extends Physics {
@@ -32,15 +33,14 @@ public class Physics2D extends Physics {
 
 	@Override
 	public void solve(float delta) {
-		float tick = getGame().getTickMultiplier(delta);
-		float tickTotal = tick + tickAccumulator;
+		// The unit of measurement is seconds
+		tickAccumulator += delta;
 		float frameTime = 1f / framerate;
 
-		if (delta == 0 || tickTotal < frameTime) {
-			tickAccumulator += tick;
+		if (tickAccumulator < frameTime) {
 			return;
 		}
-		tickAccumulator = 0;
+		tickAccumulator -= frameTime;
 
 		// Prepare
 		for (Body b = world.getBodyList(); b != null; b = b.getNext()) {
@@ -63,11 +63,11 @@ public class Physics2D extends Physics {
 	public void raycast(RaycastRequest<?, ?, ?> request) {
 		RaycastRequest2D r2 = (RaycastRequest2D) request;
 		r2.hits.clear();
-		RayCastCallback callback = (fixture, point, normal, fraction) -> {
+		final RayCastCallback callback = (fixture, point, normal, fraction) -> {
 			RaycastHit2D hit = new RaycastHit2D();
 			hit.point.x = point.x;
 			hit.point.y = point.y;
-			hit.normal = CMath.lookAt(normal.x, normal.y);
+			hit.normal = MathUtil.lookAt(normal.x, normal.y);
 			hit.body = (RigidBody2D) fixture.getUserData();
 
 			r2.hits.add(hit);
@@ -120,15 +120,15 @@ public class Physics2D extends Physics {
 	// Interface implementation
 
 	@Override
-	public void writeDataServer(NetworkBuffer buffer) {
-		super.writeDataServer(buffer);
+	public void writeDataServer(ConnectionManager manager, NetworkBuffer buffer) {
+		super.writeDataServer(manager, buffer);
 		buffer.putFloat(world.getGravity().x);
 		buffer.putFloat(world.getGravity().y);
 	}
 
 	@Override
-	public void readDataClient(NetworkBuffer buffer) {
-		super.readDataClient(buffer);
+	public void readDataClient(ConnectionManager manager, NetworkBuffer buffer) {
+		super.readDataClient(manager, buffer);
 		float gravity_x = buffer.getFloat();
 		float gravity_y = buffer.getFloat();
 		world.setGravity(new Vec2(gravity_x, gravity_y));

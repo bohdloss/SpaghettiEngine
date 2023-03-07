@@ -4,8 +4,8 @@ import com.spaghetti.events.GameEvent;
 
 public class OnInvalidToken extends GameEvent {
 
-	protected long token;
-	protected String message;
+	protected final long token;
+	protected final String message;
 
 	public OnInvalidToken(long token, String message) {
 		this.token = token;

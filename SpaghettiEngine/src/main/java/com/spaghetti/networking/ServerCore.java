@@ -8,10 +8,11 @@ import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 
 import com.spaghetti.core.CoreComponent;
-import com.spaghetti.core.GameComponent;
-import com.spaghetti.core.GameObject;
+import com.spaghetti.utils.HashUtil;
+import com.spaghetti.world.GameComponent;
+import com.spaghetti.world.GameObject;
 import com.spaghetti.events.GameEvent;
-import com.spaghetti.interfaces.NetworkFunction;
+import com.spaghetti.exceptions.EndpointException;
 import com.spaghetti.networking.ConnectionEndpoint.Priority;
 import com.spaghetti.networking.events.OnClientBanned;
 import com.spaghetti.networking.events.OnClientConnect;
@@ -19,7 +20,7 @@ import com.spaghetti.networking.events.OnClientDisconnect;
 import com.spaghetti.networking.events.OnClientKicked;
 import com.spaghetti.networking.events.OnClientUnbanned;
 import com.spaghetti.utils.Logger;
-import com.spaghetti.utils.Utils;
+import com.spaghetti.utils.ThreadUtil;
 
 public abstract class ServerCore extends NetworkCore {
 
@@ -192,7 +193,7 @@ public abstract class ServerCore extends NetworkCore {
 			}
 
 		} catch (Throwable t) {
-			Logger.error("Server error:", t);
+			Logger.error("Uncaught server error:", t);
 		} // Emergency catch block
 	}
 
@@ -304,7 +305,7 @@ public abstract class ServerCore extends NetworkCore {
 		return false;
 	}
 
-	protected void _sendMessage(ConnectionEndpoint endpoint, byte type, String message) throws Throwable {
+	protected void _sendMessage(ConnectionEndpoint endpoint, byte type, String message) {
 		endpoint.clear();
 		endpoint.getWriteBuffer().putByte(type);
 		endpoint.getWriteBuffer().putString(message);
@@ -356,14 +357,14 @@ public abstract class ServerCore extends NetworkCore {
 	}
 
 	protected void _closeEndpoint(ConnectionEndpoint endpoint) {
-		try {
-			endpoint.disconnect();
-			endpoint.destroy();
-		} catch(Throwable t) {
-		}
+		endpoint.disconnect();
+		endpoint.destroy();
 	}
 
 	public boolean kick(long id, String reason) {
+		if(reason == null) {
+			throw new IllegalArgumentException("Reason cannot be null");
+		}
 		return (boolean) getDispatcher().quickQueue(() -> internal_kick(id, reason));
 	}
 
@@ -378,7 +379,7 @@ public abstract class ServerCore extends NetworkCore {
 		if (reason != null && endpoint != null) {
 			try {
 				_sendMessage(endpoint, KICKED, reason);
-			} catch (Throwable e) {
+			} catch (EndpointException e) {
 				Logger.error("Error sending goodbye message", e);
 			}
 		}
@@ -387,6 +388,7 @@ public abstract class ServerCore extends NetworkCore {
 			endpoint.destroy();
 		}
 		_increaseDisconnections(id);
+
 		// If reason is null, we are just updating the internal state of the server
 		if(reason == null) {
 			getGame().getEventDispatcher().raiseEvent(new OnClientDisconnect(manager, id));
@@ -509,18 +511,19 @@ public abstract class ServerCore extends NetworkCore {
 
 				// Invalid token
 				_sendMessage(endpoint, INVALID_TOKEN, "You're not supposed to be here!");
-				Logger.warning("REFUSED connection from client because it provided and unvalid token (???" + token + "???)");
+				Logger.warning("REFUSED connection from client because it provided and invalid token (???" + token + "???)");
 
 				_closeEndpoint(endpoint);
 				return false;
 			}
 		} else {
-			token = Utils.longHash(endpoint.getRemoteIp() + ":" + endpoint.getRemotePort());
+			token = HashUtil.longHash(endpoint.getRemoteIp() + ":" + endpoint.getRemotePort());
 		}
 
 		// Obtain a client flags object
 		ClientFlags clientFlags = _getClientFlags(token);
 
+		// Always flag connection as first time because:
 		// Connect: needs to know everything / Reconnect: may have missed something
 		clientFlags.firstTime = true;
 

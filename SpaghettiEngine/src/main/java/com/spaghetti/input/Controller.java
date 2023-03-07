@@ -4,11 +4,12 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Iterator;
 
-import com.spaghetti.core.GameComponent;
-import com.spaghetti.core.GameObject;
-import com.spaghetti.interfaces.ControllerAction;
+import com.spaghetti.utils.HashUtil;
+import com.spaghetti.world.GameComponent;
+import com.spaghetti.world.GameObject;
+import com.spaghetti.networking.ConnectionManager;
 import com.spaghetti.networking.NetworkBuffer;
-import com.spaghetti.utils.Utils;
+import com.spaghetti.utils.ThreadUtil;
 
 public class Controller<T extends GameObject> extends GameComponent {
 
@@ -30,11 +31,11 @@ public class Controller<T extends GameObject> extends GameComponent {
 	// Managing commands
 
 	public void registerCommand(String name, ControllerAction<T> command) {
-		commands.put(Utils.intHash(name), command);
+		commands.put(HashUtil.intHash(name), command);
 	}
 
 	public void unregisterCommand(String name) {
-		commands.remove(Utils.intHash(name));
+		commands.remove(HashUtil.intHash(name));
 	}
 
 	public void registerCommands(String name, ControllerAction<T> command, ControllerAction<T> opposite) {
@@ -48,11 +49,11 @@ public class Controller<T extends GameObject> extends GameComponent {
 	}
 
 	public ControllerAction<T> getCommand(String name) {
-		return commands.get(Utils.intHash(name));
+		return commands.get(HashUtil.intHash(name));
 	}
 
 	public boolean isCommandRegistered(String name) {
-		return commands.containsKey(Utils.intHash(name));
+		return commands.containsKey(HashUtil.intHash(name));
 	}
 
 	public boolean isCommandRegistered(ControllerAction<T> command) {
@@ -93,22 +94,22 @@ public class Controller<T extends GameObject> extends GameComponent {
 	}
 
 	@Override
-	public void writeDataClient(NetworkBuffer buffer) {
+	public void writeDataClient(ConnectionManager manager, NetworkBuffer buffer) {
 		doWrite(buffer);
 	}
 
 	@Override
-	public void writeDataServer(NetworkBuffer buffer) {
+	public void writeDataServer(ConnectionManager manager, NetworkBuffer buffer) {
 		doWrite(buffer);
 	}
 
 	@Override
-	public void readDataClient(NetworkBuffer buffer) {
+	public void readDataClient(ConnectionManager manager, NetworkBuffer buffer) {
 		doRead(buffer);
 	}
 
 	@Override
-	public void readDataServer(NetworkBuffer buffer) {
+	public void readDataServer(ConnectionManager manager, NetworkBuffer buffer) {
 		doRead(buffer);
 	}
 

@@ -1,0 +1,12 @@
+package com.spaghetti.utils;
+
+public interface VoidFunction extends Function {
+
+	public default Object execute() throws Throwable{
+		execute0();
+		return null;
+	}
+
+	public abstract void execute0() throws Throwable;
+
+}

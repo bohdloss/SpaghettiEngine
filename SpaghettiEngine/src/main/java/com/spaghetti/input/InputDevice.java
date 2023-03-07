@@ -2,7 +2,7 @@ package com.spaghetti.input;
 
 import java.util.ArrayList;
 
-import com.spaghetti.core.GameComponent;
+import com.spaghetti.world.GameComponent;
 
 public class InputDevice extends GameComponent {
 

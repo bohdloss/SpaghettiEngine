@@ -5,9 +5,9 @@ import com.spaghetti.networking.ConnectionManager;
 
 public class OnClientBanned extends GameEvent {
 
-	protected ConnectionManager client;
-	protected long clientId;
-	protected String reason;
+	protected final ConnectionManager client;
+	protected final long clientId;
+	protected final String reason;
 
 	public OnClientBanned(ConnectionManager client, long clientId, String reason) {
 		this.client = client;

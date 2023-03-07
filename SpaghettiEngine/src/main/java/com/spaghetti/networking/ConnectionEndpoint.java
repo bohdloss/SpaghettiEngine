@@ -3,8 +3,9 @@ package com.spaghetti.networking;
 import java.util.HashMap;
 
 import com.spaghetti.core.Game;
-import com.spaghetti.interfaces.StringCacher;
-import com.spaghetti.utils.Utils;
+import com.spaghetti.exceptions.EndpointException;
+import com.spaghetti.utils.StringCacher;
+import com.spaghetti.utils.ThreadUtil;
 
 public abstract class ConnectionEndpoint {
 
@@ -16,8 +17,8 @@ public abstract class ConnectionEndpoint {
 	protected long id;
 
 	protected StringCacher strCache;
-	protected NetworkBuffer w_buffer;
-	protected NetworkBuffer r_buffer;
+	protected NetworkBuffer writeBuffer;
+	protected NetworkBuffer readBuffer;
 
 	protected boolean reliable;
 	protected Priority priority = Priority.NONE;
@@ -42,9 +43,12 @@ public abstract class ConnectionEndpoint {
 			}
 		};
 
-		int bufferSize = Game.getGame().getEngineOption("networkbuffer");
-		w_buffer = new NetworkBuffer(strCache, bufferSize);
-		r_buffer = new NetworkBuffer(strCache, bufferSize);
+		Integer bufferSize = Game.getInstance().getEngineOption("networkbuffer");
+		if(bufferSize == null || bufferSize < 1) {
+			throw new EndpointException("The engine option for buffer size is missing or invalid");
+		}
+		writeBuffer = new NetworkBuffer(strCache, bufferSize);
+		readBuffer = new NetworkBuffer(strCache, bufferSize);
 	}
 
 	public final void setPriority(Priority priority) {
@@ -64,44 +68,44 @@ public abstract class ConnectionEndpoint {
 	}
 
 	public final void clear() {
-		w_buffer.clear();
-		r_buffer.clear();
+		writeBuffer.clear();
+		readBuffer.clear();
 	}
 
 	public final NetworkBuffer getWriteBuffer() {
-		return w_buffer;
+		return writeBuffer;
 	}
 
 	public final NetworkBuffer getReadBuffer() {
-		return r_buffer;
+		return readBuffer;
 	}
 
 	public final void waitCanReceive() {
 		while(!canReceive()) {
 			if(!isConnected()) {
-				throw new IllegalStateException("Endpoint disconnected while waiting for receive opportunity");
+				throw new EndpointException("Endpoint disconnected while waiting for receive opportunity");
 			}
-			Utils.sleep(1);
+			ThreadUtil.sleep(1);
 		}
 	}
 
 	public final void waitCanSend() {
 		while(!canSend()) {
 			if(!isConnected()) {
-				throw new IllegalStateException("Endpoint disconnected while waiting for send opportunity");
+				throw new EndpointException("Endpoint disconnected while waiting for send opportunity");
 			}
-			Utils.sleep(1);
+			ThreadUtil.sleep(1);
 		}
 	}
 
 	// Abstract methods
 	public abstract void connect(Object socket);
 
-	public abstract void connect(String ip, int port) throws Throwable;
+	public abstract void connect(String ip, int port);
 
 	public abstract void disconnect();
 
-	public final void reconnect() throws Throwable {
+	public final void reconnect() {
 		if(isConnected()) {
 			String ip = getRemoteIp();
 			int port = getRemotePort();
@@ -110,9 +114,9 @@ public abstract class ConnectionEndpoint {
 		}
 	}
 
-	public abstract void send() throws Throwable;
+	public abstract void send();
 
-	public abstract void receive() throws Throwable;
+	public abstract void receive();
 
 	public abstract void destroy();
 

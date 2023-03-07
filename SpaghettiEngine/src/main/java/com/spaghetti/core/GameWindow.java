@@ -11,8 +11,8 @@ import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.glfw.GLFWWindowSizeCallback;
 import org.lwjgl.opengl.GL11;
 
-import com.spaghetti.interfaces.Function;
-import com.spaghetti.objects.Camera;
+import com.spaghetti.utils.Function;
+import com.spaghetti.render.Camera;
 import com.spaghetti.utils.ImageUtils;
 import com.spaghetti.utils.Logger;
 import com.spaghetti.utils.ResourceLoader;
@@ -529,8 +529,8 @@ public final class GameWindow {
 
 	private Object quickQueue(Function action) {
 		try {
-			long funcId = Game.handler.dispatcher.queue(action);
-			return async ? null : Game.handler.dispatcher.waitReturnValue(funcId);
+			long funcId = Game.handlerThread.dispatcher.queue(action);
+			return async ? null : Game.handlerThread.dispatcher.waitReturnValue(funcId);
 		} catch (Throwable t) {
 			throw new RuntimeException(t);
 		}

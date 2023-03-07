@@ -7,10 +7,12 @@ import java.nio.ByteBuffer;
 import java.nio.channels.SocketChannel;
 
 import com.spaghetti.core.Game;
+import com.spaghetti.exceptions.EndpointException;
 import com.spaghetti.networking.ConnectionEndpoint;
 import com.spaghetti.networking.NetworkBuffer;
 import com.spaghetti.networking.Opcode;
-import com.spaghetti.utils.Utils;
+import com.spaghetti.utils.HashUtil;
+import com.spaghetti.utils.StreamUtil;
 
 public class TCPConnection extends ConnectionEndpoint {
 
@@ -35,100 +37,127 @@ public class TCPConnection extends ConnectionEndpoint {
 	public void connect(Object obj) {
 		SocketChannel socket = (SocketChannel) obj;
 		if (socket == null || !socket.isOpen()) {
-			throw new IllegalArgumentException("Invalid socket provided");
+			throw new EndpointException("Invalid socket provided");
 		}
 		this.socket = socket;
-		timeout = Game.getGame().getEngineOption("networktimeout");
+		Long timeout_option = Game.getInstance().getEngineOption("networktimeout");
+		if(timeout_option == null || timeout_option == 0) {
+			throw new EndpointException("The engine option for timeout time is missing or invalid");
+		}
 	}
 
 	@Override
-	public void connect(String ip, int port) throws UnknownHostException, IOException {
-		SocketChannel socket = SocketChannel.open();
-		socket.connect(new InetSocketAddress(ip, port));
-		socket.configureBlocking(false);
+	public void connect(String ip, int port) {
+		try {
+			SocketChannel socket = SocketChannel.open();
+			socket.connect(new InetSocketAddress(ip, port));
+			socket.configureBlocking(false);
+		} catch(UnknownHostException e) {
+			throw new EndpointException("Unknown host \"" + ip + ":" + port + "\"", e);
+		} catch(IOException e ) {
+			throw new EndpointException("Input / Output error occurred Swhile connecting", e);
+		}
 		connect(socket);
 	}
 
 	@Override
 	public void disconnect() {
 		if (socket != null) {
-			Utils.close(socket);
+			StreamUtil.close(socket);
 			socket = null;
 		}
 	}
 
 	@Override
-	public void send() throws Throwable {
+	public void send() {
 		// Timeout
 		final long begin = System.currentTimeMillis();
 
 		// Ensure end instruction to avoid errors
-		w_buffer.putByte(Opcode.END);
-		w_buffer.flip();
-		int length = w_buffer.getLimit();
+		writeBuffer.putByte(Opcode.END);
+		writeBuffer.flip();
+		int length = writeBuffer.getLimit();
 
 		// Write header
 		packet_header.clear();
 		packet_header.putInt(length);
-		packet_header.putShort(Utils.shortHash(w_buffer.asArray(), 0, length));
+		packet_header.putShort(HashUtil.shortHash(writeBuffer.asArray(), 0, length));
 		packet_header.flip();
 
 		composite[0] = packet_header;
-		composite[1] = w_buffer.getRaw();
+		composite[1] = writeBuffer.getRaw();
 
-		while (w_buffer.getFreeSpace() > 0) {
-			socket.write(composite, 0, composite.length);
-			if (System.currentTimeMillis() > begin + timeout) {
-				throw new IllegalStateException(timeout + " ms timeout reached while writing");
+		try {
+			while (writeBuffer.getFreeSpace() > 0) {
+				socket.write(composite, 0, composite.length);
+				if (System.currentTimeMillis() > begin + timeout) {
+					throw new EndpointException(timeout + " ms timeout reached while writing");
+				}
 			}
+		} catch(IOException e) {
+			throw new EndpointException("Input / Output error occurred while sending a packet", e);
 		}
 
 		// Reset state
-		w_buffer.clear();
+		writeBuffer.clear();
 		reliable = false;
 	}
 
 	@Override
-	public void receive() throws Throwable {
+	public void receive() {
 		// Timeout
 		final long begin = System.currentTimeMillis();
 
 		// Read header info
 		packet_header.clear();
 		packet_header.limit(HEADER_SIZE);
-		while (packet_header.remaining() > 0) {
-			socket.read(packet_header);
-			if (System.currentTimeMillis() > begin + timeout) {
-				throw new IllegalStateException(timeout + " ms timeout reached while reading");
+
+		// Guarded read operation
+		try {
+			while (packet_header.remaining() > 0) {
+				socket.read(packet_header);
+				if (System.currentTimeMillis() > begin + timeout) {
+					throw new EndpointException(timeout + " ms timeout reached while reading");
+				}
 			}
+		} catch(IOException e) {
+			throw new EndpointException("Input / Output error occurred while receiving a packet header", e);
 		}
+
 		packet_header.clear();
 		int length = packet_header.getInt();
 		short checksum = packet_header.getShort();
 
 		if(length < 0 || length > 256000) {
-			throw new IllegalStateException("Packet length invalid (" + length + ")");
+			throw new EndpointException("Packet length invalid (" + length + ")");
 		}
 
 		// Read packet body
-		r_buffer.clear();
-		r_buffer.setLimit(length);
-		while (r_buffer.getFreeSpace() > 0) {
-			socket.read(r_buffer.getRaw());
-			if (System.currentTimeMillis() > begin + timeout) {
-				throw new IllegalStateException(timeout + " ms timeout reached while reading");
+		readBuffer.clear();
+		readBuffer.setLimit(length);
+
+		// Guarded read operation
+		try {
+			while (readBuffer.getFreeSpace() > 0) {
+				socket.read(readBuffer.getRaw());
+				if (System.currentTimeMillis() > begin + timeout) {
+					throw new EndpointException(timeout + " ms timeout reached while reading");
+				}
 			}
+		} catch(IOException e) {
+			throw new EndpointException("Input / Output error occurred while receving a packet body", e);
 		}
-		r_buffer.clear();
+
+		readBuffer.clear();
 
 		// Validate checksum
-		if (checksum != Utils.shortHash(r_buffer.asArray(), 0, length)) {
-			throw new IllegalStateException("Packet checksum and content do not match");
+		if (checksum != HashUtil.shortHash(readBuffer.asArray(), 0, length)) {
+			throw new EndpointException("Packet checksum and content do not match");
 		}
 
 		// Reset state
-		r_buffer.clear();
-		r_buffer.setLimit(length);
+		readBuffer.clear();
+		readBuffer.setLimit(length);
 	}
 
 	// Getters
@@ -144,7 +173,7 @@ public class TCPConnection extends ConnectionEndpoint {
 		try {
 			address = (InetSocketAddress) socket.getRemoteAddress();
 		} catch (IOException e) {
-			throw new RuntimeException("Error getting remote ip", e);
+			throw new EndpointException("Error getting remote ip", e);
 		}
 		return address.getAddress().getHostAddress();
 	}
@@ -155,7 +184,7 @@ public class TCPConnection extends ConnectionEndpoint {
 		try {
 			address = (InetSocketAddress) socket.getRemoteAddress();
 		} catch (IOException e) {
-			throw new RuntimeException("Error getting remote port", e);
+			throw new EndpointException("Error getting remote port", e);
 		}
 		return address.getPort();
 	}
@@ -166,7 +195,7 @@ public class TCPConnection extends ConnectionEndpoint {
 		try {
 			address = (InetSocketAddress) socket.getLocalAddress();
 		} catch (IOException e) {
-			throw new RuntimeException("Error getting local ip", e);
+			throw new EndpointException("Error getting local ip", e);
 		}
 		return address.getAddress().getHostAddress();
 	}
@@ -177,7 +206,7 @@ public class TCPConnection extends ConnectionEndpoint {
 		try {
 			address = (InetSocketAddress) socket.getLocalAddress();
 		} catch (IOException e) {
-			throw new RuntimeException("Error getting local port", e);
+			throw new EndpointException("Error getting local port", e);
 		}
 		return address.getPort();
 	}

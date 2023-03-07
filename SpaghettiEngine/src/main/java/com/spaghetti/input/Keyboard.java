@@ -137,7 +137,7 @@ public final class Keyboard {
 	public static final int LAST = GLFW.GLFW_KEY_LAST;
 
 	public static boolean keydown(int key) {
-		Game game = Game.getGame();
+		Game game = Game.getInstance();
 		return (game.isServer() || game.isHeadless()) ? false : game.getWindow().keyDown(key);
 	}
 

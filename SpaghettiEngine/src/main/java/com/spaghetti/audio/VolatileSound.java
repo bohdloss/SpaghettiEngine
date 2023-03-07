@@ -2,24 +2,23 @@ package com.spaghetti.audio;
 
 import java.nio.ByteBuffer;
 
+import com.spaghetti.utils.ExceptionUtil;
 import org.lwjgl.openal.AL10;
-
-import com.spaghetti.utils.Utils;
 
 public class VolatileSound extends StaticSound {
 
 	public void copyData() {
-		if (!valid()) {
+		if (!isValid()) {
 			return;
 		}
 		AL10.alBufferData(id, format, data, frequency);
-		Utils.alError();
+		ExceptionUtil.alError();
 	}
 
 	@Override
 	protected void load0() {
 		id = AL10.alGenBuffers();
-		Utils.alError();
+		ExceptionUtil.alError();
 	}
 
 	public void setDataBuffer(ByteBuffer buffer) {

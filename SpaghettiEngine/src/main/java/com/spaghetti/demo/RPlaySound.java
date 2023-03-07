@@ -5,9 +5,9 @@ import org.joml.Vector3f;
 import com.spaghetti.audio.Sound;
 import com.spaghetti.audio.SoundSource;
 import com.spaghetti.core.Game;
-import com.spaghetti.core.GameObject;
+import com.spaghetti.world.GameObject;
 import com.spaghetti.networking.RemoteProcedure;
-import com.spaghetti.objects.Mesh;
+import com.spaghetti.render.Mesh;
 import com.spaghetti.render.Material;
 import com.spaghetti.render.Model;
 
@@ -33,7 +33,7 @@ public class RPlaySound extends RemoteProcedure {
 		source.play();
 		Mesh mesh = new Mesh(Model.get("square"), Material.get("defaultMAT"));
 		mesh.setWorldPosition(pos);
-		Game game = Game.getGame();
+		Game game = Game.getInstance();
 		player.getLevel().addObject(source);
 		player.getLevel().addObject(mesh);
 		game.getNetworkManager().queueWriteObjectTree(mesh);

@@ -1,70 +1,28 @@
 package com.spaghetti.assets;
 
-import java.util.HashMap;
+import java.util.*;
 
-import com.spaghetti.audio.Sound;
+import com.spaghetti.assets.exceptions.AssetFillException;
 import com.spaghetti.core.Game;
-import com.spaghetti.events.Signals;
-import com.spaghetti.interfaces.AssetLoader;
-import com.spaghetti.render.Material;
-import com.spaghetti.render.Model;
-import com.spaghetti.render.Shader;
-import com.spaghetti.render.ShaderProgram;
-import com.spaghetti.render.Texture;
-import com.spaghetti.utils.FunctionDispatcher;
-import com.spaghetti.utils.Logger;
-import com.spaghetti.utils.ResourceLoader;
-import com.spaghetti.utils.Utils;
+import com.spaghetti.core.GameBuilder;
+import com.spaghetti.core.events.GameStoppingEvent;
+import com.spaghetti.utils.*;
 
 /**
  * A class that manages assets and their dependencies, including loading and
- * unloading them dynamically as needed<br>
- * No function (except a few exceptions) is guaranteed to work if
- * {@link #isReady()} returns false The exceptions are
- * {@link #loadAssetSheet(String)},
- * {@link #registerAsset(String, String, String[])} and
- * {@link #registerAsset(String, String, String[], Asset)} which will set the
- * flag
- * <p>
- * The only way to set the flag to {@code false} is through
- * {@link #destroy()}<br>
- * This class is still usable (by calling the three methods listed before) after
- * {@link #destroy()}
+ * unloading them dynamically as needed
  *
  * @author bohdloss
  */
 public class AssetManager {
 
-	/**
-	 * The internal assets are defined in this hard-coded string to which the rest
-	 * of the asset sheet should be appended in {@link #loadAssetSheet(String)}
-	 */
-	protected static final String APPEND = "" + "shader defaultVS /internal/default.vs vertex\n"
-			+ "shader defaultFS /internal/default.fs fragment\n" + "shaderprogram defaultSP defaultVS defaultFS\n"
-			+ "shader rendererVS /internal/renderer.vs vertex\n" + "shader rendererFS /internal/renderer.fs fragment\n"
-			+ "shaderprogram rendererSP rendererVS rendererFS\n" + "model square /internal/square.obj find square\n"
-			+ "texture defaultTXT /internal/default.png nearest\n" + "material defaultMAT defaultTXT defaultSP\n";
-
-	// Data
-
-	/**
-	 * The {@link Game} instance associated with this {@link AssetManager}
-	 */
+	// Reference to the game instance
 	protected final Game game;
-	/**
-	 * The {@link HashMap} containing the loaders for the different asset types
-	 */
-	protected HashMap<String, AssetLoader> loaders = new HashMap<>();
 
-	/**
-	 * The {@link HashMap} containing the asset entries
-	 */
-	protected HashMap<String, SheetEntry> assets = new HashMap<>();
-
-	/**
-	 * The ready flag
-	 */
-	protected boolean ready;
+	// Final fields
+	protected final HashMap<String, AssetLoader<?>> loaders = new HashMap<>();
+	protected final HashMap<String, AssetEntry> assets = new HashMap<>();
+	protected final LoadQueue queue;
 
 	/**
 	 * Initializes the AssetManager with a link to the {@code game} instance it is
@@ -73,88 +31,65 @@ public class AssetManager {
 	 * Users that intend to modify the behavior of the asset manager in their game
 	 * must include a constructor with the same parameters as this one
 	 * <p>
-	 * This class is not meant to be used in a stand alone way, therefore it has not
+	 * This class is not meant to be used in a standalone way, therefore it has not
 	 * been tested that way and no guarantee is to be made in that case neither by
 	 * this class nor it's subclasses
 	 * <p>
-	 * Refer to the documentation of {@link #GameBuilder}
+	 * Refer to the documentation of {@link GameBuilder}
 	 *
 	 * @param game The game this asset manager is to be associated with
 	 */
 	public AssetManager(Game game) {
 		this.game = game;
 
-		registerAssetLoader("model", new ModelLoader());
-		registerAssetLoader("shader", new ShaderLoader());
-		registerAssetLoader("shaderprogram", new ShaderProgramLoader());
-		registerAssetLoader("texture", new TextureLoader());
-		registerAssetLoader("sound", new SoundLoader());
-		registerAssetLoader("material", new MaterialLoader());
-		registerAssetLoader("music", new MusicLoader());
-
 		// Register shutdown hook
-		game.getEventDispatcher().registerSignalHandler((isClient, signal) -> {
-			if (signal == Signals.SIGSTOP) {
-				if (game.isHeadless()) {
-					destroy();
-				} else {
-					game.getRendererDispatcher().quickQueue(() -> {
-						destroy();
-						return null;
-					});
-				}
+		game.getEventDispatcher().registerEventListener(GameStoppingEvent.class, (isClient, event) -> {
+			try {
+				destroy();
+			} catch(Throwable t) {
+				Logger.error("Error destroying asset manager", t);
 			}
 		});
+
+		// Initialize asset load queue
+		queue = new LoadQueue(this);
 	}
 
-	/**
-	 * This method attempts to fill an asset with the data associated with it, and
-	 * if it fails, it tries to fill it with its default data. If both operations
-	 * fail, it must throw a {@link RuntimeException}
-	 *
-	 * @param asset The asset to fill
-	 */
-	protected void fillAsset(SheetEntry asset) {
-		// Get asset loader
-		AssetLoader loader = getAssetLoader(asset.type);
+	protected void fillAsset(AssetEntry asset) {
+		AssetLoader<?> loader = getAssetLoader(asset.type);
 		if (loader == null) {
-			throw new RuntimeException("No loader registered for asset type " + asset.type);
+			throw new AssetFillException(asset, "No loader registered for asset type " + asset.type);
 		}
 
-		// Attempt to load data
 		Object[] data;
 		try {
-			data = loader.loadAsset(asset);
-			// Attempt to setData in order to check for errors
+			// Load data and feed it to the asset
+			data = loader.load(asset.args);
 			asset.asset.setData(data);
+
+			// The data was incorrect
 			if (!asset.asset.isFilled()) {
-				throw new IllegalStateException("Asset didn't accept arguments provided by loader");
+				throw new AssetFillException(asset, "Asset didn't accept arguments provided by loader");
 			}
 		} catch (Throwable t0) {
-			Logger.error("Couldn't load " + asset.type + " " + asset.name + ", trying to use default version instead",
-					t0);
+			Logger.error("Couldn't load " + asset.type + " " + asset.name +
+					", trying to use default version instead", t0);
+
 			try {
-				data = loader.provideDefault(asset);
-				// Doing another check
+				// Second attempt at loading data, using the default arguments this time
+				data = loader.load(loader.getDefaultArgs());
 				asset.asset.setData(data);
+
+				// The data is still incorrect, giving up
 				if (!asset.asset.isFilled()) {
-					throw new IllegalStateException(
+					throw new AssetFillException(asset,
 							"Attempt to use default version of asset type " + asset.type + " failed for " + asset.name);
 				}
 			} catch (Throwable t1) {
-				throw new RuntimeException("Every attempt to load " + asset.type + " " + asset.name + " failed", t1);
+				throw new AssetFillException(asset,
+						"Every attempt to load " + asset.type + " " + asset.name + " failed", t1);
 			}
 		}
-	}
-
-	protected void loadNative(SheetEntry asset) {
-		asset.asset.load();
-		asset.loading = false;
-	}
-
-	protected void unloadNative(SheetEntry asset) {
-		asset.asset.unload();
-		asset.unloading = false;
 	}
 
 	// Initialization / finalization of this object
@@ -167,18 +102,14 @@ public class AssetManager {
 	 * assets, and after that the {@code ready} flag must be set
 	 *
 	 * @param sheetLocation The relative location to read the file from
-	 * @return Whether or not the operation succeeded
+	 * @return Whether the operation succeeded
 	 */
 	public boolean loadAssetSheet(String sheetLocation) {
 		try {
 			// Load the sheet file
 			String sheetSource = ResourceLoader.loadText(sheetLocation);
 
-			// Prepare for parsing
-			HashMap<String, SheetEntry> map = new HashMap<>();
-
 			// Split into lines
-			sheetSource = APPEND + sheetSource;
 			String[] lines = sheetSource.split("\\R");
 			for (String line : lines) {
 				// Ignore empty lines or comments
@@ -191,33 +122,15 @@ public class AssetManager {
 				String[] tokens = line_trimmed.split(" ");
 
 				// Fill entry information
-				SheetEntry entry = new SheetEntry(this);
-				entry.type = tokens[0];
-				entry.name = tokens[1];
-				entry.args = new String[tokens.length - 2];
-				for (int i = 0; i < entry.args.length; i++) {
-					entry.args[i] = tokens[i + 2];
+				String name = tokens[1];
+				String type = tokens[0];
+				String[] args = new String[tokens.length - 2];
+				for (int i = 0; i < args.length; i++) {
+					args[i] = tokens[i + 2];
 				}
-
-				// Save entry
-				map.put(entry.name, entry);
+				registerAsset(name, type, args);
 			}
 
-			// Destroy in case an asset sheet is already loaded
-			destroy();
-
-			// Finally apply the sheet
-			assets.clear();
-			assets.putAll(map);
-
-			// Initialize all dummy assets
-			for (SheetEntry entry : assets.values()) {
-				getAssetLoader(entry.type).initializeAsset(entry);
-				entry.asset.setName(entry.name);
-			}
-
-			// We're ready!
-			ready = true;
 			Logger.loading(game, "Successfully loaded asset sheet " + sheetLocation);
 			return true;
 		} catch (Throwable t) {
@@ -227,52 +140,35 @@ public class AssetManager {
 	}
 
 	/**
-	 * Resets this asset manager to its state upon creation by unloading all assets
+	 * Resets this asset manager to its idle state by unloading all assets
 	 * with {@link #unloadAll()} and unregistering all imported assets, then
 	 * changing the {@code ready} flag to {@code false}
 	 */
 	public void destroy() {
-		if (!ready) {
-			return;
+		queue.killThread();
+
+		for (Object assetName : assets.keySet().toArray()) {
+			if(!isDefaultAsset((String) assetName)) {
+				unregisterAsset((String) assetName);
+			}
 		}
-		unloadAll();
-		assets.clear();
-		ready = false;
+		for (Object assetType : loaders.keySet().toArray()) {
+			unregisterAssetLoader((String) assetType);
+		}
 	}
 
 	// Load / Unload methods
+	protected static interface LoadFunction {
 
-	/**
-	 * Custom functional interface to specify the function used to load an asset
-	 * when invoking {@link AssetManager#meetDependencies(SheetEntry, LoadFunction)}
-	 */
-	private static interface LoadFunction {
-		/**
-		 * The only function provided by this interface is similar to
-		 * {@link AssetManager}'s load operations so as to allow them being passed as
-		 * lambda and converted into a {@link LoadFunction} easily
-		 *
-		 * @param name The name of the asset to load
-		 * @return The value returned by the load operation, representing failure or
-		 *         success
-		 */
-		public abstract boolean load(String name);
+		public abstract void load(AssetEntry entry);
+
 	}
 
-	/**
-	 * This methods retrieves and possibly loads the dependencies of a given
-	 * {@code asset} using the provided {@code loadFunc} when loading is considered
-	 * necessary
-	 *
-	 * @param asset    The asset whose dependencies to load
-	 * @param loadFunc The function to load the dependencies with
-	 * @return Whether or not at least one dependency had to be loaded
-	 */
-	private boolean meetDependencies(SheetEntry asset, LoadFunction loadFunc) {
+	protected boolean meetDependencies(AssetEntry asset, LoadFunction loadFunc) {
 		// Retrieve dependencies
 		String[] dependencies = null;
 		try {
-			dependencies = getAssetLoader(asset.type).provideDependencies(asset);
+			dependencies = getAssetLoader(asset.type).getDependencies(asset.args);
 		} catch (Throwable t) {
 		}
 
@@ -284,17 +180,17 @@ public class AssetManager {
 			for (String assetName : dependencies) {
 
 				// Retrieve the object
-				SheetEntry dependency = assets.get(assetName);
+				AssetEntry dependency = assets.get(assetName);
 
 				// Perform some checks
 				if (dependency == null) {
-					Logger.warning(asset.name + " depends on undefined dependency " + assetName);
+					Logger.error("[meetDependencies] " + asset.name + " depends on undefined dependency " + assetName);
 					return true;
 				} else if (!dependency.asset.isLoaded()) {
 					found = true;
 					if (loadFunc != null) {
-						Logger.loading("[meetDependencies] Loading dependency " + assetName + " of " + asset.name);
-						loadFunc.load(assetName);
+						Logger.debug("[meetDependencies] Loading dependency " + assetName + " of " + asset.name);
+						loadFunc.load(dependency);
 					}
 				}
 			}
@@ -315,145 +211,60 @@ public class AssetManager {
 	 *         the request has been discarded
 	 */
 	public boolean loadAssetLazy(String name) {
-		Logger.debug("[loadAssetLazy] " + name);
-		if (!checkAsset(name) || game.isHeadless()) {
+		if (!assetExists(name) || game.isHeadless()) {
 			return false;
 		}
 		// Check if the asset is ready to be processed
-		SheetEntry asset = assets.get(name);
+		AssetEntry asset = assets.get(name);
 		synchronized (asset) {
 			// The asset is busy but not loading, forward it to the queue function
 			if (asset.asset.isLoaded() || asset.loading || asset.isBusy()) {
 				return false;
 			}
 
-			// Instantly load dependencies
-			meetDependencies(asset, this::loadAssetNow);
+			asset.loading = true;
 
-			// Initialize load thread
-			Thread loadThread = new Thread() {
-				@Override
-				public void run() {
-					if (!ready) {
-						return;
-					}
+			// Queue dependencies
+			meetDependencies(asset, dependency -> loadAssetLazy(dependency.name));
 
-					try {
-						// Lock the asset
-						synchronized (asset) {
-							// Fill asset
-							fillAsset(asset);
-						}
+			// Send asset to load queue
+			queue.queueAsset(asset);
 
-						// Queue native loading
-						FunctionDispatcher dispatcher = game.getRendererDispatcher();
-						long func = dispatcher.queue(() -> {
-							loadNative(asset);
-							return null;
-						});
-						dispatcher.waitReturnValue(func);
-						Logger.info("[loadAssetLazy] Loaded " + name);
-					} catch (Throwable t) {
-						Logger.error("[loadAssetLazy] Error loading " + asset.type + " " + asset.name, t);
-					}
-
-					// Unregister this thread upon completion
-					game.unregisterThread(this);
-				}
-			};
-
-			// Register thread and start it
-			loadThread.setName("LOADER (" + asset.type + ", " + asset.name + ")");
-			game.registerThread(loadThread);
-			loadThread.start();
 		}
 
 		return true;
 	}
 
 	/**
-	 * Loads the asset denoted by the given name and then returns
+	 * Loads the asset denoted by the given name in the renderer thread
 	 * <p>
 	 * Any dependency will be loaded recursively
-	 * <p>
-	 * It is guaranteed that when this function returns, the asset will have either
-	 * succeeded or failed in loading
 	 *
 	 * @param name The name of the asset to load
 	 * @return Returns {@code true} if the asset has been successfully loaded,
 	 *         {@code false} otherwise
 	 */
 	public boolean loadAssetNow(String name) {
-		Logger.loading("[loadAssetNow] " + name);
-		if (!checkAsset(name) || game.isHeadless()) {
-			return false;
-		}
-
-		// Check if the asset is ready to be processed
-		SheetEntry asset = assets.get(name);
-		synchronized (asset) {
-			if (asset.asset.isLoaded() || asset.loading) {
-				return true;
-			}
-
-			// The asset is busy doing something else, wait for it to be ready
-			while (asset.isBusy()) {
-				Utils.sleep(1);
-			}
-
-			meetDependencies(asset, this::loadAssetNow);
-
-			// Begin loading process
-			asset.loading = true;
-
-			try {
-				// Fill asset
-				fillAsset(asset);
-
-				// Queue native loading
+		if(!game.isHeadless()) {
+			if (Thread.currentThread().getId() == game.getRendererId()) {
+				return loadAssetDirect(name);
+			} else {
 				FunctionDispatcher dispatcher = game.getRendererDispatcher();
-				long func = dispatcher.queue(() -> {
-					loadNative(asset);
-					return null;
-				});
-				dispatcher.waitReturnValue(func);
-				Logger.loading("[loadAssetNow] Asset loaded " + name);
-			} catch (Throwable t) {
-				Logger.error("[loadAssetNow] Error loading " + asset.type + " " + asset.name, t);
-				return false;
+				return (Boolean) dispatcher.quickQueue(() -> loadAssetDirect(name));
 			}
 		}
-
-		return true;
+		return false;
 	}
 
-	/**
-	 * Loads the asset denoted by the given name and then returns, starting from the
-	 * assumption that the current thread is the RENDERER thread
-	 * <p>
-	 * Any dependency will be loaded recursively
-	 * <p>
-	 * If the current thread isn't the RENDERER thread, the function will return
-	 * without doing anything
-	 * <p>
-	 * It is guaranteed that when this function returns, the asset will have either
-	 * succeeded or failed in loading, unless the current thread is not the RENDERER
-	 * thread
-	 *
-	 * @param name The name of the asset to load
-	 * @return Returns {@code true} if the asset has been successfully loaded,
-	 *         {@code false} otherwise or if the current thread is not the RENDERER
-	 *         thread
-	 */
-	public boolean loadAssetDirect(String name) {
-		Logger.loading("[loadAssetDirect] " + name);
+	protected boolean loadAssetDirect(String assetName) {
+		Logger.debug("[loadAssetDirect] " + assetName);
 
-		if ((Thread.currentThread() != game.getRenderer()) || !checkAsset(name) || game.isHeadless()) {
+		if (game.isHeadless() || !assetExists(assetName)) {
 			return false;
 		}
 
 		// Check if the asset is ready to be processed
-		SheetEntry asset = assets.get(name);
+		AssetEntry asset = assets.get(assetName);
 		synchronized (asset) {
 			if (asset.asset.isLoaded() || asset.loading) {
 				return true;
@@ -461,10 +272,10 @@ public class AssetManager {
 
 			// The asset is busy doing something else, wait for it to be ready
 			while (asset.isBusy()) {
-				Utils.sleep(1);
+				ThreadUtil.sleep(1);
 			}
 
-			meetDependencies(asset, this::loadAssetDirect);
+			meetDependencies(asset, dependency -> loadAssetDirect(dependency.name));
 
 			// Begin loading process
 			asset.loading = true;
@@ -473,12 +284,14 @@ public class AssetManager {
 				// Fill asset
 				fillAsset(asset);
 
-				// Perform native loading directly
-				loadNative(asset);
-				Logger.loading("[loadAssetDirect] Asset loaded " + name);
+				// Perform native loading
+				asset.asset.load();
+				Logger.debug("[loadAssetDirect] Asset loaded " + assetName);
 			} catch (Throwable t) {
 				Logger.error("[loadAssetDirect] Error loading " + asset.type + " " + asset.name, t);
 				return false;
+			} finally {
+				asset.loading = false;
 			}
 		}
 
@@ -486,59 +299,19 @@ public class AssetManager {
 	}
 
 	/**
-	 * Loads the asset denoted by the given name by choosing a function
-	 * <p>
-	 * The function chosen will be influenced by the current thread and by the lazy
-	 * parameter
-	 * <p>
-	 * If the lazy parameter is true, {@link #loadAssetLazy(String)} will be called
-	 * with {@code name} as the parameter<br>
-	 * Else<br>
-	 * If the current thread is the RENDERER thread,
-	 * {@link #loadAssetDirect(String)} will be called with {@code name} as the
-	 * parameter<br>
-	 * Else {@link #loadAssetNow(String)} will be called with {@code name} as the
-	 * parameter
+	 * Loads every asset that is currently registered amd unloaded
 	 *
-	 * @param name The name of the asset to load
-	 * @param lazy Whether or not the user prefers a lazy load method
-	 * @return Returns the value returned by the chosen function
-	 */
-	public boolean loadAssetAuto(String name, boolean lazy) {
-		if (lazy) {
-			return loadAssetLazy(name);
-		} else {
-			if (Thread.currentThread() == game.getRenderer()) {
-				return loadAssetDirect(name);
-			} else {
-				return loadAssetNow(name);
-			}
-		}
-	}
-
-	/**
-	 * Loads every asset currently registered and not already loaded
-	 * <p>
-	 * When this method returns, an attempt will be made to load each asset
-	 * <p>
-	 * The implementation of this method makes use of
-	 * {@link #loadAssetAuto(String, boolean)}
-	 *
-	 * @param lazy The {@code lazy} parameter that will be forwarded to
-	 *             {@link #loadAssetAuto(String, boolean)}
-	 * @return This function performs a bitwise AND between each call to
-	 *         {@link #loadAssetAuto(String, boolean)}, so if any of the calls to
-	 *         said function fails, {@code false} will be returned at the end of the
-	 *         process
+	 * @param lazy Whether to load the assets on a separate thread or not
+	 * @return Returns true if all the assets were loaded with no errors
 	 */
 	public boolean loadAll(boolean lazy) {
-		if (!ready || game.isHeadless()) {
+		if (game.isHeadless()) {
 			return false;
 		}
 
 		boolean value = true;
-		for (SheetEntry entry : assets.values()) {
-			value &= loadAssetAuto(entry.name, lazy);
+		for (AssetEntry entry : assets.values()) {
+			value &= lazy ? loadAssetLazy(entry.name) : loadAssetNow(entry.name);
 		}
 		return value;
 	}
@@ -547,81 +320,30 @@ public class AssetManager {
 	 * Unloads the asset denoted by the given name and then returns
 	 * <p>
 	 * Any asset that depends on this asset will be unloaded recursively
-	 * <p>
-	 * It is guaranteed that when this function returns, the asset will have either
-	 * succeeded or failed in unloading
-	 * <p>
-	 * If the unloading process fails, the asset may still be flagged as unloaded,
-	 * as defined by {@link Asset#unload()}
 	 *
 	 * @param name The name of the asset to unload
 	 * @return Returns {@code true} if the asset has been successfully unloaded,
 	 *         {@code false} otherwise
 	 */
 	public boolean unloadAssetNow(String name) {
-		if (!checkAsset(name) || game.isHeadless()) {
-			return false;
-		}
-
-		// Check if the asset is ready to be processed
-		SheetEntry asset = assets.get(name);
-		synchronized (asset) {
-			if (asset.asset.isUnloaded() || asset.unloading) {
-				return true;
-			}
-
-			// The asset is busy, wait for it to be ready
-			while (asset.isBusy()) {
-				Utils.sleep(1);
-			}
-
-			// Begin unloading process
-			asset.unloading = true;
-
-			try {
-				// Queue native unloading
+		if(!game.isHeadless()) {
+			if (Thread.currentThread().getId() == game.getRendererId()) {
+				return unloadAssetDirect(name);
+			} else {
 				FunctionDispatcher dispatcher = game.getRendererDispatcher();
-				long func = dispatcher.queue(() -> {
-					unloadNative(asset);
-					return null;
-				});
-
-				dispatcher.waitReturnValue(func);
-			} catch (Throwable t) {
-				Logger.error("Error unloading " + asset.type + " " + asset.name, t);
-				return false;
+				return (Boolean) dispatcher.quickQueue(() -> unloadAssetDirect(name));
 			}
 		}
-
-		return true;
+		return false;
 	}
 
-	/**
-	 * Unloads the asset denoted by the given name and then returns
-	 * <p>
-	 * Any asset that depends on this asset will be unloaded recursively
-	 * <p>
-	 * If the current thread isn't the RENDERER thread, the function will return
-	 * without doing anything
-	 * <p>
-	 * It is guaranteed that when this function returns, the asset will have either
-	 * succeeded or failed in unloading
-	 * <p>
-	 * If the unloading process fails, the asset may still be flagged as unloaded,
-	 * as defined by {@link Asset#unload()}
-	 *
-	 * @param name The name of the asset to unload
-	 * @return Returns {@code true} if the asset has been successfully unloaded,
-	 *         {@code false} otherwise or if the current thread is not the RENDERER
-	 *         thread
-	 */
-	public boolean unloadAssetDirect(String name) {
-		if ((Thread.currentThread() != game.getRenderer()) || !checkAsset(name) || game.isHeadless()) {
+	protected boolean unloadAssetDirect(String name) {
+		if ((Thread.currentThread() != game.getRenderer()) || !assetExists(name) || game.isHeadless()) {
 			return false;
 		}
 
 		// Check if the asset is ready to be processed
-		SheetEntry asset = assets.get(name);
+		AssetEntry asset = assets.get(name);
 		synchronized (asset) {
 			if (asset.asset.isUnloaded() || asset.unloading) {
 				return true;
@@ -629,7 +351,26 @@ public class AssetManager {
 
 			// The asset is busy, wait for it to be ready
 			while (asset.isBusy()) {
-				Utils.sleep(1);
+				ThreadUtil.sleep(1);
+			}
+
+			// Discover and unload all assets that depend on this
+			for(AssetEntry entry : assets.values()) {
+				if(loaders.get(entry.type) == null) {
+					Logger.info(entry.type);
+				}
+				String[] entryDependencies = loaders.get(entry.type).getDependencies(entry.args);
+
+				// Iterate through dependencies and check if asset.name is present
+				if(entryDependencies != null) {
+					for (String dependency : entryDependencies) {
+
+						// It's present, unload entry.name
+						if (dependency.equals(asset.name)) {
+							unloadAssetDirect(entry.name);
+						}
+					}
+				}
 			}
 
 			// Begin unloading process
@@ -637,10 +378,12 @@ public class AssetManager {
 
 			try {
 				// Perform native unloading directly
-				unloadNative(asset);
+				asset.asset.unload();
 			} catch (Throwable t) {
 				Logger.error("Error unloading " + asset.type + " " + asset.name, t);
 				return false;
+			} finally {
+				asset.unloading = false;
 			}
 		}
 
@@ -648,48 +391,18 @@ public class AssetManager {
 	}
 
 	/**
-	 * Unloads the asset denoted by the given name by choosing a function
-	 * <p>
-	 * The function chosen will be influenced by the current thread
-	 * <p>
-	 * If the current thread is the RENDERER thread,
-	 * {@link #unloadAssetDirect(String)} will be called with {@code name} as the
-	 * parameter<br>
-	 * Else {@link #unloadAssetNow(String)} will be called with {@code name} as the
-	 * parameter
+	 * Unloads every asset currently registered and loaded
 	 *
-	 * @param name The name of the asset to unload
-	 * @return Returns the value returned by the chosen function
-	 */
-	public boolean unloadAssetAuto(String name) {
-		if (Thread.currentThread() == game.getRenderer()) {
-			return unloadAssetDirect(name);
-		} else {
-			return unloadAssetNow(name);
-		}
-	}
-
-	/**
-	 * Unloads every asset currently registered and not already loaded
-	 * <p>
-	 * When this method returns, an attempt will be made to unload each asset
-	 * <p>
-	 * The implementation of this method makes use of
-	 * {@link #unloadAssetAuto(String)}
-	 *
-	 * @return This function performs a bitwise AND between each call to
-	 *         {@link #unloadAssetAuto(String)}, so if any of the calls to said
-	 *         function fails, {@code false} will be returned at the end of the
-	 *         process
+	 * @return This function returns true only if all the
 	 */
 	public boolean unloadAll() {
-		if (!ready || game.isHeadless()) {
+		if (game.isHeadless()) {
 			return false;
 		}
 		boolean value = true;
 		boolean deletedOne = assets.size() > 0;
-		for (SheetEntry entry : assets.values()) {
-			value &= unloadAssetAuto(entry.name);
+		for (AssetEntry entry : assets.values()) {
+			value &= unloadAssetNow(entry.name);
 		}
 		if (deletedOne) {
 			Logger.info(game, "Finished unloading assets");
@@ -700,17 +413,14 @@ public class AssetManager {
 	// Utility methods
 
 	/**
-	 * Retrieves the type of the asset denoted by {@code name} and returns it
+	 * Retrieves the type of the asset denoted by {@code assetName} and returns it
 	 *
-	 * @param name The name of the asset
+	 * @param assetName The assetName of the asset
 	 * @return The type of the asset
 	 * @throws NullPointerException If the asset is not present
 	 */
-	public String getAssetType(String name) {
-		if (!ready) {
-			return null;
-		}
-		return assets.get(name).type;
+	public String getAssetType(String assetName) {
+		return assets.get(assetName).type;
 	}
 
 	/**
@@ -723,10 +433,22 @@ public class AssetManager {
 	 *                                  {@code loader} are null
 	 */
 	public void registerAssetLoader(String assetType, AssetLoader loader) {
-		if (loader == null || assetType == null) {
+		assetType = assetType.toLowerCase();
+		if (loader == null || assetType == null || loaders.containsKey(assetType)) {
 			throw new IllegalArgumentException();
 		}
 		loaders.put(assetType, loader);
+
+		if(!game.isHeadless()) {
+			try {
+				String assetName = getDefaultAssetName(assetType);
+				registerAsset(assetName, assetType, loader.getDefaultArgs(), loader.instantiate(), true);
+				loadAssetNow(assetName);
+			} catch (Throwable t1) {
+				Logger.error("Every attempt to load the default version of asset type " + assetType, t1);
+			}
+		}
+
 	}
 
 	/**
@@ -737,8 +459,17 @@ public class AssetManager {
 	 * @throws IllegalArgumentException If {@code assetType} is null
 	 */
 	public void unregisterAssetLoader(String assetType) {
-		if (assetType == null) {
+		assetType = assetType.toLowerCase();
+		if (assetType == null || !loaders.containsKey(assetType)) {
 			throw new IllegalArgumentException();
+		}
+
+		if(!game.isHeadless()) {
+				try {
+					unregisterAsset(getDefaultAssetName(assetType), true);
+				} catch (Throwable t) {
+					Logger.error("Error unloading the default asset for " + assetType, t);
+				}
 		}
 		loaders.remove(assetType);
 	}
@@ -746,11 +477,6 @@ public class AssetManager {
 	/**
 	 * Registers an asset entry just like it was imported with
 	 * {@link #loadAssetSheet(String)}<br>
-	 * This method will use the loader associated with the provided
-	 * {@code assetType} to initialize an instance of the asset<br>
-	 * You can use this method to override existing assets, even internal ones
-	 * <p>
-	 * The ready flag will be set after this operation succeeds
 	 *
 	 * @param assetName      The name of the asset to register
 	 * @param assetType      The type of the asset
@@ -760,41 +486,38 @@ public class AssetManager {
 	 *                                  in {@code assetArguments} is null
 	 */
 	public void registerAsset(String assetName, String assetType, String[] assetArguments) {
-		// Sanity checks
-		if (assetName == null || assetType == null || assetArguments == null) {
-			throw new IllegalArgumentException();
-		}
-
-		for (String assetArg : assetArguments) {
-			if (assetArg == null) {
-				throw new IllegalArgumentException();
-			}
-		}
-
-		// Initialize asset struct
-		SheetEntry asset = new SheetEntry(this);
-		asset.name = assetName;
-		asset.type = assetType;
-		asset.args = assetArguments;
-
-		// Initialize asset object
-		getAssetLoader(assetType).initializeAsset(asset);
-		asset.asset.setName(assetName);
-
-		// Add to map
-		assets.put(assetName, asset);
-
-		ready = true;
+		assetType = assetType.toLowerCase();
+		registerAsset(assetName, assetType, assetArguments, getAssetLoader(assetType).instantiate());
 	}
 
 	/**
-	 * Registers an asset entry just like it was imported with
+	 * Returns the name of the default asset automatically generated
+	 * for each asset type
+	 *
+	 * @param assetType The asset type
+	 * @return Its corresponding asset
+	 */
+	public String getDefaultAssetName(String assetType) {
+		return "%" + assetType.toLowerCase() + "%";
+	}
+
+	/**
+	 * Returns true if the given assets is a default asset
+	 *
+	 * @param assetName The asset name
+	 * @return Whether the asset is a default asset
+	 */
+	public boolean isDefaultAsset(String assetName) {
+		AssetEntry entry = assets.get(assetName);
+		return entry.name.equals(getDefaultAssetName(entry.type));
+	}
+
+	/**
+	 * Registers an asset entry just like it if it was imported with
 	 * {@link #loadAssetSheet(String)}<br>
 	 * This method will use the provided {@code template} instead of allocating a
-	 * new asset of that type You can use this method to override existing assets,
-	 * even internal ones
+	 * new asset of that type
 	 * <p>
-	 * The ready flag will be set after this operation succeeds
 	 *
 	 * @param assetName      The name of the asset to register
 	 * @param assetType      The type of the asset
@@ -809,20 +532,33 @@ public class AssetManager {
 	 *                                  {@code assetName}
 	 */
 	public void registerAsset(String assetName, String assetType, String[] assetArguments, Asset template) {
+		registerAsset(assetName, assetType, assetArguments, template, false);
+	}
+
+	protected void registerAsset(String assetName, String assetType, String[] assetArguments, Asset template, boolean bypassCharacters) {
 		// Sanity checks
-		if (assetName == null || assetType == null || assetArguments == null
-				|| (template.getName() != null && !template.getName().equals(assetName))) {
-			throw new IllegalArgumentException();
+		assetType = assetType.toLowerCase();
+		if (assetName == null || assetType == null || assetArguments == null) {
+			throw new IllegalArgumentException("Null asset name, type or arguments");
+		}
+		if(template.getName() != null && !template.getName().equals(assetName)) {
+			throw new IllegalArgumentException("Mismatching asset name");
+		}
+		if(!assetNameValid(assetName) && !bypassCharacters) {
+			throw new IllegalArgumentException("Invalid characters found in asset name: " + assetName);
+		}
+		if(assets.containsKey(assetName)) {
+			throw new IllegalArgumentException("Asset " + assetName + " is already registered, unregister it first");
 		}
 
 		for (String assetArg : assetArguments) {
 			if (assetArg == null) {
-				throw new IllegalArgumentException();
+				throw new IllegalArgumentException("Null asset arguments");
 			}
 		}
 
 		// Initialize asset struct
-		SheetEntry asset = new SheetEntry(this);
+		AssetEntry asset = new AssetEntry(this);
 		asset.name = assetName;
 		asset.type = assetType;
 		asset.args = assetArguments;
@@ -835,18 +571,38 @@ public class AssetManager {
 
 	/**
 	 * Unregisters an asset entry<br>
-	 * You can use this method to unregister existing assets, even internal ones
-	 * (though it is not recommended)
+	 * Using this method to unregister internal assets is possible
+	 * but will cause instability
 	 *
 	 * @param assetName The name of the asset to unregister
 	 * @throws IllegalArgumentException If {@code assetName} is null
 	 */
 	public void unregisterAsset(String assetName) {
-		if (assetName == null) {
-			throw new IllegalArgumentException("");
-		}
+		unregisterAsset(assetName, false);
+	}
 
+	protected void unregisterAsset(String assetName, boolean bypassCharacter) {
+		if(!assetNameValid(assetName) && !bypassCharacter) {
+			throw new IllegalArgumentException("Invalid characters found in asset name: " + assetName);
+		}
+		if (assetName == null || !assets.containsKey(assetName)) {
+			throw new IllegalArgumentException("Cannot unregister unknown asset: " + assetName);
+		}
+		if(assets.get(assetName).asset.isLoaded()) {
+			unloadAssetNow(assetName);
+		}
 		assets.remove(assetName);
+	}
+
+	protected boolean assetNameValid(String name) {
+		return !name.equals("") &&
+				!name.contains("%") &&
+				!name.contains("/") &&
+				!name.contains("\\") &&
+				!name.contains(" ") &&
+				!name.contains("\"") &&
+				!name.contains("'") &&
+				!name.contains(" ");
 	}
 
 	/**
@@ -866,19 +622,15 @@ public class AssetManager {
 	}
 
 	/**
-	 * Checks for the ready flag and if the asset denoted by {@code name} exists and
+	 * Checks for the ready flag and if the asset denoted by {@code assetName} exists, and
 	 * returns {@code true} if both checks succeed
 	 *
-	 * @param name The name of the asset to perform the check on
+	 * @param assetName The assetName of the asset to perform the check on
 	 * @return {@code true} if the checks succeeded, {@code false} otherwise
 	 */
-	protected boolean checkAsset(String name) {
-		if (!ready) {
-			Logger.warning("Can't check asset " + name + ", asset manager is not ready");
-			return false;
-		}
-		if (assets.get(name) == null) {
-			Logger.warning("Non existant asset requested: " + name);
+	protected boolean assetExists(String assetName) {
+		if (assets.get(assetName) == null) {
+			Logger.warning("Non existant asset requested: " + assetName);
 			return false;
 		}
 		return true;
@@ -895,106 +647,16 @@ public class AssetManager {
 	 * @param name The name of the asset
 	 * @return The {@link Asset}
 	 */
-	public Asset custom(String name) {
-		if (!checkAsset(name)) {
+	public <T extends Asset> T getAndLazyLoadAsset(String name) {
+		if (!assetExists(name)) {
 			return null;
 		}
-		SheetEntry asset = assets.get(name);
+		AssetEntry asset = assets.get(name);
 		Asset ret = asset.asset;
-		if (!ret.valid()) {
+		if (!ret.isValid()) {
 			loadAssetLazy(ret.getName());
 		}
-		return ret;
-	}
-
-	/**
-	 * Requests the model denoted by {@code name}, check if it exists and returns
-	 * null if it doesn't<br>
-	 * Otherwise checks if the asset is loaded, and if not it is lazy loaded, then
-	 * it is returned in both cases
-	 *
-	 * @param name The name of the asset
-	 * @return The {@link Asset}
-	 * @throws ClassCastException If the requested asset is not actually of type
-	 *                            model
-	 */
-	public Model model(String name) {
-		return (Model) custom(name);
-	}
-
-	/**
-	 * Requests the shader denoted by {@code name}, check if it exists and returns
-	 * null if it doesn't<br>
-	 * Otherwise checks if the asset is loaded, and if not it is lazy loaded, then
-	 * it is returned in both cases
-	 *
-	 * @param name The name of the asset
-	 * @return The {@link Asset}
-	 * @throws ClassCastException If the requested asset is not actually of type
-	 *                            shader
-	 */
-	public Shader shader(String name) {
-		return (Shader) custom(name);
-	}
-
-	/**
-	 * Requests the shader program denoted by {@code name}, check if it exists and
-	 * returns null if it doesn't<br>
-	 * Otherwise checks if the asset is loaded, and if not it is lazy loaded, then
-	 * it is returned in both cases
-	 *
-	 * @param name The name of the asset
-	 * @return The {@link Asset}
-	 * @throws ClassCastException If the requested asset is not actually of type
-	 *                            shader program
-	 */
-	public ShaderProgram shaderProgram(String name) {
-		return (ShaderProgram) custom(name);
-	}
-
-	/**
-	 * Requests the texture denoted by {@code name}, check if it exists and returns
-	 * null if it doesn't<br>
-	 * Otherwise checks if the asset is loaded, and if not it is lazy loaded, then
-	 * it is returned in both cases
-	 *
-	 * @param name The name of the asset
-	 * @return The {@link Asset}
-	 * @throws ClassCastException If the requested asset is not actually of type
-	 *                            texture
-	 */
-	public Texture texture(String name) {
-		return (Texture) custom(name);
-	}
-
-	/**
-	 * Requests the material denoted by {@code name}, check if it exists and returns
-	 * null if it doesn't<br>
-	 * Otherwise checks if the asset is loaded, and if not it is lazy loaded, then
-	 * it is returned in both cases
-	 *
-	 * @param name The name of the asset
-	 * @return The {@link Asset}
-	 * @throws ClassCastException If the requested asset is not actually of type
-	 *                            material
-	 */
-	public Material material(String name) {
-		return (Material) custom(name);
-	}
-
-	/**
-	 * Requests the sound denoted by {@code name}, check if it exists and returns
-	 * null if it doesn't<br>
-	 * Otherwise checks if the asset is loaded, and if not it is lazy loaded, then
-	 * it is returned in both cases
-	 *
-	 * @param name The name of the asset
-	 * @return The {@link Asset}
-	 * @throws ClassCastException If the requested asset is not actually of type
-	 *                            sound
-	 */
-	public Sound sound(String name) {
-		return (Sound) custom(name);
+		return (T) ret;
 	}
 
 	// Instant-loading getters
@@ -1008,106 +670,16 @@ public class AssetManager {
 	 * @param name The name of the asset
 	 * @return The {@link Asset}
 	 */
-	public Asset requireCustom(String name) {
-		if (!checkAsset(name)) {
+	public <T extends Asset> T getAndInstantlyLoadAsset(String name) {
+		if (!assetExists(name)) {
 			return null;
 		}
-		SheetEntry asset = assets.get(name);
+		AssetEntry asset = assets.get(name);
 		Asset ret = asset.asset;
-		if (!ret.valid()) {
-			loadAssetAuto(name, false);
+		if (!ret.isValid()) {
+			loadAssetNow(name);
 		}
-		return ret;
-	}
-
-	/**
-	 * Requests the model denoted by {@code name}, check if it exists and returns
-	 * null if it doesn't<br>
-	 * Otherwise checks if the asset is loaded, and if not it is loaded on the fly,
-	 * then it is returned in both cases
-	 *
-	 * @param name The name of the asset
-	 * @return The {@link Asset}
-	 * @throws ClassCastException If the requested asset is not actually of type
-	 *                            model
-	 */
-	public Model requireModel(String name) {
-		return (Model) requireCustom(name);
-	}
-
-	/**
-	 * Requests the shader denoted by {@code name}, check if it exists and returns
-	 * null if it doesn't<br>
-	 * Otherwise checks if the asset is loaded, and if not it is loaded on the fly,
-	 * then it is returned in both cases
-	 *
-	 * @param name The name of the asset
-	 * @return The {@link Asset}
-	 * @throws ClassCastException If the requested asset is not actually of type
-	 *                            shader
-	 */
-	public Shader requireShader(String name) {
-		return (Shader) requireCustom(name);
-	}
-
-	/**
-	 * Requests the shader program denoted by {@code name}, check if it exists and
-	 * returns null if it doesn't<br>
-	 * Otherwise checks if the asset is loaded, and if not it is loaded on the fly,
-	 * then it is returned in both cases
-	 *
-	 * @param name The name of the asset
-	 * @return The {@link Asset}
-	 * @throws ClassCastException If the requested asset is not actually of type
-	 *                            shader program
-	 */
-	public ShaderProgram requireShaderProgram(String name) {
-		return (ShaderProgram) requireCustom(name);
-	}
-
-	/**
-	 * Requests the texture denoted by {@code name}, check if it exists and returns
-	 * null if it doesn't<br>
-	 * Otherwise checks if the asset is loaded, and if not it is loaded on the fly,
-	 * then it is returned in both cases
-	 *
-	 * @param name The name of the asset
-	 * @return The {@link Asset}
-	 * @throws ClassCastException If the requested asset is not actually of type
-	 *                            texture
-	 */
-	public Texture requireTexture(String name) {
-		return (Texture) requireCustom(name);
-	}
-
-	/**
-	 * Requests the material denoted by {@code name}, check if it exists and returns
-	 * null if it doesn't<br>
-	 * Otherwise checks if the asset is loaded, and if not it is loaded on the fly,
-	 * then it is returned in both cases
-	 *
-	 * @param name The name of the asset
-	 * @return The {@link Asset}
-	 * @throws ClassCastException If the requested asset is not actually of type
-	 *                            material
-	 */
-	public Material requireMaterial(String name) {
-		return (Material) requireCustom(name);
-	}
-
-	/**
-	 * Requests the sound denoted by {@code name}, check if it exists and returns
-	 * null if it doesn't<br>
-	 * Otherwise checks if the asset is loaded, and if not it is loaded on the fly,
-	 * then it is returned in both cases
-	 *
-	 * @param name The name of the asset
-	 * @return The {@link Asset}
-	 * @throws ClassCastException If the requested asset is not actually of type
-	 *                            sound
-	 */
-	public Sound requireSound(String name) {
-		return (Sound) requireCustom(name);
+		return (T) ret;
 	}
 
 	// Getters
@@ -1117,7 +689,7 @@ public class AssetManager {
 	 * unloaded, etc)
 	 *
 	 * @param name The name of the asset to check
-	 * @return Whether or not the asset is busy
+	 * @return Whether the asset is busy
 	 * @throws NullPointerException if the asset is not present
 	 */
 	public boolean isAssetBusy(String name) {
@@ -1130,9 +702,14 @@ public class AssetManager {
 	 * @param name The name of the asset
 	 * @return The asset or {@code null} if if it doesn't exist
 	 */
-	public Asset getAsset(String name) {
-		SheetEntry entry = assets.get(name);
-		return entry == null ? null : entry.asset;
+	public <T extends Asset> T getAsset(String name) {
+		AssetEntry entry = assets.get(name);
+		return entry == null ? null : (T) entry.asset;
+	}
+
+	public <T extends Asset> T getDefaultAsset(String assetType) {
+		AssetEntry entry = assets.get(getDefaultAssetName(assetType));
+		return entry == null ? null : (T) entry.asset;
 	}
 
 	/**
@@ -1142,15 +719,6 @@ public class AssetManager {
 	 */
 	public final Game getGame() {
 		return game;
-	}
-
-	/**
-	 * Retrieves the ready flag
-	 *
-	 * @return The ready flag
-	 */
-	public final boolean isReady() {
-		return ready;
 	}
 
 }

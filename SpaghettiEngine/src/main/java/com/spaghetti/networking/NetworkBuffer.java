@@ -4,8 +4,10 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.nio.charset.Charset;
 
-import com.spaghetti.interfaces.StringCacher;
-import com.spaghetti.utils.Utils;
+import com.spaghetti.utils.HashUtil;
+import com.spaghetti.utils.StringCacher;
+import com.spaghetti.utils.Logger;
+import com.spaghetti.utils.ThreadUtil;
 
 public final class NetworkBuffer {
 
@@ -212,11 +214,16 @@ public final class NetworkBuffer {
 	// String
 	public void putString(boolean cache, String v, Charset charset) {
 		if (cache) {
-			short hash = Utils.shortHash(v);
+			short hash = HashUtil.shortHash(v);
 			buffer.putShort(hash);
 			if (!strcache.containsString(hash)) {
 				strcache.cacheString(hash, v);
 			} else {
+				// Contains hash but different string?
+				String cachedStr = strcache.getCachedString(hash);
+				if(!cachedStr.equals(v)) {
+					Logger.warning("String \"" + v + "\" has same hash (" + hash + ") as string " + cachedStr);
+				}
 				return;
 			}
 		}
@@ -401,6 +408,10 @@ public final class NetworkBuffer {
 		buffer.mark();
 	}
 
+	public void reset() {
+		buffer.reset();
+	}
+	
 	public void empty() {
 		byte[] array = buffer.array();
 		for (int i = 0; i < array.length; i++) {

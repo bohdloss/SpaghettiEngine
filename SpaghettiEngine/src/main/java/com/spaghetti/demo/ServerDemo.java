@@ -45,7 +45,7 @@ public class ServerDemo {
 		client.getInputDispatcher().registerListener(new MyKeyListener());
 
 		// Set the server to depend on the client
-		server.depends(client);
+		server.depend(client);
 
 		// Initialize
 		client.begin();

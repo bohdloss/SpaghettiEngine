@@ -2,7 +2,7 @@ package com.spaghetti.demo;
 
 import com.spaghetti.core.Game;
 import com.spaghetti.input.Keyboard;
-import com.spaghetti.interfaces.InputListener;
+import com.spaghetti.input.InputListener;
 
 public class MyKeyListener implements InputListener {
 
@@ -10,10 +10,10 @@ public class MyKeyListener implements InputListener {
 	public void onKeyPressed(int key, int x, int y) {
 		switch (key) {
 		case Keyboard.T:
-			Game.getGame().getClient().disconnect();
+			Game.getInstance().getClient().disconnect();
 			break;
 		case Keyboard.P:
-			Game.getGame().getClient().connect("localhost", 9018, 0);
+			Game.getInstance().getClient().connect("localhost", 9018, 0);
 			break;
 		}
 	}

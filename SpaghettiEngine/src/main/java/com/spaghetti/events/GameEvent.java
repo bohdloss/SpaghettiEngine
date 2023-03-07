@@ -1,9 +1,8 @@
 package com.spaghetti.events;
 
 import com.spaghetti.core.Game;
-import com.spaghetti.interfaces.Replicable;
+import com.spaghetti.networking.Replicable;
 import com.spaghetti.networking.ConnectionManager;
-import com.spaghetti.networking.NetworkBuffer;
 import com.spaghetti.utils.IdProvider;
 
 public abstract class GameEvent implements Replicable {
@@ -17,7 +16,7 @@ public abstract class GameEvent implements Replicable {
 	private boolean cancelled;
 
 	public GameEvent() {
-		this.id = IdProvider.newId(Game.getGame());
+		this.id = IdProvider.newId(Game.getInstance());
 	}
 
 	// Getters and setters
@@ -44,26 +43,15 @@ public abstract class GameEvent implements Replicable {
 		return cancelled;
 	}
 
-	// Override this to mask out certain clients / servers
+	/**
+	 * By default, events don't replicate
+	 * Override to change this behaviour
+	 *
+	 * @return true
+	 */
 	@Override
-	public boolean needsReplication(ConnectionManager target) {
-		return false;
-	}
-
-	@Override
-	public void writeDataServer(NetworkBuffer buffer) {
-	}
-
-	@Override
-	public void readDataServer(NetworkBuffer buffer) {
-	}
-
-	@Override
-	public void writeDataClient(NetworkBuffer buffer) {
-	}
-
-	@Override
-	public void readDataClient(NetworkBuffer buffer) {
+	public boolean isLocal() {
+		return true;
 	}
 
 }

@@ -21,11 +21,15 @@ import com.spaghetti.core.Game;
 public class Material extends Asset {
 
 	public static Material get(String name) {
-		return Game.getGame().getAssetManager().material(name);
+		return Game.getInstance().getAssetManager().getAndLazyLoadAsset(name);
 	}
 
 	public static Material require(String name) {
-		return Game.getGame().getAssetManager().requireMaterial(name);
+		return Game.getInstance().getAssetManager().getAndInstantlyLoadAsset(name);
+	}
+
+	public static Material getDefault() {
+		return Game.getInstance().getAssetManager().getDefaultAsset("Material");
 	}
 
 	protected ShaderProgram shader;
@@ -50,8 +54,8 @@ public class Material extends Asset {
 	}
 
 	@Override
-	public void setData(Object... objects) {
-		if (valid()) {
+	public void setData(Object[] objects) {
+		if (isValid()) {
 			return;
 		}
 
@@ -94,7 +98,11 @@ public class Material extends Asset {
 	// Use method
 
 	public void use() {
-		if (!valid()) {
+		if (!isValid()) {
+			Material base = getDefault();
+			if(this != base) {
+				base.use();
+			}
 			return;
 		}
 
@@ -113,21 +121,21 @@ public class Material extends Asset {
 	// Float, float array, float w_buffer
 
 	public void setProperty(String name, float property) {
-		if (!valid()) {
+		if (!isValid()) {
 			return;
 		}
 		shader.setFloatUniform(name, property);
 	}
 
 	public void setProperty(String name, float[] property) {
-		if (!valid()) {
+		if (!isValid()) {
 			return;
 		}
 		shader.setFloatArrayUniform(name, property);
 	}
 
 	public void setProperty(String name, FloatBuffer property) {
-		if (!valid()) {
+		if (!isValid()) {
 			return;
 		}
 		shader.setFloatBufferUniform(name, property);
@@ -136,21 +144,21 @@ public class Material extends Asset {
 	// Int, int array, int w_buffer
 
 	public void setProperty(String name, int property) {
-		if (!valid()) {
+		if (!isValid()) {
 			return;
 		}
 		shader.setIntUniform(name, property);
 	}
 
 	public void setProperty(String name, int[] property) {
-		if (!valid()) {
+		if (!isValid()) {
 			return;
 		}
 		shader.setIntArrayUniform(name, property);
 	}
 
 	public void setProperty(String name, IntBuffer property) {
-		if (!valid()) {
+		if (!isValid()) {
 			return;
 		}
 		shader.setIntBufferUniform(name, property);
@@ -159,28 +167,28 @@ public class Material extends Asset {
 	// Vector 2
 
 	public void setProperty(String name, double x, double y) {
-		if (!valid()) {
+		if (!isValid()) {
 			return;
 		}
 		shader.setVec2Uniform(name, x, y);
 	}
 
 	public void setProperty(String name, Vector2f property) {
-		if (!valid()) {
+		if (!isValid()) {
 			return;
 		}
 		shader.setVec2Uniform(name, property);
 	}
 
 	public void setProperty(String name, float x, float y) {
-		if (!valid()) {
+		if (!isValid()) {
 			return;
 		}
 		shader.setVec2Uniform(name, x, y);
 	}
 
 	public void setProperty(String name, Vector2d property) {
-		if (!valid()) {
+		if (!isValid()) {
 			return;
 		}
 		shader.setVec2Uniform(name, property);
@@ -189,28 +197,28 @@ public class Material extends Asset {
 	// Vector 3
 
 	public void setProperty(String name, double x, double y, double z) {
-		if (!valid()) {
+		if (!isValid()) {
 			return;
 		}
 		shader.setVec3Uniform(name, x, y, z);
 	}
 
 	public void setProperty(String name, Vector3f property) {
-		if (!valid()) {
+		if (!isValid()) {
 			return;
 		}
 		shader.setVec3Uniform(name, property);
 	}
 
 	public void setProperty(String name, float x, float y, float z) {
-		if (!valid()) {
+		if (!isValid()) {
 			return;
 		}
 		shader.setVec3Uniform(name, x, y, z);
 	}
 
 	public void setProperty(String name, Vector3d property) {
-		if (!valid()) {
+		if (!isValid()) {
 			return;
 		}
 		shader.setVec3Uniform(name, property);
@@ -219,28 +227,28 @@ public class Material extends Asset {
 	// Vector 4
 
 	public void setProperty(String name, double x, double y, double z, double w) {
-		if (!valid()) {
+		if (!isValid()) {
 			return;
 		}
 		shader.setVec4Uniform(name, x, y, z, w);
 	}
 
 	public void setProperty(String name, Vector4f property) {
-		if (!valid()) {
+		if (!isValid()) {
 			return;
 		}
 		shader.setVec4Uniform(name, property);
 	}
 
 	public void setProperty(String name, float x, float y, float z, float w) {
-		if (!valid()) {
+		if (!isValid()) {
 			return;
 		}
 		shader.setVec4Uniform(name, x, y, z, w);
 	}
 
 	public void setProperty(String name, Vector4d property) {
-		if (!valid()) {
+		if (!isValid()) {
 			return;
 		}
 		shader.setVec4Uniform(name, property);
@@ -249,35 +257,35 @@ public class Material extends Asset {
 	// Matrix 2, 3, 4
 
 	public void setProperty(String name, Matrix2f property) {
-		if (!valid()) {
+		if (!isValid()) {
 			return;
 		}
 		shader.setMat2Uniform(name, property);
 	}
 
 	public void setProperty(String name, Matrix3f property) {
-		if (!valid()) {
+		if (!isValid()) {
 			return;
 		}
 		shader.setMat3Uniform(name, property);
 	}
 
 	public void setProperty(String name, Matrix3d property) {
-		if (!valid()) {
+		if (!isValid()) {
 			return;
 		}
 		shader.setMat3Uniform(name, property);
 	}
 
 	public void setProperty(String name, Matrix4f property) {
-		if (!valid()) {
+		if (!isValid()) {
 			return;
 		}
 		shader.setMat4Uniform(name, property);
 	}
 
 	public void setProperty(String name, Matrix4d property) {
-		if (!valid()) {
+		if (!isValid()) {
 			return;
 		}
 		shader.setMat4Uniform(name, property);
@@ -286,14 +294,14 @@ public class Material extends Asset {
 	// Set projection
 
 	public void setProjection(Matrix4f projection) {
-		if (!valid()) {
+		if (!isValid()) {
 			return;
 		}
 		shader.setProjection(projection);
 	}
 
 	public void setProjection(Matrix4d projection) {
-		if (!valid()) {
+		if (!isValid()) {
 			return;
 		}
 		shader.setProjection(projection);

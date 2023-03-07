@@ -2,11 +2,17 @@ package com.spaghetti.audio;
 
 import java.nio.ByteBuffer;
 
+import com.spaghetti.core.Game;
+import com.spaghetti.utils.ExceptionUtil;
 import org.lwjgl.openal.AL10;
 
-import com.spaghetti.utils.Utils;
+import com.spaghetti.utils.ThreadUtil;
 
 public class StaticSound extends Sound {
+
+	public static StaticSound getDefault() {
+		return Game.getInstance().getAssetManager().getDefaultAsset("Sound");
+	}
 
 	protected int id;
 	protected int format;
@@ -14,7 +20,7 @@ public class StaticSound extends Sound {
 	protected int frequency;
 
 	@Override
-	public void setData(Object... objects) {
+	public void setData(Object[] objects) {
 		this.format = (int) objects[0];
 		this.data = (ByteBuffer) objects[1];
 		this.frequency = (int) objects[2];
@@ -30,20 +36,17 @@ public class StaticSound extends Sound {
 	@Override
 	protected void load0() {
 		id = AL10.alGenBuffers();
-		Utils.alError();
+		ExceptionUtil.alError();
 		AL10.alBufferData(id, format, data, frequency);
-		Utils.alError();
-
-		// Not needed, wait for GC to pick it up
-		data = null;
+		ExceptionUtil.alError();
 	}
 
 	@Override
 	protected void unload0() {
 		status.clear();
-		data.clear();
+		data = null;
 		AL10.alDeleteBuffers(id);
-		Utils.alError();
+		ExceptionUtil.alError();
 	}
 
 	@Override
@@ -54,9 +57,9 @@ public class StaticSound extends Sound {
 	@Override
 	public void update(SoundSource source) {
 		AL10.alSourcei(source.getSourceId(), AL10.AL_LOOPING, source.isSourceLooping() ? AL10.AL_TRUE : AL10.AL_FALSE);
-		Utils.alError();
+		ExceptionUtil.alError();
 		int alstate = AL10.alGetSourcei(source.getSourceId(), AL10.AL_SOURCE_STATE);
-		Utils.alError();
+		ExceptionUtil.alError();
 		if (alstate == AL10.AL_STOPPED) {
 			source.stop();
 		}
@@ -68,21 +71,21 @@ public class StaticSound extends Sound {
 		switch (state) {
 		case PLAYING:
 			AL10.alSourcei(source.getSourceId(), AL10.AL_BUFFER, id);
-			Utils.alError();
+			ExceptionUtil.alError();
 			AL10.alSourcePlay(source.getSourceId());
-			Utils.alError();
+			ExceptionUtil.alError();
 			break;
 		case PAUSED:
 			AL10.alSourcePause(source.getSourceId());
-			Utils.alError();
+			ExceptionUtil.alError();
 			break;
 		case STOPPED:
 			AL10.alSourcei(source.getSourceId(), AL10.AL_LOOPING, 0);
-			Utils.alError();
+			ExceptionUtil.alError();
 			AL10.alSourceStop(source.getSourceId());
-			Utils.alError();
+			ExceptionUtil.alError();
 			AL10.alSourcei(source.getSourceId(), AL10.AL_BUFFER, 0);
-			Utils.alError();
+			ExceptionUtil.alError();
 			break;
 		}
 	}
@@ -91,7 +94,7 @@ public class StaticSound extends Sound {
 
 	@Override
 	public int getId() {
-		return id;
+		return isValid() ? id : getDefault().id;
 	}
 
 	@Override

@@ -1,0 +1,9 @@
+VertexShader defaultVS /internal/default.vs
+FragmentShader defaultFS /internal/default.fs
+ShaderProgram defaultSP defaultVS defaultFS
+VertexShader rendererVS /internal/renderer.vs
+FragmentShader rendererFS /internal/renderer.fs
+ShaderProgram rendererSP rendererVS rendererFS
+Model square /internal/square.obj find square
+Texture defaultTXT /internal/default.png nearest
+Material defaultMAT defaultTXT defaultSP

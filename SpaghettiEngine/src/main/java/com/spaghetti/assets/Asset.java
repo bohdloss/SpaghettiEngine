@@ -1,16 +1,16 @@
 package com.spaghetti.assets;
 
+import com.spaghetti.assets.exceptions.AssetException;
 import com.spaghetti.core.Game;
-import com.spaghetti.utils.Logger;
 
 public abstract class Asset {
 
 	public static Asset get(String name) {
-		return Game.getGame().getAssetManager().custom(name);
+		return Game.getInstance().getAssetManager().getAndLazyLoadAsset(name);
 	}
 
 	public static Asset require(String name) {
-		return Game.getGame().getAssetManager().requireCustom(name);
+		return Game.getInstance().getAssetManager().getAndInstantlyLoadAsset(name);
 	}
 
 	private String name;
@@ -24,7 +24,7 @@ public abstract class Asset {
 				init = true;
 			}
 		} catch (Throwable t) {
-			Logger.error("Error loading asset " + name, t);
+			throw new AssetException(this, "Error loading asset " + name, t);
 		}
 	}
 
@@ -32,18 +32,18 @@ public abstract class Asset {
 
 	public final void unload() {
 		try {
-			if (valid()) {
+			if (isValid()) {
 				unload0();
 			}
 		} catch (Throwable t) {
-			Logger.error("Error unloading asset " + name, t);
+			throw new AssetException(this, "Error unloading asset " + name, t);
 		} finally {
 			deleted = true;
 			init = false;
 		}
 	}
 
-	public abstract void setData(Object... objects);
+	public abstract void setData(Object[] objects);
 
 	protected abstract void unload0();
 
@@ -60,7 +60,7 @@ public abstract class Asset {
 		load();
 	}
 
-	public boolean valid() {
+	public boolean isValid() {
 		return !deleted && init;
 	}
 

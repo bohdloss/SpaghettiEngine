@@ -1,6 +1,6 @@
 package com.spaghetti.physics;
 
-import com.spaghetti.core.GameComponent;
+import com.spaghetti.world.GameComponent;
 
 /**
  * RigidBody represents the base class for any n-dimensional physics

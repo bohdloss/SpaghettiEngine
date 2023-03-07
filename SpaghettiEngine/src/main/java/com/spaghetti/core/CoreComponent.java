@@ -1,9 +1,9 @@
 package com.spaghetti.core;
 
-import com.spaghetti.objects.Camera;
+import com.spaghetti.render.Camera;
 import com.spaghetti.utils.FunctionDispatcher;
 import com.spaghetti.utils.Logger;
-import com.spaghetti.utils.Utils;
+import com.spaghetti.utils.ThreadUtil;
 
 public abstract class CoreComponent extends Thread {
 
@@ -49,19 +49,19 @@ public abstract class CoreComponent extends Thread {
 
 	public final void waitInit() {
 		while (!initialized()) {
-			Utils.sleep(1);
+			ThreadUtil.sleep(1);
 		}
 	}
 
 	public final void waitTerminate() {
 		while (!stopped()) {
-			Utils.sleep(1);
+			ThreadUtil.sleep(1);
 		}
 	}
 
 	public final void waitExecution() {
 		while (!executionEnd) {
-			Utils.sleep(1);
+			ThreadUtil.sleep(1);
 		}
 	}
 
@@ -103,7 +103,7 @@ public abstract class CoreComponent extends Thread {
 			throw new IllegalStateException("Error: run() called but no new thread started");
 		}
 
-		// Initializer try catch
+		// Initialization code is ran here
 		try {
 			initialize();
 		} catch (Throwable t) {
@@ -111,11 +111,11 @@ public abstract class CoreComponent extends Thread {
 			stop = true;
 		}
 
-		// Loop try catch
+		// Game loop
 		try {
 			while (!allowRun) {
 				functionDispatcher.computeEvents();
-				Utils.sleep(1);
+				ThreadUtil.sleep(1);
 			}
 			postInitialize();
 			while (!stop) {
@@ -130,8 +130,9 @@ public abstract class CoreComponent extends Thread {
 
 				// Compute queued operations
 				functionDispatcher.computeEvents();
-				loopEvents(delta);
+				loopEvents(source.getTickMultiplier(delta));
 			}
+			preTerminate();
 		} catch (Throwable t) {
 			_uncaught(t);
 		} finally {
@@ -139,16 +140,16 @@ public abstract class CoreComponent extends Thread {
 			source.stopAsync();
 		}
 
-		// Termination try catch
+		executionEnd = true;
+		while (!allowStop) {
+			ThreadUtil.sleep(1);
+			functionDispatcher.computeEvents();
+		}
+
+		// Terminate
 		try {
-			preTerminate();
-			executionEnd = true;
-			while (!allowStop) {
-				Utils.sleep(1);
-				functionDispatcher.computeEvents();
-			}
 			terminate0();
-		} catch (Throwable t) {
+		} catch(Throwable t) {
 			_uncaught(t);
 		}
 
@@ -165,7 +166,7 @@ public abstract class CoreComponent extends Thread {
 			if (found) {
 				break;
 			}
-			Utils.sleep(1);
+			ThreadUtil.sleep(1);
 			functionDispatcher.computeEvents();
 		}
 	}
