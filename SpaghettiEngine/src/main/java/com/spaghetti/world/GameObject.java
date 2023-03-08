@@ -377,7 +377,7 @@ public class GameObject implements Updatable, Renderable, Replicable {
 	}
 
 	public final GameComponent[] getComponentsN(Class<? extends GameComponent> cls, GameComponent[] buffer,
-			int offset) {
+												int offset) {
 		int i = 0;
 		for (GameComponent component : components.values()) {
 			if (cls.isAssignableFrom(component.getClass())) {
@@ -1239,7 +1239,21 @@ public class GameObject implements Updatable, Renderable, Replicable {
 			getWorldRotation(transform.rotation);
 			getWorldScale(transform.scale);
 		} else {
-			transform = getGame().getRenderer().getCache(cache_index);
+
+			Transform trans = getGame().getRenderer().getTransformCache(cache_index);
+			Transform vel = getGame().getRenderer().getVelocityCache(cache_index);
+			float velDelta = getGame().getRenderer().getCacheUpdateDelta();
+
+			transform = new Transform();
+			vel.position.mul(velDelta, transform.position);
+			transform.position.add(trans.position);
+
+			vel.rotation.mul(velDelta, transform.rotation);
+			transform.rotation.add(trans.rotation);
+
+			transform.scale.set(0);
+			vel.scale.mul(velDelta, transform.scale);
+			transform.scale.add(trans.scale);
 		}
 
 		if(this != renderer) {

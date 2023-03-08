@@ -42,6 +42,7 @@ public class RendererCore extends CoreComponent {
 	protected boolean openal = true;
 
 	// Cache
+	protected Camera lastCamera;
 	protected Matrix4d renderMatrix = new Matrix4d();
 	protected Matrix4d sceneMatrix = new Matrix4d();
 	protected Vector3f camerapos = new Vector3f();
@@ -50,10 +51,15 @@ public class RendererCore extends CoreComponent {
 	protected Model sceneRenderer;
 	protected ShaderProgram defaultShader;
 
-	// 2.1 MB render cache
-	protected Transform[] renderCache;
+	// 2.1 MB transform cache
+	protected Transform[] transformCache;
+	// 2.1 MB velocity cache
+	protected Transform[] velocityCache;
 	// 256 KB render cache allocation table
 	protected boolean[] renderCache_alloc;
+	// Last cache update
+	protected long lastCacheUpdate;
+	protected long currentTime;
 	// Cache locks
 	protected boolean renderCache_frameflag;
 	protected Object renderCache_framelock = new Object();
@@ -65,9 +71,14 @@ public class RendererCore extends CoreComponent {
 	public RendererCore() {
 		window = new GameWindow();
 		// Init render cache
-		renderCache = new Transform[Short.MAX_VALUE];
-		for(int i = 0; i < renderCache.length; i++) {
-			renderCache[i] = new Transform();
+		transformCache = new Transform[Short.MAX_VALUE];
+		for(int i = 0; i < transformCache.length; i++) {
+			transformCache[i] = new Transform();
+		}
+		velocityCache = new Transform[Short.MAX_VALUE];
+		for(int i = 0; i < velocityCache.length; i++) {
+			velocityCache[i] = new Transform();
+			velocityCache[i].scale.set(0);
 		}
 		renderCache_alloc = new boolean[Short.MAX_VALUE];
 	}
@@ -193,12 +204,14 @@ public class RendererCore extends CoreComponent {
 				Logger.info("Block " + i + " was not freed");
 			}
 		}
-		renderCache = null;
+		transformCache = null;
+		velocityCache = null;
 		renderCache_alloc = null;
 	}
 
 	@Override
 	protected void loopEvents(float delta) throws Throwable {
+		currentTime += (long) (delta * 1000f);
 		try {
 			GL11.glGetError();
 			GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_STENCIL_BUFFER_BIT);
@@ -215,38 +228,53 @@ public class RendererCore extends CoreComponent {
 
 			Camera camera = getCamera();
 			if (camera != null) {
-				Transform transform;
-				int camera_index = camera.getRenderCacheIndex();
-				if(camera_index == -1) {
-					transform = new Transform();
-					camera.getWorldPosition(transform.position);
-					camera.getWorldRotation(transform.rotation);
-					camera.getWorldScale(transform.scale);
-				} else {
-					transform = getCache(camera_index);
-				}
+				synchronized (renderCache_framelock) {
+					Transform transform = new Transform();
+					int camera_index = camera.getRenderCacheIndex();
+					if (camera_index == -1) {
+						camera.getWorldPosition(transform.position);
+						camera.getWorldRotation(transform.rotation);
+						camera.getWorldScale(transform.scale);
+					} else {
+						//transform = getTransformCache(camera_index);
+						Transform trans = getGame().getRenderer().getTransformCache(camera_index);
+						Transform vel = getGame().getRenderer().getVelocityCache(camera_index);
+						float velDelta = getGame().getRenderer().getCacheUpdateDelta();
 
-				if (openal) {
-					// Update listener position and velocity
-					Vector3f camerapos = transform.position;
-					Vector3f cameravel = new Vector3f();
-					camerapos.sub(camerapos_old, cameravel);
+						vel.position.mul(velDelta, transform.position);
+						transform.position.add(trans.position);
 
-					AL10.alListener3f(AL10.AL_POSITION, camerapos.x, camerapos.y, camerapos.z);
-					if (delta != 0) {
-						cameravel.div(delta / 1000);
-						AL10.alListener3f(AL10.AL_VELOCITY, cameravel.x, cameravel.y, cameravel.z);
+						vel.rotation.mul(velDelta, transform.rotation);
+						transform.rotation.add(trans.rotation);
+
+						transform.scale.set(0);
+						vel.scale.mul(velDelta, transform.scale);
+						transform.scale.add(trans.scale);
 					}
-					camerapos_old.set(camerapos);
-				}
 
-				// Draw level to camera frame buffer
-				synchronized(renderCache_framelock) {
+					if (false) {
+						// Update listener position and velocity
+						if (camera != lastCamera) {
+							lastCamera = camera;
+							camerapos_old.set(transform.position);
+						}
+						Vector3f camerapos = transform.position;
+						Vector3f cameravel = new Vector3f();
+						camerapos.sub(camerapos_old, cameravel);
+
+						AL10.alListener3f(AL10.AL_POSITION, camerapos.x, camerapos.y, camerapos.z);
+						if (delta != 0) {
+							cameravel.div(delta / 1000);
+							AL10.alListener3f(AL10.AL_VELOCITY, cameravel.x, cameravel.y, cameravel.z);
+						}
+						camerapos_old.set(camerapos);
+					}
+
+					// Draw level to camera frame buffer
 					renderCache_frameflag = true;
 					camera.render(null, delta, transform);
+					renderCache_frameflag = false;
 				}
-				renderCache_frameflag = false;
-
 				// Draw texture from frame buffer to screen
 
 				// Reset render matrix
@@ -299,7 +327,7 @@ public class RendererCore extends CoreComponent {
 	}
 
 	public int allocCache() {
-		if(renderCache == null) {
+		if(transformCache == null) {
 			return -1;
 		}
 
@@ -307,7 +335,7 @@ public class RendererCore extends CoreComponent {
 			if(!renderCache_alloc[i]) {
 				renderCache_alloc[i] = true;
 
-				//Logger.info("Allocated render cache at index " + i);
+				Logger.debug("Allocated render cache at index " + i);
 
 				return i;
 			}
@@ -316,17 +344,21 @@ public class RendererCore extends CoreComponent {
 	}
 
 	public void deallocCache(int index) {
-		if((renderCache == null) || index < 0 || index > renderCache_alloc.length) {
+		if((transformCache == null || velocityCache == null) || index < 0 || index > renderCache_alloc.length) {
 			return;
 		}
 
-		//Logger.info("Deallocated render cache at index " + index);
+		Logger.debug("Deallocated render cache at index " + index);
 
 		renderCache_alloc[index] = false;
 	}
 
-	public Transform getCache(int index) {
-		return renderCache[index];
+	public Transform getTransformCache(int index) {
+		return transformCache[index];
+	}
+
+	public Transform getVelocityCache(int index) {
+		return velocityCache[index];
 	}
 
 	public boolean isFrameFlag() {
@@ -335,6 +367,14 @@ public class RendererCore extends CoreComponent {
 
 	public Object getFrameLock() {
 		return renderCache_framelock;
+	}
+
+	public long getCacheUpdateDelta() {
+		return currentTime - lastCacheUpdate;
+	}
+
+	public void markCacheUpdate() {
+		lastCacheUpdate = currentTime;
 	}
 
 }

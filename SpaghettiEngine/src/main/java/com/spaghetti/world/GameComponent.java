@@ -115,7 +115,7 @@ public abstract class GameComponent implements Updatable, Renderable, Replicable
 			getOwner().getWorldRotation(transform.rotation);
 			getOwner().getWorldScale(transform.scale);
 		} else {
-			transform = getGame().getRenderer().getCache(cache_index);
+			transform = getGame().getRenderer().getTransformCache(cache_index);
 		}
 
 		render(renderer, delta, transform);

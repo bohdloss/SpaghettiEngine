@@ -12,6 +12,7 @@ import com.spaghetti.core.Game;
 import com.spaghetti.input.Updatable;
 import com.spaghetti.render.RendererCore;
 import com.spaghetti.utils.ReflectionUtil;
+import com.spaghetti.utils.ThreadUtil;
 import com.spaghetti.utils.Transform;
 
 public final class Level implements Updatable {
@@ -195,38 +196,73 @@ public final class Level implements Updatable {
 			RendererCore renderer = getGame().getRenderer();
 			if(!getGame().isHeadless() && !renderer.isFrameFlag()) {
 				synchronized(renderer.getFrameLock()) {
-					o_ordered.forEach((id, object) -> {
-						if (object != null) {
-							int cache_index = object.getRenderCacheIndex();
-
-							if(cache_index != -1) {
-
-								Transform transform = renderer.getCache(cache_index);
-								object.getWorldPosition(transform.position);
-								object.getWorldRotation(transform.rotation);
-								object.getWorldScale(transform.scale);
-							}
-						}
-					});
-
-					c_ordered.forEach((id, component) -> {
-						if (component != null) {
-							int cache_index = component.getRenderCacheIndex();
-
-							if(cache_index != -1) {
-
-								GameObject object = component.getOwner();
-								Transform transform = renderer.getCache(cache_index);
-								object.getWorldPosition(transform.position);
-								object.getWorldRotation(transform.rotation);
-								object.getWorldScale(transform.scale);
-							}
-						}
-					});
+					updateCaches(renderer);
 				}
 			}
 		} catch (ConcurrentModificationException e) {
 		}
+	}
+
+	protected final void updateCaches(RendererCore renderer) {
+		o_ordered.forEach((id, object) -> {
+			if (object != null) {
+				int cache_index = object.getRenderCacheIndex();
+
+				if(cache_index != -1) {
+
+					Transform oldTransform = renderer.getTransformCache(cache_index);
+					Transform oldVelocity = renderer.getVelocityCache(cache_index);
+					float velDelta = renderer.getCacheUpdateDelta();
+
+					Transform newTransform = new Transform();
+
+					object.getWorldPosition(newTransform.position);
+					object.getWorldRotation(newTransform.rotation);
+					object.getWorldScale(newTransform.scale);
+
+					if(velDelta != 0) {
+						Transform newVelocity = new Transform();
+						newVelocity.set(newTransform);
+						newVelocity.sub(oldTransform);
+						newVelocity.div(velDelta);
+
+						oldVelocity.set(newVelocity);
+					}
+					oldTransform.set(newTransform);
+				}
+			}
+		});
+
+		c_ordered.forEach((id, component) -> {
+			if (component != null) {
+				int cache_index = component.getRenderCacheIndex();
+
+				if(cache_index != -1) {
+
+					GameObject object = component.getOwner();
+					Transform oldTransform = renderer.getTransformCache(cache_index);
+					Transform oldVelocity = renderer.getVelocityCache(cache_index);
+					float velDelta = renderer.getCacheUpdateDelta();
+
+					Transform newTransform = new Transform();
+
+					object.getWorldPosition(newTransform.position);
+					object.getWorldRotation(newTransform.rotation);
+					object.getWorldScale(newTransform.scale);
+
+					if(velDelta != 0) {
+						Transform newVelocity = new Transform();
+						newVelocity.set(newTransform);
+						newVelocity.sub(oldTransform);
+						newVelocity.div(velDelta);
+
+						oldVelocity.set(newVelocity);
+					}
+					oldTransform.set(newTransform);
+				}
+			}
+		});
+		renderer.markCacheUpdate();
 	}
 
 	public final boolean isDestroyed() {

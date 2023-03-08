@@ -1,6 +1,7 @@
 package com.spaghetti.demo;
 
 import com.spaghetti.utils.Logger;
+import com.spaghetti.utils.ThreadUtil;
 import com.spaghetti.world.GameMode;
 import com.spaghetti.world.GameObject;
 import com.spaghetti.world.GameState;
@@ -60,23 +61,6 @@ public class DemoMode extends GameMode {
         }
         level.addObject(floorContainer);
 
-        Vector3f vec = new Vector3f();
-        GameObject child = floorContainer.getChildAt(0);
-        int iter = 1000000000;
-
-        long time = System.currentTimeMillis();
-        for(int i = 0; i < iter; i++) {
-            //child.getWorldPosition(vec);
-        }
-        //Logger.error("New method: " + (System.currentTimeMillis() - time) + " ms over " + iter + " iterations");
-
-        time = System.currentTimeMillis();
-        for(int i = 0; i < iter; i++) {
-            //child.getWorldPositionFast(vec);
-        }
-        //Logger.error("Old method: " + (System.currentTimeMillis() - time) + " ms over " + iter + " iterations");
-
-
         // Init skybox
         UntransformedMesh skybox = new UntransformedMesh(Model.get("square"), Material.get("m_skybox"));
         skybox.setRelativeScale(50, 50, 1);
@@ -84,8 +68,8 @@ public class DemoMode extends GameMode {
         level.addObject(skybox);
 
         // Stress test for physics
-        int width = 20;
-        int height = 20;
+        int width = 1;
+        int height = 1;
         for (int i = 0; i < width; i++) {
             for (int j = 0; j < height; j++) {
                 Mesh mesh = new Mesh(Model.get("square"), Material.get("defaultMAT"));
@@ -132,6 +116,10 @@ public class DemoMode extends GameMode {
 
     public GameObject getFloorContainer() {
         return floorContainer;
+    }
+
+    @Override
+    public void update(float delta) {
     }
 
 }
