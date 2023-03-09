@@ -3,6 +3,7 @@ package com.spaghetti.render;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 
+import com.spaghetti.utils.Logger;
 import org.joml.Matrix2f;
 import org.joml.Matrix3d;
 import org.joml.Matrix3f;
@@ -122,6 +123,10 @@ public class Material extends Asset {
 
 	public void setProperty(String name, float property) {
 		if (!isValid()) {
+			Material base = getDefault();
+			if(this != base) {
+				base.setProperty(name, property);
+			}
 			return;
 		}
 		shader.setFloatUniform(name, property);
@@ -129,6 +134,10 @@ public class Material extends Asset {
 
 	public void setProperty(String name, float[] property) {
 		if (!isValid()) {
+			Material base = getDefault();
+			if(this != base) {
+				base.setProperty(name, property);
+			}
 			return;
 		}
 		shader.setFloatArrayUniform(name, property);
@@ -136,6 +145,10 @@ public class Material extends Asset {
 
 	public void setProperty(String name, FloatBuffer property) {
 		if (!isValid()) {
+			Material base = getDefault();
+			if(this != base) {
+				base.setProperty(name, property);
+			}
 			return;
 		}
 		shader.setFloatBufferUniform(name, property);
@@ -145,6 +158,10 @@ public class Material extends Asset {
 
 	public void setProperty(String name, int property) {
 		if (!isValid()) {
+			Material base = getDefault();
+			if(this != base) {
+				base.setProperty(name, property);
+			}
 			return;
 		}
 		shader.setIntUniform(name, property);
@@ -152,6 +169,10 @@ public class Material extends Asset {
 
 	public void setProperty(String name, int[] property) {
 		if (!isValid()) {
+			Material base = getDefault();
+			if(this != base) {
+				base.setProperty(name, property);
+			}
 			return;
 		}
 		shader.setIntArrayUniform(name, property);
@@ -159,6 +180,10 @@ public class Material extends Asset {
 
 	public void setProperty(String name, IntBuffer property) {
 		if (!isValid()) {
+			Material base = getDefault();
+			if(this != base) {
+				base.setProperty(name, property);
+			}
 			return;
 		}
 		shader.setIntBufferUniform(name, property);
@@ -168,6 +193,10 @@ public class Material extends Asset {
 
 	public void setProperty(String name, double x, double y) {
 		if (!isValid()) {
+			Material base = getDefault();
+			if(this != base) {
+				base.setProperty(name, x, y);
+			}
 			return;
 		}
 		shader.setVec2Uniform(name, x, y);
@@ -175,6 +204,10 @@ public class Material extends Asset {
 
 	public void setProperty(String name, Vector2f property) {
 		if (!isValid()) {
+			Material base = getDefault();
+			if(this != base) {
+				base.setProperty(name, property);
+			}
 			return;
 		}
 		shader.setVec2Uniform(name, property);
@@ -182,6 +215,10 @@ public class Material extends Asset {
 
 	public void setProperty(String name, float x, float y) {
 		if (!isValid()) {
+			Material base = getDefault();
+			if(this != base) {
+				base.setProperty(name, x, y);
+			}
 			return;
 		}
 		shader.setVec2Uniform(name, x, y);
@@ -189,6 +226,10 @@ public class Material extends Asset {
 
 	public void setProperty(String name, Vector2d property) {
 		if (!isValid()) {
+			Material base = getDefault();
+			if(this != base) {
+				base.setProperty(name, property);
+			}
 			return;
 		}
 		shader.setVec2Uniform(name, property);
@@ -198,6 +239,10 @@ public class Material extends Asset {
 
 	public void setProperty(String name, double x, double y, double z) {
 		if (!isValid()) {
+			Material base = getDefault();
+			if(this != base) {
+				base.setProperty(name, x, y, z);
+			}
 			return;
 		}
 		shader.setVec3Uniform(name, x, y, z);
@@ -205,6 +250,10 @@ public class Material extends Asset {
 
 	public void setProperty(String name, Vector3f property) {
 		if (!isValid()) {
+			Material base = getDefault();
+			if(this != base) {
+				base.setProperty(name, property);
+			}
 			return;
 		}
 		shader.setVec3Uniform(name, property);
@@ -212,6 +261,10 @@ public class Material extends Asset {
 
 	public void setProperty(String name, float x, float y, float z) {
 		if (!isValid()) {
+			Material base = getDefault();
+			if(this != base) {
+				base.setProperty(name, x, y, z);
+			}
 			return;
 		}
 		shader.setVec3Uniform(name, x, y, z);
@@ -219,6 +272,10 @@ public class Material extends Asset {
 
 	public void setProperty(String name, Vector3d property) {
 		if (!isValid()) {
+			Material base = getDefault();
+			if(this != base) {
+				base.setProperty(name, property);
+			}
 			return;
 		}
 		shader.setVec3Uniform(name, property);
@@ -228,6 +285,10 @@ public class Material extends Asset {
 
 	public void setProperty(String name, double x, double y, double z, double w) {
 		if (!isValid()) {
+			Material base = getDefault();
+			if(this != base) {
+				base.setProperty(name, x, y, z, w);
+			}
 			return;
 		}
 		shader.setVec4Uniform(name, x, y, z, w);
@@ -235,6 +296,10 @@ public class Material extends Asset {
 
 	public void setProperty(String name, Vector4f property) {
 		if (!isValid()) {
+			Material base = getDefault();
+			if(this != base) {
+				base.setProperty(name, property);
+			}
 			return;
 		}
 		shader.setVec4Uniform(name, property);
@@ -242,6 +307,10 @@ public class Material extends Asset {
 
 	public void setProperty(String name, float x, float y, float z, float w) {
 		if (!isValid()) {
+			Material base = getDefault();
+			if(this != base) {
+				base.setProperty(name, x, y, z, w);
+			}
 			return;
 		}
 		shader.setVec4Uniform(name, x, y, z, w);
@@ -249,6 +318,10 @@ public class Material extends Asset {
 
 	public void setProperty(String name, Vector4d property) {
 		if (!isValid()) {
+			Material base = getDefault();
+			if(this != base) {
+				base.setProperty(name, property);
+			}
 			return;
 		}
 		shader.setVec4Uniform(name, property);
@@ -258,6 +331,10 @@ public class Material extends Asset {
 
 	public void setProperty(String name, Matrix2f property) {
 		if (!isValid()) {
+			Material base = getDefault();
+			if(this != base) {
+				base.setProperty(name, property);
+			}
 			return;
 		}
 		shader.setMat2Uniform(name, property);
@@ -265,6 +342,10 @@ public class Material extends Asset {
 
 	public void setProperty(String name, Matrix3f property) {
 		if (!isValid()) {
+			Material base = getDefault();
+			if(this != base) {
+				base.setProperty(name, property);
+			}
 			return;
 		}
 		shader.setMat3Uniform(name, property);
@@ -272,6 +353,10 @@ public class Material extends Asset {
 
 	public void setProperty(String name, Matrix3d property) {
 		if (!isValid()) {
+			Material base = getDefault();
+			if(this != base) {
+				base.setProperty(name, property);
+			}
 			return;
 		}
 		shader.setMat3Uniform(name, property);
@@ -279,6 +364,10 @@ public class Material extends Asset {
 
 	public void setProperty(String name, Matrix4f property) {
 		if (!isValid()) {
+			Material base = getDefault();
+			if(this != base) {
+				base.setProperty(name, property);
+			}
 			return;
 		}
 		shader.setMat4Uniform(name, property);
@@ -286,6 +375,10 @@ public class Material extends Asset {
 
 	public void setProperty(String name, Matrix4d property) {
 		if (!isValid()) {
+			Material base = getDefault();
+			if(this != base) {
+				base.setProperty(name, property);
+			}
 			return;
 		}
 		shader.setMat4Uniform(name, property);
@@ -295,6 +388,10 @@ public class Material extends Asset {
 
 	public void setProjection(Matrix4f projection) {
 		if (!isValid()) {
+			Material base = getDefault();
+			if(this != base) {
+				base.setProjection(projection);
+			}
 			return;
 		}
 		shader.setProjection(projection);
@@ -302,6 +399,10 @@ public class Material extends Asset {
 
 	public void setProjection(Matrix4d projection) {
 		if (!isValid()) {
+			Material base = getDefault();
+			if(this != base) {
+				base.setProjection(projection);
+			}
 			return;
 		}
 		shader.setProjection(projection);

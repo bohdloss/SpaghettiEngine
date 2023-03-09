@@ -1,6 +1,7 @@
 package com.spaghetti.demo.player;
 
 import com.spaghetti.demo.DemoMode;
+import com.spaghetti.render.camera.PerspectiveCamera;
 import com.spaghetti.world.GameObject;
 import com.spaghetti.input.Keyboard;
 import com.spaghetti.input.KeyboardInput;
@@ -93,7 +94,6 @@ public class Player extends GameObject {
 
 		if (multx != 0 || multy != 0) {
 			body.applyForce(forcex * delta, forcey * delta);
-			//setRelativePosition(getRelativeX() + forcex * delta * 0.0001f, getRelativeY() + forcey * delta * 0.0001f, getRelativeZ());
 		}
 
 		float tiltDir = 0;

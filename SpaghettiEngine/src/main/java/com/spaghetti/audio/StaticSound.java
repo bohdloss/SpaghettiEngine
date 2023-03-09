@@ -94,7 +94,7 @@ public class StaticSound extends Sound {
 
 	@Override
 	public int getId() {
-		return isValid() ? id : getDefault().id;
+		return id;
 	}
 
 	@Override

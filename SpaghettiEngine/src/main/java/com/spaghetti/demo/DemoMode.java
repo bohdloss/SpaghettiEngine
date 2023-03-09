@@ -1,5 +1,6 @@
 package com.spaghetti.demo;
 
+import com.spaghetti.physics.d2.Shape2D;
 import com.spaghetti.utils.Logger;
 import com.spaghetti.utils.ThreadUtil;
 import com.spaghetti.world.GameMode;
@@ -68,17 +69,20 @@ public class DemoMode extends GameMode {
         level.addObject(skybox);
 
         // Stress test for physics
-        int width = 1;
-        int height = 1;
+        int width = 10;
+        int height = 10;
         for (int i = 0; i < width; i++) {
             for (int j = 0; j < height; j++) {
-                Mesh mesh = new Mesh(Model.get("square"), Material.get("defaultMAT"));
+                Mesh mesh = new Mesh(Model.get("apple_model"), Material.get("apple_mat"));
                 RigidBody2D mesh_body = new RigidBody2D();
                 mesh_body.setFriction(0.3f);
                 mesh_body.setAngularDamping(0);
+                Shape2D shape = new Shape2D();
+                shape.setRadius(0.5f);
+                mesh_body.setShape(shape);
                 mesh.addComponent(mesh_body);
                 mesh.setRelativePosition(i * 1.1f, j * 10, 0);
-                mesh.setRelativeScale(2f, 2f, 1);
+                mesh.setRelativeScale(1f, 1f, 1);
                 level.addObject(mesh);
             }
         }

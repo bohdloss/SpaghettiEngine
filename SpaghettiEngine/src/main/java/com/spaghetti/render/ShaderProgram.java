@@ -162,7 +162,7 @@ public final class ShaderProgram extends Asset {
 	}
 
 	public int getId() {
-		return id;
+		return isValid() ? id : getDefault().id;
 	}
 
 	// These are the most commonly used uniform methods and so are on top
@@ -186,6 +186,10 @@ public final class ShaderProgram extends Asset {
 
 	public void setMat4Uniform(String name, Matrix4d value) {
 		if (!isValid()) {
+			ShaderProgram base = getDefault();
+			if(this != base) {
+				base.setMat4Uniform(name, value);
+			}
 			return;
 		}
 		int loc = getUniformLocation(name);
@@ -207,6 +211,10 @@ public final class ShaderProgram extends Asset {
 
 	public void setFloatUniform(String name, float value) {
 		if (!isValid()) {
+			ShaderProgram base = getDefault();
+			if(this != base) {
+				base.setFloatUniform(name, value);
+			}
 			return;
 		}
 		int loc = getUniformLocation(name);
@@ -215,6 +223,10 @@ public final class ShaderProgram extends Asset {
 
 	public void setFloatArrayUniform(String name, float[] value) {
 		if (!isValid()) {
+			ShaderProgram base = getDefault();
+			if(this != base) {
+				base.setFloatArrayUniform(name, value);
+			}
 			return;
 		}
 		int loc = getUniformLocation(name);
@@ -223,6 +235,10 @@ public final class ShaderProgram extends Asset {
 
 	public void setFloatBufferUniform(String name, FloatBuffer value) {
 		if (!isValid()) {
+			ShaderProgram base = getDefault();
+			if(this != base) {
+				base.setFloatBufferUniform(name, value);
+			}
 			return;
 		}
 		int loc = getUniformLocation(name);
@@ -233,6 +249,10 @@ public final class ShaderProgram extends Asset {
 
 	public void setIntUniform(String name, int value) {
 		if (!isValid()) {
+			ShaderProgram base = getDefault();
+			if(this != base) {
+				base.setIntUniform(name, value);
+			}
 			return;
 		}
 		int loc = getUniformLocation(name);
@@ -241,6 +261,10 @@ public final class ShaderProgram extends Asset {
 
 	public void setIntArrayUniform(String name, int[] value) {
 		if (!isValid()) {
+			ShaderProgram base = getDefault();
+			if(this != base) {
+				base.setIntArrayUniform(name, value);
+			}
 			return;
 		}
 		int loc = getUniformLocation(name);
@@ -249,6 +273,10 @@ public final class ShaderProgram extends Asset {
 
 	public void setIntBufferUniform(String name, IntBuffer value) {
 		if (!isValid()) {
+			ShaderProgram base = getDefault();
+			if(this != base) {
+				base.setIntBufferUniform(name, value);
+			}
 			return;
 		}
 		int loc = getUniformLocation(name);
@@ -259,6 +287,10 @@ public final class ShaderProgram extends Asset {
 
 	public void setVec2Uniform(String name, float x, float y) {
 		if (!isValid()) {
+			ShaderProgram base = getDefault();
+			if(this != base) {
+				base.setVec2Uniform(name, x, y);
+			}
 			return;
 		}
 		int loc = getUniformLocation(name);
@@ -266,15 +298,15 @@ public final class ShaderProgram extends Asset {
 	}
 
 	public void setVec2Uniform(String name, Vector2f vec) {
-		if (!isValid()) {
-			return;
-		}
-		int loc = getUniformLocation(name);
-		GL20.glUniform2f(loc, vec.x, vec.y);
+		setVec2Uniform(name, vec.x, vec.y);
 	}
 
 	public void setVec2Uniform(String name, double x, double y) {
 		if (!isValid()) {
+			ShaderProgram base = getDefault();
+			if(this != base) {
+				base.setVec2Uniform(name, x, y);
+			}
 			return;
 		}
 		int loc = getUniformLocation(name);
@@ -282,17 +314,17 @@ public final class ShaderProgram extends Asset {
 	}
 
 	public void setVec2Uniform(String name, Vector2d vec) {
-		if (!isValid()) {
-			return;
-		}
-		int loc = getUniformLocation(name);
-		GL20.glUniform2f(loc, (float) vec.x, (float) vec.y);
+		setVec2Uniform(name, vec.x, vec.y);
 	}
 
 	// Vector 3 (all to float)
 
 	public void setVec3Uniform(String name, float x, float y, float z) {
 		if (!isValid()) {
+			ShaderProgram base = getDefault();
+			if(this != base) {
+				base.setVec3Uniform(name, x, y, z);
+			}
 			return;
 		}
 		int loc = getUniformLocation(name);
@@ -300,15 +332,15 @@ public final class ShaderProgram extends Asset {
 	}
 
 	public void setVec3Uniform(String name, Vector3f vec) {
-		if (!isValid()) {
-			return;
-		}
-		int loc = getUniformLocation(name);
-		GL20.glUniform3f(loc, vec.x, vec.y, vec.z);
+		setVec3Uniform(name, vec.x, vec.y, vec.z);
 	}
 
 	public void setVec3Uniform(String name, double x, double y, double z) {
 		if (!isValid()) {
+			ShaderProgram base = getDefault();
+			if(this != base) {
+				base.setVec3Uniform(name, x, y, z);
+			}
 			return;
 		}
 		int loc = getUniformLocation(name);
@@ -316,17 +348,17 @@ public final class ShaderProgram extends Asset {
 	}
 
 	public void setVec3Uniform(String name, Vector3d vec) {
-		if (!isValid()) {
-			return;
-		}
-		int loc = getUniformLocation(name);
-		GL20.glUniform3f(loc, (float) vec.x, (float) vec.y, (float) vec.z);
+		setVec3Uniform(name, vec.x, vec.y, vec.z);
 	}
 
 	// Vector 4 (all to float)
 
 	public void setVec4Uniform(String name, float x, float y, float z, float w) {
 		if (!isValid()) {
+			ShaderProgram base = getDefault();
+			if(this != base) {
+				base.setVec4Uniform(name, x, y, z, w);
+			}
 			return;
 		}
 		int loc = getUniformLocation(name);
@@ -334,15 +366,15 @@ public final class ShaderProgram extends Asset {
 	}
 
 	public void setVec4Uniform(String name, Vector4f vec) {
-		if (!isValid()) {
-			return;
-		}
-		int loc = getUniformLocation(name);
-		GL20.glUniform4f(loc, vec.x, vec.y, vec.z, vec.w);
+		setVec4Uniform(name, vec.x, vec.y, vec.z, vec.w);
 	}
 
 	public void setVec4Uniform(String name, double x, double y, double z, double w) {
 		if (!isValid()) {
+			ShaderProgram base = getDefault();
+			if(this != base) {
+				base.setVec4Uniform(name, x, y, z, w);
+			}
 			return;
 		}
 		int loc = getUniformLocation(name);
@@ -350,17 +382,17 @@ public final class ShaderProgram extends Asset {
 	}
 
 	public void setVec4Uniform(String name, Vector4d vec) {
-		if (!isValid()) {
-			return;
-		}
-		int loc = getUniformLocation(name);
-		GL20.glUniform4f(loc, (float) vec.x, (float) vec.y, (float) vec.z, (float) vec.w);
+		setVec4Uniform(name, vec.x, vec.y, vec.z, vec.w);
 	}
 
 	// Matrix 2, 3, 4
 
 	public void setMat2Uniform(String name, Matrix2f mat) {
 		if (!isValid()) {
+			ShaderProgram base = getDefault();
+			if(this != base) {
+				base.setMat2Uniform(name, mat);
+			}
 			return;
 		}
 		int loc = getUniformLocation(name);
@@ -370,6 +402,10 @@ public final class ShaderProgram extends Asset {
 
 	public void setMat3Uniform(String name, Matrix3f mat) {
 		if (!isValid()) {
+			ShaderProgram base = getDefault();
+			if(this != base) {
+				base.setMat3Uniform(name, mat);
+			}
 			return;
 		}
 		int loc = getUniformLocation(name);
@@ -379,6 +415,10 @@ public final class ShaderProgram extends Asset {
 
 	public void setMat3Uniform(String name, Matrix3d mat) {
 		if (!isValid()) {
+			ShaderProgram base = getDefault();
+			if(this != base) {
+				base.setMat3Uniform(name, mat);
+			}
 			return;
 		}
 		int loc = getUniformLocation(name);
@@ -386,12 +426,16 @@ public final class ShaderProgram extends Asset {
 		GL20.glUniform3fv(loc, mat4);
 	}
 
-	public void setMat4Uniform(String name, Matrix4f value) {
+	public void setMat4Uniform(String name, Matrix4f mat) {
 		if (!isValid()) {
+			ShaderProgram base = getDefault();
+			if(this != base) {
+				base.setMat4Uniform(name, mat);
+			}
 			return;
 		}
 		int loc = getUniformLocation(name);
-		value.get(mat4);
+		mat.get(mat4);
 		GL20.glUniformMatrix4fv(loc, false, mat4);
 	}
 

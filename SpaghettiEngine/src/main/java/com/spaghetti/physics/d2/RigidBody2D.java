@@ -20,6 +20,7 @@ import com.spaghetti.physics.Physics;
 import com.spaghetti.physics.RigidBody;
 import com.spaghetti.utils.MathUtil;
 import com.spaghetti.utils.Transform;
+import org.lwjgl.system.CallbackI;
 
 public class RigidBody2D extends RigidBody<Vector2f, Float> {
 
@@ -33,7 +34,7 @@ public class RigidBody2D extends RigidBody<Vector2f, Float> {
 
 	protected float mass = 1;
 	protected float gravityMultiplier = 1;
-	protected Shape2D shape = new Shape2D();
+	protected Shape2D shape;
 	protected float friction = 0;
 	protected float density = 1;
 	protected float restitution = 0;
@@ -46,15 +47,20 @@ public class RigidBody2D extends RigidBody<Vector2f, Float> {
 	protected Body body;
 
 	// Cache
+	protected boolean init = false;
 	protected Vector2f last_scale = new Vector2f(1, 1);
 
 	public RigidBody2D() {
 		this(BodyType.DYNAMIC);
-
 	}
 
 	public RigidBody2D(BodyType type) {
 		super(type);
+		this.shape = new Shape2D();
+		this.shape.addVertices(new Vector2f[] {new Vector2f(-0.5f, 0.5f),
+				new Vector2f(0.5f, 0.5f),
+				new Vector2f(0.5f, -0.5f),
+				new Vector2f(-0.5f, -0.5f)});
 	}
 
 	// Internal utility
@@ -85,7 +91,7 @@ public class RigidBody2D extends RigidBody<Vector2f, Float> {
 
 		// Apply scale
 		getOwner().getWorldScale(ptr);
-		if (!MathUtil.equals(ptr.x, last_scale.x, 0.001f) || !MathUtil.equals(ptr.y, last_scale.y, 0.001f)) {
+		if (!MathUtil.equals(ptr.x, last_scale.x, 0.001f) || !MathUtil.equals(ptr.y, last_scale.y, 0.001f) || !init) {
 			// The scale changed since the last time
 			float diffx = ptr.x / last_scale.x;
 			float diffy = ptr.y / last_scale.y;
@@ -98,12 +104,17 @@ public class RigidBody2D extends RigidBody<Vector2f, Float> {
 			if (!shape.isCircle()) {
 				for (int i = 0; i < shape.getVertexCount(); i++) {
 					Vector2f vertex = shape.getVertex(i);
-					vertex.x *= diffx;
-					vertex.y *= diffy;
+					if(diffx != 0) {
+						vertex.x *= diffx;
+					}
+					if(diffy != 0) {
+						vertex.y *= diffy;
+					}
 				}
 			}
 
 			setShape(shape);
+			init = true;
 		}
 
 		// Apply change in position

@@ -155,40 +155,4 @@ public class Model extends Asset {
 		ExceptionUtil.glError();
 	}
 
-	public int getDrawCount() {
-		return draw_count;
-	}
-
-	public int getVertexId() {
-		return v_id;
-	}
-
-	public int getTextureId() {
-		return t_id;
-	}
-
-	public int getNormalId() {
-		return n_id;
-	}
-
-	public int getIndexId() {
-		return i_id;
-	}
-
-	public float[] getVerticesBuffer() {
-		return vertices;
-	}
-
-	public float[] getTexcoordsBuffer() {
-		return tex_coords;
-	}
-
-	public float[] getNormalsBuffer() {
-		return normals;
-	}
-
-	public int[] getIndicesBuffer() {
-		return indices;
-	}
-
 }

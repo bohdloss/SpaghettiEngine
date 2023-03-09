@@ -143,7 +143,7 @@ public class Texture extends Asset {
 	}
 
 	public int getId() {
-		return id;
+		return isValid() ? id : getDefault().id;
 	}
 
 	public int getWidth() {

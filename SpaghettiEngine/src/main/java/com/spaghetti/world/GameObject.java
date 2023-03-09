@@ -8,6 +8,7 @@ import java.util.function.BiConsumer;
 import com.spaghetti.core.Game;
 import com.spaghetti.render.RendererCore;
 import com.spaghetti.utils.*;
+import org.joml.Matrix3f;
 import org.joml.Vector3f;
 
 import com.spaghetti.render.Renderable;
@@ -785,32 +786,28 @@ public class GameObject implements Updatable, Renderable, Replicable {
 
 
 	public final void getWorldPosition(Vector3f pointer) {
-		if(parent == null) {
-			computeWorldPosition(relativePosition,
-					null, null,
-					pointer);
-		} else {
-			computeWorldPosition(relativePosition,
-					parent.getWorldPosition(), parent.getWorldRotation(),
-					pointer);
-		}
-	}
+		pointer.zero();
 
-	public final Vector3f getWorldPositionCached() {
-		Vector3f vec = new Vector3f();
-		getWorldPositionCached(vec);
-		return vec;
-	}
-
-	public final void getWorldPositionCached(Vector3f pointer) {
 		if(parent == null) {
-			computeWorldPosition(getGameDirect().getRenderer().getTransformCache(getRenderCacheIndex()).position,
-					null, null,
-					pointer);
+			pointer.set(relativePosition);
 		} else {
-			computeWorldPosition(getGameDirect().getRenderer().getTransformCache(getRenderCacheIndex()).position,
-					parent.getWorldPositionCached(), parent.getWorldRotationCached(),
-					pointer);
+			Vector3f superPosition = parent.getWorldPosition();
+			Vector3f superRotation = parent.getWorldRotation();
+
+			float cosX = (float) Math.cos(superRotation.x);
+			float sinX = (float) Math.sin(superRotation.x);
+
+			float cosY = (float) Math.cos(superRotation.y);
+			float sinY = (float) Math.sin(superRotation.y);
+
+			float cosZ = (float) Math.cos(superRotation.z);
+			float sinZ = (float) Math.sin(superRotation.z);
+
+			float targetX = (relativePosition.x * cosZ - relativePosition.y * sinZ) * cosY;
+			float targetY = (relativePosition.x * sinZ - relativePosition.y * cosZ) * cosX;
+			float targetZ = (relativePosition.z * cosX - relativePosition.y * sinX) * sinY;
+
+			pointer.set(targetX + superPosition.x, targetY + superPosition.y, targetZ + superPosition.z);
 		}
 	}
 
@@ -909,28 +906,12 @@ public class GameObject implements Updatable, Renderable, Replicable {
 		return vec;
 	}
 
-	public final void getWorldScale(Vector3f pointer) {
+	public void getWorldScale(Vector3f pointer) {
 		pointer.set(1);
 
 		GameObject last = this;
 		while (last != null) {
 			pointer.mul(last.relativeScale);
-			last = last.parent;
-		}
-	}
-
-	public final Vector3f getWorldScaleCached() {
-		Vector3f vec = new Vector3f();
-		getWorldScaleCached(vec);
-		return vec;
-	}
-
-	public final void getWorldScaleCached(Vector3f pointer) {
-		pointer.set(1);
-
-		GameObject last = this;
-		while (last != null) {
-			pointer.mul(getGameDirect().getRenderer().getTransformCache(last.getRenderCacheIndex()).scale);
 			last = last.parent;
 		}
 	}
@@ -1036,22 +1017,6 @@ public class GameObject implements Updatable, Renderable, Replicable {
 		GameObject last = this;
 		while (last != null) {
 			pointer.add(last.relativeRotation);
-			last = last.parent;
-		}
-	}
-
-	public final Vector3f getWorldRotationCached() {
-		Vector3f vec = new Vector3f();
-		getWorldRotationCached(vec);
-		return vec;
-	}
-
-	public final void getWorldRotationCached(Vector3f pointer) {
-		pointer.set(0);
-
-		GameObject last = this;
-		while (last != null) {
-			pointer.add(getGameDirect().getRenderer().getTransformCache(last.getRenderCacheIndex()).rotation);
 			last = last.parent;
 		}
 	}
