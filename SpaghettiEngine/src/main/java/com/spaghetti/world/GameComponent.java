@@ -111,11 +111,24 @@ public abstract class GameComponent implements Updatable, Renderable, Replicable
 		Transform transform;
 		if(cache_index == -1) {
 			transform = new Transform();
-			getOwner().getWorldPosition(transform.position);
-			getOwner().getWorldRotation(transform.rotation);
-			getOwner().getWorldScale(transform.scale);
+			owner.getWorldPosition(transform.position);
+			owner.getWorldRotation(transform.rotation);
+			owner.getWorldScale(transform.scale);
 		} else {
-			transform = getGame().getRenderer().getTransformCache(cache_index);
+			Transform trans = getGame().getRenderer().getTransformCache(cache_index);
+			Transform vel = getGame().getRenderer().getVelocityCache(cache_index);
+			float velDelta = getGame().getRenderer().getCacheUpdateDelta();
+
+			transform = new Transform();
+			vel.position.mul(velDelta, transform.position);
+			transform.position.add(trans.position);
+
+			vel.rotation.mul(velDelta, transform.rotation);
+			transform.rotation.add(trans.rotation);
+
+			transform.scale.set(0);
+			vel.scale.mul(velDelta, transform.scale);
+			transform.scale.add(trans.scale);
 		}
 
 		render(renderer, delta, transform);

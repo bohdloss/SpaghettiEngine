@@ -20,7 +20,6 @@ import com.spaghetti.physics.Physics;
 import com.spaghetti.physics.RigidBody;
 import com.spaghetti.utils.MathUtil;
 import com.spaghetti.utils.Transform;
-import org.lwjgl.system.CallbackI;
 
 public class RigidBody2D extends RigidBody<Vector2f, Float> {
 
@@ -47,7 +46,7 @@ public class RigidBody2D extends RigidBody<Vector2f, Float> {
 	protected Body body;
 
 	// Cache
-	protected boolean init = false;
+	protected boolean initShape = false;
 	protected Vector2f last_scale = new Vector2f(1, 1);
 
 	public RigidBody2D() {
@@ -91,7 +90,7 @@ public class RigidBody2D extends RigidBody<Vector2f, Float> {
 
 		// Apply scale
 		getOwner().getWorldScale(ptr);
-		if (!MathUtil.equals(ptr.x, last_scale.x, 0.001f) || !MathUtil.equals(ptr.y, last_scale.y, 0.001f) || !init) {
+		if (!MathUtil.equals(ptr.x, last_scale.x, 0.001f) || !MathUtil.equals(ptr.y, last_scale.y, 0.001f) || !initShape) {
 			// The scale changed since the last time
 			float diffx = ptr.x / last_scale.x;
 			float diffy = ptr.y / last_scale.y;
@@ -114,7 +113,7 @@ public class RigidBody2D extends RigidBody<Vector2f, Float> {
 			}
 
 			setShape(shape);
-			init = true;
+			initShape = true;
 		}
 
 		// Apply change in position
