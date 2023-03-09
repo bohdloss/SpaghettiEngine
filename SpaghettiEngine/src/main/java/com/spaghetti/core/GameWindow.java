@@ -13,7 +13,7 @@ import org.lwjgl.opengl.GL11;
 
 import com.spaghetti.utils.Function;
 import com.spaghetti.render.Camera;
-import com.spaghetti.utils.ImageUtils;
+import com.spaghetti.utils.ImageUtil;
 import com.spaghetti.utils.Logger;
 import com.spaghetti.utils.ResourceLoader;
 
@@ -49,14 +49,14 @@ public final class GameWindow {
 			}
 
 			// Retrieve options
-			boolean fullscreen = game.getEngineOption("windowfullscreen");
-			boolean resizable = game.getEngineOption("windowresizable");
+			boolean fullscreen = game.getEngineSetting("windowfullscreen");
+			boolean resizable = game.getEngineSetting("windowresizable");
 
-			Vector2i size = game.getEngineOption("windowsize");
-			Vector2i size_min = game.getEngineOption("windowminimumsize");
-			Vector2i size_max = game.getEngineOption("windowmaximumsize");
+			Vector2i size = game.getEngineSetting("windowsize");
+			Vector2i size_min = game.getEngineSetting("windowminimumsize");
+			Vector2i size_max = game.getEngineSetting("windowmaximumsize");
 
-			this.title = game.getEngineOption("windowtitle");
+			this.title = game.getEngineSetting("windowtitle");
 
 			this.width = size.x;
 			this.height = size.y;
@@ -68,7 +68,7 @@ public final class GameWindow {
 			this.savedHeight = height;
 
 			// GLFW native window initialization
-			boolean debug_context = (boolean) game.getEngineOption("debugcontext");
+			boolean debug_context = (boolean) game.getEngineSetting("debugcontext");
 			GLFW.glfwWindowHint(GLFW.GLFW_OPENGL_DEBUG_CONTEXT, debug_context ? GL11.GL_TRUE : GL11.GL_FALSE);
 
 			id = GLFW.glfwCreateWindow(width, height, title, 0, 0);
@@ -113,7 +113,7 @@ public final class GameWindow {
 			GLFW.glfwSetWindowSizeLimits(id, minWidth, minHeight, maxWidth, maxHeight);
 			setFullscreen(fullscreen);
 			setResizable(resizable);
-			setIcon((String) game.getEngineOption("windowicon32"), (String) game.getEngineOption("windowicon16"));
+			setIcon((String) game.getEngineSetting("windowicon32"), (String) game.getEngineSetting("windowicon16"));
 			return null;
 		});
 	}
@@ -370,7 +370,7 @@ public final class GameWindow {
 			int height = image.getHeight();
 
 			// Convert to ByteBuffer
-			ByteBuffer imageData = ImageUtils.parseImage(image, null);
+			ByteBuffer imageData = ImageUtil.parseImage(image, null);
 			toFree[i] = imageData;
 
 			// Generate GLFWImage struct
@@ -391,7 +391,7 @@ public final class GameWindow {
 
 		// Free resources
 		for (ByteBuffer buffer : toFree) {
-			ImageUtils.freeImage(buffer);
+			ImageUtil.freeImage(buffer);
 		}
 		for (GLFWImage img : imgBuf) {
 			img.free();
@@ -421,7 +421,7 @@ public final class GameWindow {
 		// Resize cursor
 		BufferedImage resized = new BufferedImage(cursorWidth, cursorHeight, BufferedImage.TYPE_INT_ARGB);
 		resized.getGraphics().drawImage(cursor, 0, 0, cursorWidth, cursorHeight, null);
-		ByteBuffer imageData = ImageUtils.parseImage(resized, null);
+		ByteBuffer imageData = ImageUtil.parseImage(resized, null);
 
 		// Allocate glfw resources
 		GLFWImage cursorGlfw = GLFWImage.malloc();
@@ -439,7 +439,7 @@ public final class GameWindow {
 		});
 
 		// Free resources
-		ImageUtils.freeImage(imageData);
+		ImageUtil.freeImage(imageData);
 		cursorGlfw.free();
 	}
 

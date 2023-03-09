@@ -8,7 +8,7 @@ import com.spaghetti.utils.ThreadUtil;
 public abstract class CoreComponent extends Thread {
 
 	private volatile Game source;
-	private volatile FunctionDispatcher functionDispatcher;
+	private final FunctionDispatcher functionDispatcher;
 	private volatile boolean stop;
 	private volatile boolean init;
 	private volatile boolean allowRun;
@@ -17,13 +17,16 @@ public abstract class CoreComponent extends Thread {
 	private volatile boolean requestChance;
 	private volatile long lastTime;
 
+	public CoreComponent() {
+		functionDispatcher = new FunctionDispatcher(this);
+	}
+
 	public final void initialize() throws Throwable {
 		if (!validStarting()) {
 			throw new IllegalStateException(
 					"Error: attempted to initialize core thread state outside the context of a game");
 		}
 		try {
-			functionDispatcher = new FunctionDispatcher();
 			initialize0();
 		} finally {
 			init = true;

@@ -12,9 +12,9 @@ import org.lwjgl.system.MemoryUtil;
  * @author bohdloss
  *
  */
-public final class ImageUtils {
+public final class ImageUtil {
 
-	private ImageUtils() {
+	private ImageUtil() {
 	}
 
 	/**

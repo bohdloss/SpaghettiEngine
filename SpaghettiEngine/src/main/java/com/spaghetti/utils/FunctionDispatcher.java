@@ -9,16 +9,16 @@ public final class FunctionDispatcher {
 	// This class allows other threads to assign some tasks to the main thread
 	// This can be useful for example when another thread needs to perform OpenGL
 	// calls
-	private List<FunctionWrapper> callQueue = new ArrayList<>();
-	private Map<Long, FunctionWrapper> callMap = new HashMap<>();
+	private final List<FunctionWrapper> callQueue = new ArrayList<>();
+	private final Map<Long, FunctionWrapper> callMap = new HashMap<>();
 
 	private final Random random;
 	private final Thread thread;
 
 	// Queue using reflection
 
-	public FunctionDispatcher() {
-		this.thread = Thread.currentThread();
+	public FunctionDispatcher(Thread thread) {
+		this.thread = thread;
 		this.random = new Random();
 	}
 

@@ -96,7 +96,7 @@ public class GameState implements Updatable, Replicable {
 			throw new NullPointerException();
 		}
 		if(!levels.containsKey(name)) {
-			Level level = new Level(name);
+			Level level = new Level(game, name);
 			levels.put(name, level);
 			replication = true; // Change detected
 			return level;

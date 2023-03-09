@@ -3,7 +3,6 @@ package com.spaghetti.render;
 import java.awt.image.BufferedImage;
 import java.nio.ByteBuffer;
 
-import com.spaghetti.audio.Sound;
 import com.spaghetti.utils.ExceptionUtil;
 import org.lwjgl.BufferUtils;
 import org.lwjgl.opengl.GL11;
@@ -13,7 +12,7 @@ import org.lwjgl.system.MemoryUtil;
 
 import com.spaghetti.assets.Asset;
 import com.spaghetti.core.Game;
-import com.spaghetti.utils.ImageUtils;
+import com.spaghetti.utils.ImageUtil;
 
 public class Texture extends Asset {
 
@@ -82,7 +81,7 @@ public class Texture extends Asset {
 	}
 
 	public Texture(BufferedImage img) {
-		this(ImageUtils.parseImage(img, BufferUtils.createByteBuffer(img.getWidth() * img.getHeight() * 4)),
+		this(ImageUtil.parseImage(img, BufferUtils.createByteBuffer(img.getWidth() * img.getHeight() * 4)),
 				img.getWidth(), img.getHeight());
 	}
 

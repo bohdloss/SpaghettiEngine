@@ -29,6 +29,7 @@ public class Camera extends GameObject {
 	protected int width, height;
 	protected boolean clearColor = true, clearDepth = true, clearStencil = true;
 	protected FrameBuffer renderTarget;
+	protected boolean rendering;
 
 	public Camera() {
 		setVisible(true);
@@ -76,6 +77,7 @@ public class Camera extends GameObject {
 	}
 
 	protected void onBeginFrame(Transform transform) {
+		rendering = true;
 		precalculated.set(projection);
 		precalculated.scale(scale, scale, 1);
 
@@ -90,6 +92,7 @@ public class Camera extends GameObject {
 	}
 
 	protected void onEndFrame(Transform transform) {
+		rendering = false;
 	}
 
 	public Matrix4f getProjection() {
@@ -105,7 +108,7 @@ public class Camera extends GameObject {
 
 	protected void checkTarget() {
 		if (renderTarget == null) {
-			Vector2i res = getGame().getEngineOption("renderresolution");
+			Vector2i res = getGame().getEngineSetting("renderresolution");
 			renderTarget = new FrameBuffer(res.x, res.y);
 			updateValues();
 		}
@@ -208,6 +211,11 @@ public class Camera extends GameObject {
 
 	@Override
 	public void render(Camera renderer, float delta, Transform transform) {
+		// Prevent recursion
+		if(rendering) {
+			return;
+		}
+
 		// Prepare buffer
 		checkTarget();
 		renderTarget.use();
@@ -226,7 +234,7 @@ public class Camera extends GameObject {
 
 		// Render frame
 		getLevel().forEachObject(object -> {
-			if (!Camera.class.isAssignableFrom(object.getClass())) {
+			if (object != this) {
 				object.render(this, delta);
 			}
 		});

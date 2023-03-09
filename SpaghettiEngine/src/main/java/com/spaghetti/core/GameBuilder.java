@@ -7,7 +7,7 @@ import com.spaghetti.input.UpdaterCore;
 import com.spaghetti.networking.ClientCore;
 import com.spaghetti.networking.ServerCore;
 import com.spaghetti.render.RendererCore;
-import com.spaghetti.utils.GameOptions;
+import com.spaghetti.utils.GameSettings;
 import com.spaghetti.utils.Logger;
 import com.spaghetti.world.GameState;
 
@@ -19,7 +19,7 @@ public final class GameBuilder {
 	private Class<? extends ServerCore> server;
 
 	private Class<? extends EventDispatcher> eventDispatcherClass = EventDispatcher.class;
-	private Class<? extends GameOptions> gameOptionsClass = GameOptions.class;
+	private Class<? extends GameSettings> gameOptionsClass = GameSettings.class;
 	private Class<? extends AssetManager> assetManagerClass = AssetManager.class;
 	private Class<? extends InputDispatcher> inputDispatcherClass = InputDispatcher.class;
 	private Class<? extends ClientState> clientStateClass = ClientState.class;
@@ -91,12 +91,12 @@ public final class GameBuilder {
 		return eventDispatcherClass;
 	}
 
-	public GameBuilder setGameOptionsClass(Class<? extends GameOptions> cls) {
+	public GameBuilder setGameOptionsClass(Class<? extends GameSettings> cls) {
 		this.gameOptionsClass = cls;
 		return this;
 	}
 
-	public Class<? extends GameOptions> getGameOptionsClass() {
+	public Class<? extends GameSettings> getGameOptionsClass() {
 		return gameOptionsClass;
 	}
 

@@ -2,7 +2,9 @@ package com.spaghetti.assets;
 
 import java.util.*;
 
+import com.spaghetti.assets.exceptions.AssetException;
 import com.spaghetti.assets.exceptions.AssetFillException;
+import com.spaghetti.assets.exceptions.AssetManagerException;
 import com.spaghetti.core.Game;
 import com.spaghetti.core.GameBuilder;
 import com.spaghetti.core.events.GameStoppingEvent;
@@ -459,17 +461,35 @@ public class AssetManager {
 	 * @throws IllegalArgumentException If {@code assetType} is null
 	 */
 	public void unregisterAssetLoader(String assetType) {
+		if (assetType == null) {
+			throw new IllegalArgumentException("Null loader name");
+		}
 		assetType = assetType.toLowerCase();
-		if (assetType == null || !loaders.containsKey(assetType)) {
-			throw new IllegalArgumentException();
+		if(!loaders.containsKey(assetType)) {
+			return;
 		}
 
 		if(!game.isHeadless()) {
+			// Unregister all assets of this kind
+			Object[] entries = assets.values().toArray();
+			for(Object entry : entries) {
 				try {
-					unregisterAsset(getDefaultAssetName(assetType), true);
-				} catch (Throwable t) {
-					Logger.error("Error unloading the default asset for " + assetType, t);
+					AssetEntry asset = (AssetEntry) entry;
+					if(asset.type.equals(assetType) && !asset.name.equals(getDefaultAssetName(assetType))) {
+						unregisterAsset(asset.name);
+					}
+				} catch(AssetException | AssetManagerException e) {
+					Logger.warning("Error unregistering asset " + (String) entry
+							+ " while unregistering loader for " + assetType, e);
 				}
+			}
+
+			// Unregister the default asset
+			try {
+				unregisterAsset(getDefaultAssetName(assetType), true);
+			} catch (AssetException | AssetManagerException e) {
+				Logger.warning("Error unloading the default asset for " + assetType, e);
+			}
 		}
 		loaders.remove(assetType);
 	}

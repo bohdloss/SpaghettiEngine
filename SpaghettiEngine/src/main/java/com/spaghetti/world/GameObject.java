@@ -6,6 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 
 import com.spaghetti.core.Game;
+import com.spaghetti.render.RendererCore;
 import com.spaghetti.utils.*;
 import org.joml.Vector3f;
 
@@ -599,7 +600,19 @@ public class GameObject implements Updatable, Renderable, Replicable {
 	}
 
 	public final Game getGame() {
-		return level == null ? Game.getInstance() : level.getGame();
+		return level == null ? Game.getInstance() : level.source;
+	}
+
+	/**
+	 * Just like {@link #getGame()} but more likely to be optimized by the JIT compiler
+	 * <p>
+	 * Unlike the original function , it is undefined behaviour what happens if this function
+	 * is called while the object is not attached to a level
+	 *
+	 * @return
+	 */
+	protected final Game getGameDirect() {
+		return level.source;
 	}
 
 	public final int getId() {
@@ -706,7 +719,55 @@ public class GameObject implements Updatable, Renderable, Replicable {
 	protected final Vector3f relativeScale = new Vector3f(1, 1, 1);
 	protected final Vector3f relativeRotation = new Vector3f();
 
+	// Transform getters and setters
+
+	public final void getRelativeTransform(Transform buffer) {
+		getRelativePosition(buffer.position);
+		getRelativeRotation(buffer.rotation);
+		getRelativeScale(buffer.scale);
+	}
+
+	public final Transform getRelativeTransform() {
+		Transform transform = new Transform();
+		getRelativeTransform(transform);
+		return transform;
+	}
+
+	public final void getWorldTransform(Transform buffer) {
+		getWorldPosition(buffer.position);
+		getWorldRotation(buffer.rotation);
+		getWorldScale(buffer.scale);
+	}
+
+	public final Transform getWorldTransform() {
+		Transform transform = new Transform();
+		getWorldTransform(transform);
+		return transform;
+	}
+
 	// Position getters
+
+	protected void computeWorldPosition(Vector3f relativePosition,
+										Vector3f superPosition, Vector3f superRotation,
+										Vector3f pointer) {
+		pointer.zero();
+
+		if(parent == null) {
+			pointer.set(relativePosition);
+		} else {
+			float targetX = relativePosition.x;
+			float targetY = relativePosition.y;
+
+			float dist = MathUtil.distance(0, 0, relativePosition.x, relativePosition.y);
+			float angle = MathUtil.lookAt(relativePosition.x, relativePosition.y);
+			float targetAngle = angle + superRotation.z;
+
+			targetX = (float) (dist * Math.cos(targetAngle));
+			targetY = (float) (dist * Math.sin(targetAngle));
+
+			pointer.set(targetX + superPosition.x, targetY + superPosition.y, superPosition.z + relativePosition.z);
+		}
+	}
 
 	public final Vector3f getRelativePosition() {
 		return new Vector3f().set(relativePosition);
@@ -718,47 +779,38 @@ public class GameObject implements Updatable, Renderable, Replicable {
 
 	public final Vector3f getWorldPosition() {
 		Vector3f vec = new Vector3f();
-
-		GameObject last = this;
-		while (last != null) {
-			vec.add(last.relativePosition);
-			last = last.parent;
-		}
+		getWorldPosition(vec);
 		return vec;
 	}
 
-	// 20x SLOWER!!!!
+
 	public final void getWorldPosition(Vector3f pointer) {
-		pointer.zero();
-
-		GameObject sup = parent;
-		if(sup == null) {
-			pointer.set(relativePosition);
+		if(parent == null) {
+			computeWorldPosition(relativePosition,
+					null, null,
+					pointer);
 		} else {
-			Vector3f superPos = sup.getWorldPosition();
-			Vector3f superRot = sup.getWorldRotation();
-
-			float targetX = relativePosition.x;
-			float targetY = relativePosition.y;
-
-			float dist = MathUtil.distance(0, 0, relativePosition.x, relativePosition.y);
-			float angle = MathUtil.lookAt(relativePosition.x, relativePosition.y);
-			float targetAngle = angle + superRot.z;
-
-			targetX = (float) (dist * Math.cos(targetAngle));
-			targetY = (float) (dist * Math.sin(targetAngle));
-
-			pointer.set(targetX + superPos.x, targetY + superPos.y, superPos.z + relativePosition.z);
+			computeWorldPosition(relativePosition,
+					parent.getWorldPosition(), parent.getWorldRotation(),
+					pointer);
 		}
 	}
 
-	public final void getWorldPositionFast(Vector3f pointer) {
-		pointer.zero();
+	public final Vector3f getWorldPositionCached() {
+		Vector3f vec = new Vector3f();
+		getWorldPositionCached(vec);
+		return vec;
+	}
 
-		GameObject last = this;
-		while(last != null) {
-			pointer.add(relativePosition);
-			last = last.parent;
+	public final void getWorldPositionCached(Vector3f pointer) {
+		if(parent == null) {
+			computeWorldPosition(getGameDirect().getRenderer().getTransformCache(getRenderCacheIndex()).position,
+					null, null,
+					pointer);
+		} else {
+			computeWorldPosition(getGameDirect().getRenderer().getTransformCache(getRenderCacheIndex()).position,
+					parent.getWorldPositionCached(), parent.getWorldRotationCached(),
+					pointer);
 		}
 	}
 
@@ -775,36 +827,15 @@ public class GameObject implements Updatable, Renderable, Replicable {
 	}
 
 	public final float getWorldX() {
-		float x = 0;
-
-		GameObject last = this;
-		while (last != null) {
-			x += last.relativePosition.x;
-			last = last.parent;
-		}
-		return x;
+		return getWorldPosition().x;
 	}
 
 	public final float getWorldY() {
-		float y = 0;
-
-		GameObject last = this;
-		while (last != null) {
-			y += last.relativePosition.y;
-			last = last.parent;
-		}
-		return y;
+		return getWorldPosition().y;
 	}
 
 	public final float getWorldZ() {
-		float z = 0;
-
-		GameObject last = this;
-		while (last != null) {
-			z += last.relativePosition.z;
-			last = last.parent;
-		}
-		return z;
+		return getWorldPosition().z;
 	}
 
 	// Position setters
@@ -822,12 +853,12 @@ public class GameObject implements Updatable, Renderable, Replicable {
 	}
 
 	public final void setWorldPosition(float x, float y, float z) {
-		Vector3f vec3 = new Vector3f();
-		getWorldPosition(vec3);
+		Vector3f vec = new Vector3f();
+		getWorldPosition(vec);
 
-		float xdiff = vec3.x - x;
-		float ydiff = vec3.y - y;
-		float zdiff = vec3.z - z;
+		float xdiff = vec.x - x;
+		float ydiff = vec.y - y;
+		float zdiff = vec.z - z;
 
 		setRelativePosition(relativePosition.x - xdiff, relativePosition.y - ydiff, relativePosition.z - zdiff);
 	}
@@ -873,13 +904,8 @@ public class GameObject implements Updatable, Renderable, Replicable {
 	}
 
 	public final Vector3f getWorldScale() {
-		Vector3f vec = new Vector3f().set(1);
-
-		GameObject last = this;
-		while (last != null) {
-			vec.mul(last.relativeScale);
-			last = last.parent;
-		}
+		Vector3f vec = new Vector3f();
+		getWorldScale(vec);
 		return vec;
 	}
 
@@ -889,6 +915,22 @@ public class GameObject implements Updatable, Renderable, Replicable {
 		GameObject last = this;
 		while (last != null) {
 			pointer.mul(last.relativeScale);
+			last = last.parent;
+		}
+	}
+
+	public final Vector3f getWorldScaleCached() {
+		Vector3f vec = new Vector3f();
+		getWorldScaleCached(vec);
+		return vec;
+	}
+
+	public final void getWorldScaleCached(Vector3f pointer) {
+		pointer.set(1);
+
+		GameObject last = this;
+		while (last != null) {
+			pointer.mul(getGameDirect().getRenderer().getTransformCache(last.getRenderCacheIndex()).scale);
 			last = last.parent;
 		}
 	}
@@ -906,36 +948,15 @@ public class GameObject implements Updatable, Renderable, Replicable {
 	}
 
 	public final float getWorldXScale() {
-		float x = 0;
-
-		GameObject last = this;
-		while (last != null) {
-			x *= last.relativeScale.x;
-			last = last.parent;
-		}
-		return x;
+		return getWorldScale().x;
 	}
 
 	public final float getWorldYScale() {
-		float y = 0;
-
-		GameObject last = this;
-		while (last != null) {
-			y *= last.relativeScale.y;
-			last = last.parent;
-		}
-		return y;
+		return getWorldScale().y;
 	}
 
 	public final float getWorldZScale() {
-		float z = 0;
-
-		GameObject last = this;
-		while (last != null) {
-			z *= last.relativeScale.z;
-			last = last.parent;
-		}
-		return z;
+		return getWorldScale().z;
 	}
 
 	// Scale setters
@@ -1005,12 +1026,7 @@ public class GameObject implements Updatable, Renderable, Replicable {
 
 	public final Vector3f getWorldRotation() {
 		Vector3f vec = new Vector3f();
-
-		GameObject last = this;
-		while (last != null) {
-			vec.add(last.relativeRotation);
-			last = last.parent;
-		}
+		getWorldRotation(vec);
 		return vec;
 	}
 
@@ -1020,6 +1036,22 @@ public class GameObject implements Updatable, Renderable, Replicable {
 		GameObject last = this;
 		while (last != null) {
 			pointer.add(last.relativeRotation);
+			last = last.parent;
+		}
+	}
+
+	public final Vector3f getWorldRotationCached() {
+		Vector3f vec = new Vector3f();
+		getWorldRotationCached(vec);
+		return vec;
+	}
+
+	public final void getWorldRotationCached(Vector3f pointer) {
+		pointer.set(0);
+
+		GameObject last = this;
+		while (last != null) {
+			pointer.add(getGameDirect().getRenderer().getTransformCache(last.getRenderCacheIndex()).rotation);
 			last = last.parent;
 		}
 	}
@@ -1037,36 +1069,15 @@ public class GameObject implements Updatable, Renderable, Replicable {
 	}
 
 	public final float getWorldYaw() {
-		float yaw = 0;
-
-		GameObject last = this;
-		while (last != null) {
-			yaw += last.relativeRotation.x;
-			last = last.parent;
-		}
-		return yaw;
+		return getWorldRotation().x;
 	}
 
 	public final float getWorldPitch() {
-		float pitch = 0;
-
-		GameObject last = this;
-		while (last != null) {
-			pitch += last.relativeRotation.y;
-			last = last.parent;
-		}
-		return pitch;
+		return getWorldRotation().y;
 	}
 
 	public final float getWorldRoll() {
-		float roll = 0;
-
-		GameObject last = this;
-		while (last != null) {
-			roll += last.relativeRotation.z;
-			last = last.parent;
-		}
-		return roll;
+		return getWorldRotation().z;
 	}
 
 	// Rotation setters
@@ -1216,7 +1227,6 @@ public class GameObject implements Updatable, Renderable, Replicable {
 	 * @param delta
 	 */
 	protected void commonUpdate(float delta) {
-
 	}
 
 	public final void render(Camera renderer, float delta) {
@@ -1239,7 +1249,6 @@ public class GameObject implements Updatable, Renderable, Replicable {
 			getWorldRotation(transform.rotation);
 			getWorldScale(transform.scale);
 		} else {
-
 			Transform trans = getGame().getRenderer().getTransformCache(cache_index);
 			Transform vel = getGame().getRenderer().getVelocityCache(cache_index);
 			float velDelta = getGame().getRenderer().getCacheUpdateDelta();

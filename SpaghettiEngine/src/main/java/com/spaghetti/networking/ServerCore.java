@@ -20,7 +20,6 @@ import com.spaghetti.networking.events.OnClientDisconnect;
 import com.spaghetti.networking.events.OnClientKicked;
 import com.spaghetti.networking.events.OnClientUnbanned;
 import com.spaghetti.utils.Logger;
-import com.spaghetti.utils.ThreadUtil;
 
 public abstract class ServerCore extends NetworkCore {
 
@@ -46,10 +45,10 @@ public abstract class ServerCore extends NetworkCore {
 
 	@Override
 	protected void initialize0() throws Throwable {
-		internal_bind(getGame().getEngineOption("networkport"));
-		maxClients = getGame().getEngineOption("networkmaxclients");
-		awaitReconnect = getGame().getEngineOption("networkawaittimeout");
-		maxDisconnections = getGame().getEngineOption("networkmaxdisconnections");
+		internal_bind(getGame().getEngineSetting("networkport"));
+		maxClients = getGame().getEngineSetting("networkmaxclients");
+		awaitReconnect = getGame().getEngineSetting("networkawaittimeout");
+		maxDisconnections = getGame().getEngineSetting("networkmaxdisconnections");
 	}
 
 	@Override
@@ -500,7 +499,7 @@ public abstract class ServerCore extends NetworkCore {
 		long token = endpoint.getReadBuffer().getLong();
 
 		// Verify client token
-		if(getGame().<Boolean>getEngineOption("networkverifytoken")) {
+		if(getGame().<Boolean>getEngineSetting("networkverifytoken")) {
 
 			// Verify
 			if(clientTokens.contains(token)) {

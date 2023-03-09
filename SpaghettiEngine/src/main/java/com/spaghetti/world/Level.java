@@ -12,7 +12,6 @@ import com.spaghetti.core.Game;
 import com.spaghetti.input.Updatable;
 import com.spaghetti.render.RendererCore;
 import com.spaghetti.utils.ReflectionUtil;
-import com.spaghetti.utils.ThreadUtil;
 import com.spaghetti.utils.Transform;
 
 public final class Level implements Updatable {
@@ -24,17 +23,18 @@ public final class Level implements Updatable {
 
 	protected boolean destroyed;
 	protected boolean attached;
-	protected Game source;
+	protected final Game source;
 	protected final ArrayList<GameObject> objects = new ArrayList<>();
 	protected final ConcurrentHashMap<Integer, GameObject> o_ordered = new ConcurrentHashMap<>();
 	protected final ConcurrentHashMap<Integer, GameComponent> c_ordered = new ConcurrentHashMap<>();
 
 	protected final String name;
 
-	public Level(String name) {
+	public Level(Game game, String name) {
 		if(name == null) {
 			throw new NullPointerException();
 		}
+		this.source = game;
 		this.name = name;
 	}
 
@@ -194,8 +194,8 @@ public final class Level implements Updatable {
 
 			// Attempt to update render cache
 			RendererCore renderer = getGame().getRenderer();
-			if(!getGame().isHeadless() && !renderer.isFrameFlag()) {
-				synchronized(renderer.getFrameLock()) {
+			if(!getGame().isHeadless() && !renderer.isRendering()) {
+				synchronized (renderer.getCacheLock()) {
 					updateCaches(renderer);
 				}
 			}
@@ -467,7 +467,7 @@ public final class Level implements Updatable {
 	// Other getters / setters
 
 	public Game getGame() {
-		return source == null ? Game.getInstance() : source;
+		return source;
 	}
 
 	public String getName() {

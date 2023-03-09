@@ -120,6 +120,7 @@ public class DemoMode extends GameMode {
 
     @Override
     public void update(float delta) {
+//        ThreadUtil.sleep(100);
     }
 
 }

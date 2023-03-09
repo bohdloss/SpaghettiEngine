@@ -61,8 +61,8 @@ public class Logger {
 			return;
 		}
 		if(printSeverity < -1 || logSeverity < -1) {
-			printSeverity = game.<Integer>getEngineOption("logseverityprint");
-			logSeverity = game.<Integer>getEngineOption("logseveritylog");
+			printSeverity = game.<Integer>getEngineSetting("logseverityprint");
+			logSeverity = game.<Integer>getEngineSetting("logseveritylog");
 
 			if(printSeverity < -1 || logSeverity < -1) {
 				printSeverity = -1;
@@ -80,7 +80,7 @@ public class Logger {
 
 		// Print to file
 		if(logDevice == null) {
-			if(game.<Boolean>getEngineOption("logautocreate")) {
+			if(game.<Boolean>getEngineSetting("logautocreate")) {
 				File folder = new File("./logs");
 				if(!folder.exists()) {
 					folder.mkdir();

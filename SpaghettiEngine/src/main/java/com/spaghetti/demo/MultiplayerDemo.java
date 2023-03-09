@@ -31,25 +31,25 @@ public class MultiplayerDemo {
 		server = serverBuilder.build();
 
 		// Set custom window size before initializing
-		Vector2i resolution1 = client1.getEngineOption("resolution");
+		Vector2i resolution1 = client1.getEngineSetting("resolution");
 		int width1 = (int) (resolution1.x * 0.3f);
 		int height1 = (int) (resolution1.y * 0.3f);
 
-		Vector2i size1 = client1.getEngineOption("windowsize");
+		Vector2i size1 = client1.getEngineSetting("windowsize");
 		size1.x = width1;
 		size1.y = height1;
 
-		client1.setEngineOption("windowfullscreen", false);
+		client1.setEngineSetting("windowfullscreen", false);
 
-		Vector2i resolution2 = client2.getEngineOption("resolution");
+		Vector2i resolution2 = client2.getEngineSetting("resolution");
 		int width2 = (int) (resolution2.x * 0.3f);
 		int height2 = (int) (resolution2.y * 0.3f);
 
-		Vector2i size2 = client2.getEngineOption("windowsize");
+		Vector2i size2 = client2.getEngineSetting("windowsize");
 		size2.x = width2;
 		size2.y = height2;
 
-		client2.setEngineOption("windowfullscreen", false);
+		client2.setEngineSetting("windowfullscreen", false);
 
 		/*
 		 * Register key listener that connects to the server when pressing 'P' and

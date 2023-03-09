@@ -17,7 +17,7 @@ import com.spaghetti.networking.ServerCore;
 import com.spaghetti.render.Camera;
 import com.spaghetti.render.RendererCore;
 import com.spaghetti.utils.FunctionDispatcher;
-import com.spaghetti.utils.GameOptions;
+import com.spaghetti.utils.GameSettings;
 import com.spaghetti.utils.Logger;
 import com.spaghetti.utils.ThreadUtil;
 import com.spaghetti.world.GameObject;
@@ -85,23 +85,23 @@ public final class Game {
 	}
 
 	// Global variables
-	private volatile AssetManager assetManager;
-	private volatile EventDispatcher eventDispatcher;
-	private volatile GameState gameState;
-	private volatile ClientState clientState;
-	private volatile GameOptions options;
-	private volatile InputDispatcher inputDispatcher;
-	private volatile Logger logger;
+	private final AssetManager assetManager;
+	private final EventDispatcher eventDispatcher;
+	private final GameState gameState;
+	private final ClientState clientState;
+	private final GameSettings options;
+	private final InputDispatcher inputDispatcher;
+	private final Logger logger;
 
 	// Components
 	private final ArrayList<CoreComponent> components = new ArrayList<>(4);
-	private volatile UpdaterCore updater;
-	private volatile RendererCore renderer;
-	private volatile ClientCore client;
-	private volatile ServerCore server;
+	private final UpdaterCore updater;
+	private final RendererCore renderer;
+	private final ClientCore client;
+	private final ServerCore server;
 
 	// Initialization / Finalization
-	private volatile int index;
+	private final int index;
 	private volatile boolean stopped;
 	private volatile boolean init;
 	private volatile boolean starting;
@@ -121,7 +121,7 @@ public final class Game {
 	// Constructors using custom classes
 	public Game(Class<? extends UpdaterCore> updaterClass, Class<? extends RendererCore> rendererClass,
 			Class<? extends ClientCore> clientClass, Class<? extends ServerCore> serverClass,
-			Class<? extends EventDispatcher> eventDispatcherClass, Class<? extends GameOptions> gameOptionsClass,
+			Class<? extends EventDispatcher> eventDispatcherClass, Class<? extends GameSettings> gameOptionsClass,
 			Class<? extends AssetManager> assetManagerClass, Class<? extends InputDispatcher> inputDispatcherClass,
 			Class<? extends ClientState> clientStateClass, Class<? extends GameState> gameStateClass,
 			Class<? extends Logger> loggerClass) {
@@ -143,15 +143,23 @@ public final class Game {
 		try {
 			if (clientClass != null) {
 				this.client = clientClass.getConstructor().newInstance();
+			} else {
+				this.client = null;
 			}
 			if (serverClass != null) {
 				this.server = serverClass.getConstructor().newInstance();
+			} else {
+				this.server = null;
 			}
 			if (updaterClass != null) {
 				this.updater = updaterClass.getConstructor().newInstance();
+			} else {
+				this.updater = null;
 			}
 			if (rendererClass != null) {
 				this.renderer = rendererClass.getConstructor().newInstance();
+			} else {
+				this.renderer = null;
 			}
 		} catch (InstantiationException e) {
 			throw new RuntimeException("Error initializing a core: class is abstract", e);
@@ -172,25 +180,21 @@ public final class Game {
 
 		// Register components
 		if (updater != null) {
-			this.updater = updater;
 			this.components.add(updater);
 			this.updater.setName("UPDATER");
 			registerThread(this.updater);
 		}
 		if (renderer != null) {
-			this.renderer = renderer;
 			this.components.add(renderer);
 			this.renderer.setName("RENDERER");
 			registerThread(this.renderer);
 		}
 		if (client != null) {
-			this.client = client;
 			this.components.add(client);
 			this.client.setName("CLIENT");
 			registerThread(this.client);
 		}
 		if (server != null) {
-			this.server = server;
 			this.components.add(server);
 			this.server.setName("SERVER");
 			registerThread(this.server);
@@ -568,7 +572,7 @@ public final class Game {
 		return assetManager;
 	}
 
-	public GameOptions getOptions() {
+	public GameSettings getOptions() {
 		return options;
 	}
 
@@ -656,28 +660,28 @@ public final class Game {
 		return clientState.getLocalController();
 	}
 
-	public void setEngineOption(String name, Object option) {
-		options.setEngineOption(name, option);
+	public void setEngineSetting(String name, Object option) {
+		options.setEngineSetting(name, option);
 	}
 
-	public Object ngetEngineOption(String name) {
-		return options.ngetEngineOption(name);
+	public Object ngetEngineSetting(String name) {
+		return options.ngetEngineSetting(name);
 	}
 
-	public <T> T getEngineOption(String name) {
-		return options.<T>getEngineOption(name);
+	public <T> T getEngineSetting(String name) {
+		return options.<T>getEngineSetting(name);
 	}
 
-	public void setOption(String name, Object option) {
-		options.setOption(name, option);
+	public void setSetting(String name, Object option) {
+		options.setSetting(name, option);
 	}
 
-	public Object ngetOption(String name) {
-		return options.ngetOption(name);
+	public Object ngetSetting(String name) {
+		return options.ngetSetting(name);
 	}
 
-	public <T> T getOption(String name) {
-		return options.<T>getOption(name);
+	public <T> T getSetting(String name) {
+		return options.<T>getSetting(name);
 	}
 
 }

@@ -18,13 +18,13 @@ public class SingleplayerDemo {
 		game = builder.build();
 
 		// Set custom window size before initializing
-		Vector2i resolution = game.getEngineOption("resolution");
+		Vector2i resolution = game.getEngineSetting("resolution");
 		int width = (int) (resolution.x * 0.7f);
 		int height = (int) (resolution.y * 0.7f);
 
-		game.setEngineOption("windowfullscreen", false);
+		game.setEngineSetting("windowfullscreen", false);
 
-		Vector2i size = game.getEngineOption("windowsize");
+		Vector2i size = game.getEngineSetting("windowsize");
 		size.x = width;
 		size.y = height;
 

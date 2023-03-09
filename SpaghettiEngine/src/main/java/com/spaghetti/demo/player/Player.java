@@ -93,6 +93,7 @@ public class Player extends GameObject {
 
 		if (multx != 0 || multy != 0) {
 			body.applyForce(forcex * delta, forcey * delta);
+			//setRelativePosition(getRelativeX() + forcex * delta * 0.0001f, getRelativeY() + forcey * delta * 0.0001f, getRelativeZ());
 		}
 
 		float tiltDir = 0;

@@ -2,6 +2,7 @@ package com.spaghetti.audio;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.util.List;
 
@@ -78,6 +79,11 @@ public class MicrophoneInputStream extends InputStream {
 
 		// Initialize secondary buffer
 		secondary_buffer = BufferUtils.createByteBuffer(secondaryBufferSize);
+	}
+
+	public MicrophoneInputStream(String deviceName) {
+		this(deviceName, DEFAULT_FORMAT, DEFAULT_FREQUENCY, DEFAULT_TEMP_BUFFER_SIZE, DEFAULT_SECONDARY_BUFFER_SIZE,
+				DEFAULT_EMPTY_BIAS);
 	}
 
 	public MicrophoneInputStream() {
@@ -221,7 +227,7 @@ public class MicrophoneInputStream extends InputStream {
 
 	@Override
 	public void reset() throws IOException {
-		throw new IOException("Mark / Reset not supported");
+		throw new UnsupportedOperationException("Mark / Reset not supported");
 	}
 
 	@Override

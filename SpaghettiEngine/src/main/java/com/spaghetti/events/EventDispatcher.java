@@ -17,6 +17,10 @@ public class EventDispatcher {
 	// Handlers
 	protected Map<Class<?>, List<EventListener<?>>> eventListeners = new HashMap<>();
 
+	public static EventDispatcher getInstance() {
+		return Game.getInstance().getEventDispatcher();
+	}
+
 	public EventDispatcher(Game game) {
 		this.game = game;
 	}

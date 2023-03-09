@@ -30,11 +30,11 @@ public class ServerDemo {
 		server = serverBuilder.build();
 
 		// Set custom window size before initializing
-		Vector2i resolution = client.getEngineOption("resolution");
+		Vector2i resolution = client.getEngineSetting("resolution");
 		int width = (int) (resolution.x * 0.7f);
 		int height = (int) (resolution.y * 0.7f);
 
-		Vector2i size = client.getEngineOption("windowsize");
+		Vector2i size = client.getEngineSetting("windowsize");
 		size.x = width;
 		size.y = height;
 

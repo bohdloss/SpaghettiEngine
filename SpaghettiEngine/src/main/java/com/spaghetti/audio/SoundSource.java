@@ -47,27 +47,26 @@ public class SoundSource extends GameObject {
 
 	@Override
 	protected void onEndPlay() {
-		if (getGame().isHeadless()) {
-			return;
-		}
-		getGame().getRendererDispatcher().quickQueue(() -> {
-			if (id != 0) {
-				AL10.alGetError();
-				AL10.alSourceStop(id);
-				ExceptionUtil.alError();
-				AL10.alSourcei(id, AL10.AL_LOOPING, 0);
-				ExceptionUtil.alError();
-				if (sound != null) {
-					sound.stop(this);
-				}
-				AL10.alDeleteSources(id);
-				ExceptionUtil.alError();
-				id = 0;
-			}
-			return null;
-		});
 		if (getGame().isServer()) {
 			getGame().getServer().queueWriteObjectDestruction(this);
+		}
+		if (!getGame().isHeadless()) {
+			getGame().getRendererDispatcher().quickQueue(() -> {
+				if (id != 0) {
+					AL10.alGetError();
+					AL10.alSourceStop(id);
+					ExceptionUtil.alError();
+					AL10.alSourcei(id, AL10.AL_LOOPING, 0);
+					ExceptionUtil.alError();
+					if (sound != null) {
+						sound.stop(this);
+					}
+					AL10.alDeleteSources(id);
+					ExceptionUtil.alError();
+					id = 0;
+				}
+				return null;
+			});
 		}
 	}
 

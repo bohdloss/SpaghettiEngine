@@ -11,10 +11,11 @@ import com.spaghetti.utils.ThreadUtil;
 public final class HandlerThread extends Thread {
 
 	protected boolean stop;
-	protected FunctionDispatcher dispatcher;
+	protected final FunctionDispatcher dispatcher;
 
 	public HandlerThread() {
 		super("HANDLER");
+		dispatcher = new FunctionDispatcher(this);
 	}
 
 	@Override
@@ -25,7 +26,6 @@ public final class HandlerThread extends Thread {
 				throw new GLFWException(error, description);
 			});
 		}
-		dispatcher = new FunctionDispatcher();
 		while (!stop) {
 			try {
 				ThreadUtil.sleep(1);
