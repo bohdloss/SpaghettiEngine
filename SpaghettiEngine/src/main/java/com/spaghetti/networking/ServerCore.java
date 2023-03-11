@@ -45,10 +45,10 @@ public abstract class ServerCore extends NetworkCore {
 
 	@Override
 	protected void initialize0() throws Throwable {
-		internal_bind(getGame().getEngineSetting("networkport"));
-		maxClients = getGame().getEngineSetting("networkmaxclients");
-		awaitReconnect = getGame().getEngineSetting("networkawaittimeout");
-		maxDisconnections = getGame().getEngineSetting("networkmaxdisconnections");
+		internal_bind(getGame().getEngineSetting("network.port"));
+		maxClients = getGame().getEngineSetting("network.maxClients");
+		awaitReconnect = getGame().getEngineSetting("network.awaitTimeout");
+		maxDisconnections = getGame().getEngineSetting("network.maxDisconnections");
 	}
 
 	@Override
@@ -499,7 +499,7 @@ public abstract class ServerCore extends NetworkCore {
 		long token = endpoint.getReadBuffer().getLong();
 
 		// Verify client token
-		if(getGame().<Boolean>getEngineSetting("networkverifytoken")) {
+		if(getGame().<Boolean>getEngineSetting("network.verifyToken")) {
 
 			// Verify
 			if(clientTokens.contains(token)) {

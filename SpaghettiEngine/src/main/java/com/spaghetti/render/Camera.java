@@ -69,9 +69,6 @@ public class Camera extends GameObject {
 			getGame().setLocalCamera(null);
 		}
 		if (!getGame().isHeadless()) {
-			if (!getGame().getRenderer().isAlive()) {
-				throw new IllegalStateException("Can't delete framebuffer: RENDERER died");
-			}
 			getGame().getRendererDispatcher().queueVoid(renderTarget::unload, true);
 		}
 	}
@@ -108,7 +105,7 @@ public class Camera extends GameObject {
 
 	protected void checkTarget() {
 		if (renderTarget == null) {
-			Vector2i res = getGame().getEngineSetting("renderresolution");
+			Vector2i res = getGame().getEngineSetting("render.resolution");
 			renderTarget = new FrameBuffer(res.x, res.y);
 			updateValues();
 		}

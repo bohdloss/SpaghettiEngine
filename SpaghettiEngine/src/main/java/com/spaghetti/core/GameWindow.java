@@ -49,14 +49,14 @@ public final class GameWindow {
 			}
 
 			// Retrieve options
-			boolean fullscreen = game.getEngineSetting("windowfullscreen");
-			boolean resizable = game.getEngineSetting("windowresizable");
+			boolean fullscreen = game.getEngineSetting("window.fullscreen");
+			boolean resizable = game.getEngineSetting("window.resizable");
 
-			Vector2i size = game.getEngineSetting("windowsize");
-			Vector2i size_min = game.getEngineSetting("windowminimumsize");
-			Vector2i size_max = game.getEngineSetting("windowmaximumsize");
+			Vector2i size = game.getEngineSetting("window.size");
+			Vector2i size_min = game.getEngineSetting("window.minimumSize");
+			Vector2i size_max = game.getEngineSetting("window.maximumSize");
 
-			this.title = game.getEngineSetting("windowtitle");
+			this.title = game.getEngineSetting("window.title");
 
 			this.width = size.x;
 			this.height = size.y;
@@ -68,7 +68,7 @@ public final class GameWindow {
 			this.savedHeight = height;
 
 			// GLFW native window initialization
-			boolean debug_context = (boolean) game.getEngineSetting("debugcontext");
+			boolean debug_context = (boolean) game.getEngineSetting("window.debugContext");
 			GLFW.glfwWindowHint(GLFW.GLFW_OPENGL_DEBUG_CONTEXT, debug_context ? GL11.GL_TRUE : GL11.GL_FALSE);
 
 			id = GLFW.glfwCreateWindow(width, height, title, 0, 0);
@@ -113,7 +113,7 @@ public final class GameWindow {
 			GLFW.glfwSetWindowSizeLimits(id, minWidth, minHeight, maxWidth, maxHeight);
 			setFullscreen(fullscreen);
 			setResizable(resizable);
-			setIcon((String) game.getEngineSetting("windowicon32"), (String) game.getEngineSetting("windowicon16"));
+			setIcon((String) game.getEngineSetting("window.icon32"), (String) game.getEngineSetting("window.icon16"));
 			return null;
 		});
 	}

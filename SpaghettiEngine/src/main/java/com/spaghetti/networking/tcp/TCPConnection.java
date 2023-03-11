@@ -40,7 +40,7 @@ public class TCPConnection extends ConnectionEndpoint {
 			throw new EndpointException("Invalid socket provided");
 		}
 		this.socket = socket;
-		Long timeout_option = Game.getInstance().getEngineSetting("networktimeout");
+		Long timeout_option = Game.getInstance().getEngineSetting("network.timeoutTime");
 		if(timeout_option == null || timeout_option == 0) {
 			throw new EndpointException("The engine option for timeout time is missing or invalid");
 		}

@@ -22,9 +22,9 @@ public class SingleplayerDemo {
 		int width = (int) (resolution.x * 0.7f);
 		int height = (int) (resolution.y * 0.7f);
 
-		game.setEngineSetting("windowfullscreen", false);
+		game.setEngineSetting("window.fullscreen", false);
 
-		Vector2i size = game.getEngineSetting("windowsize");
+		Vector2i size = game.getEngineSetting("window.size");
 		size.x = width;
 		size.y = height;
 

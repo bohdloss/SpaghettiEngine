@@ -34,7 +34,7 @@ public class ServerDemo {
 		int width = (int) (resolution.x * 0.7f);
 		int height = (int) (resolution.y * 0.7f);
 
-		Vector2i size = client.getEngineSetting("windowsize");
+		Vector2i size = client.getEngineSetting("window.size");
 		size.x = width;
 		size.y = height;
 

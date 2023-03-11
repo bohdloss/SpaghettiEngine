@@ -34,38 +34,38 @@ public class GameSettings {
 		}
 		setEngineSetting("openal.enable", true);
 		setEngineSetting("resolution", new Vector2i(resolution));
-		setEngineSetting("renderresolution", new Vector2i(resolution));
-		setEngineSetting("stoptimeout", 10000l); // 10 s
-		setEngineSetting("assetsheet", "/res/main.txt");
+		setEngineSetting("render.resolution", new Vector2i(resolution));
+		setEngineSetting("stopTimeout", 10000l); // 10 s
+		setEngineSetting("assets.assetSheet", "/res/main.txt");
 		setEngineSetting("assets.internalSheet", "/internal/internal_assets.txt");
 
 		// Game window
-		setEngineSetting("windowsize", new Vector2i(400, 400));
-		setEngineSetting("windowminimumsize", new Vector2i(100, 100));
-		setEngineSetting("windowmaximumsize", new Vector2i(resolution));
-		setEngineSetting("windowfullscreen", false);
-		setEngineSetting("windowresizable", true);
+		setEngineSetting("window.size", new Vector2i(400, 400));
+		setEngineSetting("window.minimumSize", new Vector2i(100, 100));
+		setEngineSetting("window.maximumSize", new Vector2i(resolution));
+		setEngineSetting("window.fullscreen", false);
+		setEngineSetting("window.resizable", true);
 
-		setEngineSetting("debugcontext", true);
+		setEngineSetting("window.debugContext", true);
 
-		setEngineSetting("windowtitle", "Spaghetti game");
-		setEngineSetting("windowicon16", "/res/icon16.png");
-		setEngineSetting("windowicon32", "/res/icon32.png");
+		setEngineSetting("window.title", "Spaghetti game");
+		setEngineSetting("window.icon16", "/res/icon16.png");
+		setEngineSetting("window.icon32", "/res/icon32.png");
 
 		// Networking
-		setEngineSetting("networkport", 9018);
-		setEngineSetting("networkbuffer", 1000 * 256); // 256 KB
-		setEngineSetting("networktimeout", 500000l);
-		setEngineSetting("networkverifytoken", false);
-		setEngineSetting("networkmaxclients", 10);
-		setEngineSetting("networkmaxdisconnections", 10);
-		setEngineSetting("networkawaittimeout", 10000l);
-		setEngineSetting("networkreconnectattempts", 10);
+		setEngineSetting("network.port", 9018);
+		setEngineSetting("network.bufferSize", 1000 * 256); // 256 KB
+		setEngineSetting("network.timeoutTime", 500000l);
+		setEngineSetting("network.verifyToken", false);
+		setEngineSetting("network.maxClients", 10);
+		setEngineSetting("network.maxDisconnections", 10);
+		setEngineSetting("network.awaitTimeout", 10000l);
+		setEngineSetting("network.reconnectAttempts", 10);
 
 		// Logging
-		setEngineSetting("logautocreate", true);
-		setEngineSetting("logseverityprint", 1);
-		setEngineSetting("logseveritylog", 0);
+		setEngineSetting("log.autoCreate", true);
+		setEngineSetting("log.printSeverity", Logger.INFO_SEVERITY);
+		setEngineSetting("log.logSeverity", Logger.DEBUG_SEVERITY);
 
 		// Physics
 		setEngineSetting("physics.d2.physicsClass", JBox2DPhysics.class.getName());

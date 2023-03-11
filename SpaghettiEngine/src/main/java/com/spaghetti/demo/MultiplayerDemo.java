@@ -35,21 +35,21 @@ public class MultiplayerDemo {
 		int width1 = (int) (resolution1.x * 0.3f);
 		int height1 = (int) (resolution1.y * 0.3f);
 
-		Vector2i size1 = client1.getEngineSetting("windowsize");
+		Vector2i size1 = client1.getEngineSetting("window.size");
 		size1.x = width1;
 		size1.y = height1;
 
-		client1.setEngineSetting("windowfullscreen", false);
+		client1.setEngineSetting("window.fullscreen", false);
 
 		Vector2i resolution2 = client2.getEngineSetting("resolution");
 		int width2 = (int) (resolution2.x * 0.3f);
 		int height2 = (int) (resolution2.y * 0.3f);
 
-		Vector2i size2 = client2.getEngineSetting("windowsize");
+		Vector2i size2 = client2.getEngineSetting("window.size");
 		size2.x = width2;
 		size2.y = height2;
 
-		client2.setEngineSetting("windowfullscreen", false);
+		client2.setEngineSetting("window.fullscreen", false);
 
 		/*
 		 * Register key listener that connects to the server when pressing 'P' and

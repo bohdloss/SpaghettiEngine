@@ -141,7 +141,7 @@ public class RendererCore extends CoreComponent {
 
 		// Load asset sheets
 		assetManager.loadAssetSheet(getGame().getEngineSetting("assets.internalSheet"));
-		assetManager.loadAssetSheet(getGame().getEngineSetting("assetsheet"));
+		assetManager.loadAssetSheet(getGame().getEngineSetting("assets.assetSheet"));
 
 		GL11.glEnable(GL11.GL_TEXTURE_2D);
 		GL11.glEnable(GL11.GL_BLEND);

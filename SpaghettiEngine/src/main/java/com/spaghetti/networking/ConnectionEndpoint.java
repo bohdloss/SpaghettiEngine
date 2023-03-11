@@ -43,7 +43,7 @@ public abstract class ConnectionEndpoint {
 			}
 		};
 
-		Integer bufferSize = Game.getInstance().getEngineSetting("networkbuffer");
+		Integer bufferSize = Game.getInstance().getEngineSetting("network.bufferSize");
 		if(bufferSize == null || bufferSize < 1) {
 			throw new EndpointException("The engine option for buffer size is missing or invalid");
 		}

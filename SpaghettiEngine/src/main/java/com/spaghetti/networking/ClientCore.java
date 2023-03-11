@@ -38,7 +38,7 @@ public abstract class ClientCore extends NetworkCore {
 	protected void initialize0() throws Throwable {
 		flags = new ClientFlags();
 		manager = new ConnectionManager(this);
-		reconnectAttempts = getGame().getEngineSetting("networkreconnectattempts");
+		reconnectAttempts = getGame().getEngineSetting("network.reconnectAttempts");
 	}
 
 	@Override
