@@ -204,6 +204,7 @@ public final class Level implements Updatable {
 	}
 
 	protected final void updateCaches(RendererCore renderer) {
+		float velDelta = renderer.getCacheUpdateDelta();
 		o_ordered.forEach((id, object) -> {
 			if (object != null) {
 				int cache_index = object.getRenderCacheIndex();
@@ -212,7 +213,6 @@ public final class Level implements Updatable {
 
 					Transform oldTransform = renderer.getTransformCache(cache_index);
 					Transform oldVelocity = renderer.getVelocityCache(cache_index);
-					float velDelta = renderer.getCacheUpdateDelta();
 
 					Transform newTransform = new Transform();
 
@@ -242,7 +242,6 @@ public final class Level implements Updatable {
 					GameObject object = component.getOwner();
 					Transform oldTransform = renderer.getTransformCache(cache_index);
 					Transform oldVelocity = renderer.getVelocityCache(cache_index);
-					float velDelta = renderer.getCacheUpdateDelta();
 
 					Transform newTransform = new Transform();
 
