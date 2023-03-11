@@ -1,5 +1,6 @@
 package com.spaghetti.assets.loaders;
 
+import java.io.BufferedInputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 
@@ -29,7 +30,7 @@ public class SoundLoader implements AssetLoader<StaticSound> {
 
 	@Override
 	public Object[] load(String[] args) throws Throwable {
-		AudioInputStream audio_stream = AudioSystem.getAudioInputStream(ResourceLoader.getStream(args[0]));
+		AudioInputStream audio_stream = AudioSystem.getAudioInputStream(new BufferedInputStream(ResourceLoader.getStream(args[0])));
 		AudioFormat audio_format = audio_stream.getFormat();
 
 		// Read metadata
