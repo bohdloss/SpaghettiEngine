@@ -55,11 +55,6 @@ public abstract class Asset {
 		return deleted;
 	}
 
-	public final void reload() {
-		unload();
-		load();
-	}
-
 	public boolean isValid() {
 		return !deleted && init;
 	}
