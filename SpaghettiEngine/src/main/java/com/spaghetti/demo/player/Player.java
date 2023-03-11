@@ -1,6 +1,7 @@
 package com.spaghetti.demo.player;
 
 import com.spaghetti.demo.DemoMode;
+import com.spaghetti.physics.d2.jbox2d.JBox2DRigidBody;
 import com.spaghetti.render.camera.PerspectiveCamera;
 import com.spaghetti.world.GameObject;
 import com.spaghetti.input.Keyboard;
@@ -54,7 +55,7 @@ public class Player extends GameObject {
 			input.bindController(controller);
 
 			// Initialize body
-			body = new RigidBody2D();
+			body = RigidBody2D.getInstance();
 			addComponent(body);
 			body.setCanRotate(false);
 			body.setFriction(0.3f);

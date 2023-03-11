@@ -6,6 +6,8 @@ import com.spaghetti.input.InputDispatcher;
 import com.spaghetti.input.UpdaterCore;
 import com.spaghetti.networking.ClientCore;
 import com.spaghetti.networking.ServerCore;
+import com.spaghetti.networking.tcp.TCPClient;
+import com.spaghetti.networking.tcp.TCPServer;
 import com.spaghetti.render.RendererCore;
 import com.spaghetti.utils.GameSettings;
 import com.spaghetti.utils.Logger;
@@ -64,7 +66,7 @@ public final class GameBuilder {
 	}
 
 	public GameBuilder enableClient() {
-		client = ClientCore.class;
+		client = TCPClient.class;
 		return this;
 	}
 
@@ -78,7 +80,7 @@ public final class GameBuilder {
 	}
 
 	public GameBuilder enableServer() {
-		server = ServerCore.class;
+		server = TCPServer.class;
 		return this;
 	}
 

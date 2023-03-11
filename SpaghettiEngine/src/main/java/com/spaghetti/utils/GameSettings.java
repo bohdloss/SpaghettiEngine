@@ -4,6 +4,8 @@ import java.awt.Dimension;
 import java.awt.Toolkit;
 import java.util.HashMap;
 
+import com.spaghetti.physics.d2.jbox2d.JBox2DPhysics;
+import com.spaghetti.physics.d2.jbox2d.JBox2DRigidBody;
 import org.joml.Vector2i;
 
 import com.spaghetti.core.Game;
@@ -64,6 +66,10 @@ public class GameSettings {
 		setEngineSetting("logautocreate", true);
 		setEngineSetting("logseverityprint", 1);
 		setEngineSetting("logseveritylog", 0);
+
+		// Physics
+		setEngineSetting("physics.d2.physicsClass", JBox2DPhysics.class.getName());
+		setEngineSetting("physics.d2.rigidBodyClass", JBox2DRigidBody.class.getName());
 	}
 
 	// Public getters and setters

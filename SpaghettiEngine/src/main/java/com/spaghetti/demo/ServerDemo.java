@@ -16,16 +16,16 @@ public class ServerDemo {
 	public static void main(String[] args) {
 		// Build client
 		GameBuilder clientBuilder = new GameBuilder();
-		clientBuilder.setRenderer(RendererCore.class);
-		clientBuilder.setUpdater(MyUpdater.class);
-		clientBuilder.setClient(TCPClient.class);
+		clientBuilder.enableRenderer();
+		clientBuilder.enableUpdater();
+		clientBuilder.enableClient();
 
 		client = clientBuilder.build();
 
 		// Build server
 		GameBuilder serverBuilder = new GameBuilder();
-		serverBuilder.setUpdater(MyUpdater.class);
-		serverBuilder.setServer(TCPServer.class);
+		serverBuilder.enableUpdater();
+		serverBuilder.enableServer();
 
 		server = serverBuilder.build();
 

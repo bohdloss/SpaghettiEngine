@@ -1,6 +1,8 @@
 package com.spaghetti.demo;
 
 import com.spaghetti.physics.d2.Shape2D;
+import com.spaghetti.physics.d2.jbox2d.JBox2DPhysics;
+import com.spaghetti.physics.d2.jbox2d.JBox2DRigidBody;
 import com.spaghetti.utils.Logger;
 import com.spaghetti.utils.ThreadUtil;
 import com.spaghetti.world.GameMode;
@@ -45,12 +47,12 @@ public class DemoMode extends GameMode {
         game.activateLevel("myWorld");
 
         // Init physics world
-        level.addObject(new Physics2D());
+        level.addObject(Physics2D.getInstance());
 
         // Init floor meshes
         floorContainer = new GameObject();
         floorContainer.setRelativeScale(500, 1, 1);
-        floorContainer.addComponent(new RigidBody2D(RigidBody.BodyType.STATIC));
+        floorContainer.addComponent(new JBox2DRigidBody(RigidBody.BodyType.STATIC));
         floorContainer.getComponent(RigidBody2D.class).setFriction(0.3f);
         float length = floorContainer.getXScale();
         int halfLength = (int) (length / 2);
@@ -69,12 +71,12 @@ public class DemoMode extends GameMode {
         level.addObject(skybox);
 
         // Stress test for physics
-        int width = 50;
-        int height = 50;
+        int width = 10;
+        int height = 10;
         for (int i = 0; i < width; i++) {
             for (int j = 0; j < height; j++) {
                 Mesh mesh = new Mesh(Model.get("apple_model"), Material.get("apple_mat"));
-                RigidBody2D mesh_body = new RigidBody2D();
+                RigidBody2D mesh_body = RigidBody2D.getInstance();
                 mesh_body.setFriction(0.3f);
                 mesh_body.setAngularDamping(0);
                 Shape2D shape = new Shape2D();

@@ -9,7 +9,7 @@ import com.spaghetti.networking.NetworkBuffer;
  *
  * @author bohdloss
  */
-public abstract class Physics extends GameObject {
+public abstract class Physics<VecType, SecVecType, BodyClass extends RigidBody<VecType, SecVecType>> extends GameObject {
 
 	protected float framerate = 60;
 
@@ -31,7 +31,7 @@ public abstract class Physics extends GameObject {
 	 *
 	 * @param request The {@link RaycastRequest} object
 	 */
-	public abstract void raycast(RaycastRequest<?, ?, ?> request);
+	public abstract void raycast(RaycastRequest<VecType, SecVecType, BodyClass> request);
 
 	// Networking is managed by the RigidBody's and the component system
 
@@ -50,7 +50,7 @@ public abstract class Physics extends GameObject {
 	 * @param index The index of the body to retrieve
 	 * @return The body at that position
 	 */
-	public abstract RigidBody<?, ?> getBodyAt(int index);
+	public abstract BodyClass getBodyAt(int index);
 
 	// Getters and setters to implement
 
@@ -59,14 +59,14 @@ public abstract class Physics extends GameObject {
 	 *
 	 * @param pointer The vector the gravity value will be saved in
 	 */
-	public abstract void getGravity(Object pointer);
+	public abstract void getGravity(VecType pointer);
 
 	/**
 	 * Changes the world's gravitational acceleration vector
 	 *
 	 * @param vec The new gravity vector
 	 */
-	public abstract void setGravity(Object vec);
+	public abstract void setGravity(VecType vec);
 
 	public float getFramerate() {
 		return framerate;
