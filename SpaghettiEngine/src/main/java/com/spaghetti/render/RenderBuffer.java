@@ -24,7 +24,7 @@ public class RenderBuffer extends Asset {
 
 	@Override
 	public void setData(Object[] objects) {
-		if (isValid()) {
+		if (isLoaded()) {
 			return;
 		}
 

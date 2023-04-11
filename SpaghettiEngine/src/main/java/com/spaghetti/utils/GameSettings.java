@@ -35,7 +35,7 @@ public class GameSettings {
 		setEngineSetting("openal.enable", true);
 		setEngineSetting("resolution", new Vector2i(resolution));
 		setEngineSetting("render.resolution", new Vector2i(resolution));
-		setEngineSetting("stopTimeout", 10000l); // 10 s
+		setEngineSetting("stopTimeout", 10000L); // 10 s
 		setEngineSetting("assets.assetSheet", "/res/main.txt");
 		setEngineSetting("assets.internalSheet", "/internal/internal_assets.txt");
 
@@ -55,11 +55,11 @@ public class GameSettings {
 		// Networking
 		setEngineSetting("network.port", 9018);
 		setEngineSetting("network.bufferSize", 1000 * 256); // 256 KB
-		setEngineSetting("network.timeoutTime", 500000l);
+		setEngineSetting("network.timeoutTime", 500000L);
 		setEngineSetting("network.verifyToken", false);
 		setEngineSetting("network.maxClients", 10);
 		setEngineSetting("network.maxDisconnections", 10);
-		setEngineSetting("network.awaitTimeout", 10000l);
+		setEngineSetting("network.awaitTimeout", 10000L);
 		setEngineSetting("network.reconnectAttempts", 10);
 
 		// Logging

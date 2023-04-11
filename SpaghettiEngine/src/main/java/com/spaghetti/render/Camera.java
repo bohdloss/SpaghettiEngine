@@ -15,8 +15,8 @@ public class Camera extends GameObject {
 
 	// Variables
 	protected float scale;
-	protected float fov = 10;
-	protected float targetRatio = 16 / 9; // 16:9 resolution
+	protected float fov;
+	protected float targetRatio = 16f / 9f; // 16:9 resolution
 	protected boolean usePosition = true, useRotation;
 
 	// Cache
@@ -32,6 +32,7 @@ public class Camera extends GameObject {
 	protected boolean rendering;
 
 	public Camera() {
+		fov = 10;
 		setVisible(true);
 	}
 

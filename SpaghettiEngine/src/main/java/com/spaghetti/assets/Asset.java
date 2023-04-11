@@ -14,13 +14,12 @@ public abstract class Asset {
 	}
 
 	private String name;
-	private boolean init, deleted;
+	private boolean init;
 
 	public final void load() {
 		try {
 			if (!init && isFilled()) {
 				load0();
-				deleted = false;
 				init = true;
 			}
 		} catch (Throwable t) {
@@ -32,13 +31,12 @@ public abstract class Asset {
 
 	public final void unload() {
 		try {
-			if (isValid()) {
+			if (isLoaded()) {
 				unload0();
 			}
 		} catch (Throwable t) {
 			throw new AssetException(this, "Error unloading asset " + name, t);
 		} finally {
-			deleted = true;
 			init = false;
 		}
 	}
@@ -47,16 +45,8 @@ public abstract class Asset {
 
 	protected abstract void unload0();
 
-	public final boolean isLoaded() {
+	public boolean isLoaded() {
 		return init;
-	}
-
-	public final boolean isUnloaded() {
-		return deleted;
-	}
-
-	public boolean isValid() {
-		return !deleted && init;
 	}
 
 	public abstract boolean isFilled();

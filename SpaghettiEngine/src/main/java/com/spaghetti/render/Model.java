@@ -37,7 +37,7 @@ public class Model extends Asset {
 
 	@Override
 	public void setData(Object[] objects) {
-		if (isValid()) {
+		if (isLoaded()) {
 			return;
 		}
 
@@ -97,7 +97,7 @@ public class Model extends Asset {
 	}
 
 	public void render() {
-		if (!isValid()) {
+		if (!isLoaded()) {
 			Model base = getDefault();
 			if(this != base) {
 				base.render();

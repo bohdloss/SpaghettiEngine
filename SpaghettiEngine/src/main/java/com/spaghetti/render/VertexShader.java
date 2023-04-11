@@ -22,7 +22,7 @@ public class VertexShader extends Shader {
 
     @Override
     public int getId() {
-        return isValid() ? id : getDefault().id;
+        return isLoaded() ? id : getDefault().id;
     }
 
 }

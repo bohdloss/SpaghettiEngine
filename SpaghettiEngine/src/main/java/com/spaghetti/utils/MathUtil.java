@@ -136,7 +136,9 @@ public final class MathUtil {
 	 * @return The distance
 	 */
 	public static float distance(float x1, float y1, float x2, float y2) {
-		return (float) Math.sqrt(distance2(x1, y1, x2, y2));
+		float lx = x1 - x2;
+		float ly = y1 - y2;
+		return (float) Math.sqrt(lx * lx + ly * ly);
 	}
 
 	/**
@@ -151,8 +153,8 @@ public final class MathUtil {
 	 * @return The magnitude
 	 */
 	public static float distance2(float x1, float y1, float x2, float y2) {
-		float lx = diff(x1, x2);
-		float ly = diff(y1, y2);
+		float lx = x1 - x2;
+		float ly = y1 - y2;
 		return lx * lx + ly * ly;
 	}
 

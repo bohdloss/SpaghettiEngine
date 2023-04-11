@@ -84,7 +84,7 @@ public class DemoMode extends GameMode {
                 mesh_body.setShape(shape);
                 mesh.addComponent(mesh_body);
                 mesh.setRelativePosition(i * 1.1f, j * 10, 0);
-                mesh.setRelativeScale(1f, 1f, 1);
+                mesh.setRelativeScale(-1f, 1f, -1);
                 level.addObject(mesh);
             }
         }

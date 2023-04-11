@@ -28,7 +28,7 @@ public class FrameBuffer extends Asset {
 
 	@Override
 	public void setData(Object[] objects) {
-		if (isValid()) {
+		if (isLoaded()) {
 			return;
 		}
 
@@ -140,7 +140,7 @@ public class FrameBuffer extends Asset {
 	}
 
 	public void use() {
-		if (!isValid()) {
+		if (!isLoaded()) {
 			return;
 		}
 

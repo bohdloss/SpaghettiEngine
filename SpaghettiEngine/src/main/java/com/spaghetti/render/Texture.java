@@ -87,7 +87,7 @@ public class Texture extends Asset {
 
 	@Override
 	public void setData(Object[] objects) {
-		if (isValid()) {
+		if (isLoaded()) {
 			return;
 		}
 
@@ -123,7 +123,7 @@ public class Texture extends Asset {
 	}
 
 	public void use(int sampler) {
-		if (!isValid()) {
+		if (!isLoaded()) {
 			Texture base = getDefault();
 			if(this != base) {
 				base.use(sampler);
@@ -143,7 +143,7 @@ public class Texture extends Asset {
 	}
 
 	public int getId() {
-		return isValid() ? id : getDefault().id;
+		return isLoaded() ? id : getDefault().id;
 	}
 
 	public int getWidth() {

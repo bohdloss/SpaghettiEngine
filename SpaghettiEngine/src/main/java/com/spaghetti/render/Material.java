@@ -3,7 +3,6 @@ package com.spaghetti.render;
 import java.nio.FloatBuffer;
 import java.nio.IntBuffer;
 
-import com.spaghetti.utils.Logger;
 import org.joml.Matrix2f;
 import org.joml.Matrix3d;
 import org.joml.Matrix3f;
@@ -56,7 +55,7 @@ public class Material extends Asset {
 
 	@Override
 	public void setData(Object[] objects) {
-		if (isValid()) {
+		if (isLoaded()) {
 			return;
 		}
 
@@ -99,14 +98,13 @@ public class Material extends Asset {
 	// Use method
 
 	public void use() {
-		if (!isValid()) {
+		if (!isLoaded()) {
 			Material base = getDefault();
 			if(this != base) {
 				base.use();
 			}
 			return;
 		}
-
 		shader.use();
 		texture.use(0);
 
@@ -122,7 +120,7 @@ public class Material extends Asset {
 	// Float, float array, float w_buffer
 
 	public void setProperty(String name, float property) {
-		if (!isValid()) {
+		if (!isLoaded()) {
 			Material base = getDefault();
 			if(this != base) {
 				base.setProperty(name, property);
@@ -133,7 +131,7 @@ public class Material extends Asset {
 	}
 
 	public void setProperty(String name, float[] property) {
-		if (!isValid()) {
+		if (!isLoaded()) {
 			Material base = getDefault();
 			if(this != base) {
 				base.setProperty(name, property);
@@ -144,7 +142,7 @@ public class Material extends Asset {
 	}
 
 	public void setProperty(String name, FloatBuffer property) {
-		if (!isValid()) {
+		if (!isLoaded()) {
 			Material base = getDefault();
 			if(this != base) {
 				base.setProperty(name, property);
@@ -157,7 +155,7 @@ public class Material extends Asset {
 	// Int, int array, int w_buffer
 
 	public void setProperty(String name, int property) {
-		if (!isValid()) {
+		if (!isLoaded()) {
 			Material base = getDefault();
 			if(this != base) {
 				base.setProperty(name, property);
@@ -168,7 +166,7 @@ public class Material extends Asset {
 	}
 
 	public void setProperty(String name, int[] property) {
-		if (!isValid()) {
+		if (!isLoaded()) {
 			Material base = getDefault();
 			if(this != base) {
 				base.setProperty(name, property);
@@ -179,7 +177,7 @@ public class Material extends Asset {
 	}
 
 	public void setProperty(String name, IntBuffer property) {
-		if (!isValid()) {
+		if (!isLoaded()) {
 			Material base = getDefault();
 			if(this != base) {
 				base.setProperty(name, property);
@@ -192,7 +190,7 @@ public class Material extends Asset {
 	// Vector 2
 
 	public void setProperty(String name, double x, double y) {
-		if (!isValid()) {
+		if (!isLoaded()) {
 			Material base = getDefault();
 			if(this != base) {
 				base.setProperty(name, x, y);
@@ -203,7 +201,7 @@ public class Material extends Asset {
 	}
 
 	public void setProperty(String name, Vector2f property) {
-		if (!isValid()) {
+		if (!isLoaded()) {
 			Material base = getDefault();
 			if(this != base) {
 				base.setProperty(name, property);
@@ -214,7 +212,7 @@ public class Material extends Asset {
 	}
 
 	public void setProperty(String name, float x, float y) {
-		if (!isValid()) {
+		if (!isLoaded()) {
 			Material base = getDefault();
 			if(this != base) {
 				base.setProperty(name, x, y);
@@ -225,7 +223,7 @@ public class Material extends Asset {
 	}
 
 	public void setProperty(String name, Vector2d property) {
-		if (!isValid()) {
+		if (!isLoaded()) {
 			Material base = getDefault();
 			if(this != base) {
 				base.setProperty(name, property);
@@ -238,7 +236,7 @@ public class Material extends Asset {
 	// Vector 3
 
 	public void setProperty(String name, double x, double y, double z) {
-		if (!isValid()) {
+		if (!isLoaded()) {
 			Material base = getDefault();
 			if(this != base) {
 				base.setProperty(name, x, y, z);
@@ -249,7 +247,7 @@ public class Material extends Asset {
 	}
 
 	public void setProperty(String name, Vector3f property) {
-		if (!isValid()) {
+		if (!isLoaded()) {
 			Material base = getDefault();
 			if(this != base) {
 				base.setProperty(name, property);
@@ -260,7 +258,7 @@ public class Material extends Asset {
 	}
 
 	public void setProperty(String name, float x, float y, float z) {
-		if (!isValid()) {
+		if (!isLoaded()) {
 			Material base = getDefault();
 			if(this != base) {
 				base.setProperty(name, x, y, z);
@@ -271,7 +269,7 @@ public class Material extends Asset {
 	}
 
 	public void setProperty(String name, Vector3d property) {
-		if (!isValid()) {
+		if (!isLoaded()) {
 			Material base = getDefault();
 			if(this != base) {
 				base.setProperty(name, property);
@@ -284,7 +282,7 @@ public class Material extends Asset {
 	// Vector 4
 
 	public void setProperty(String name, double x, double y, double z, double w) {
-		if (!isValid()) {
+		if (!isLoaded()) {
 			Material base = getDefault();
 			if(this != base) {
 				base.setProperty(name, x, y, z, w);
@@ -295,7 +293,7 @@ public class Material extends Asset {
 	}
 
 	public void setProperty(String name, Vector4f property) {
-		if (!isValid()) {
+		if (!isLoaded()) {
 			Material base = getDefault();
 			if(this != base) {
 				base.setProperty(name, property);
@@ -306,7 +304,7 @@ public class Material extends Asset {
 	}
 
 	public void setProperty(String name, float x, float y, float z, float w) {
-		if (!isValid()) {
+		if (!isLoaded()) {
 			Material base = getDefault();
 			if(this != base) {
 				base.setProperty(name, x, y, z, w);
@@ -317,7 +315,7 @@ public class Material extends Asset {
 	}
 
 	public void setProperty(String name, Vector4d property) {
-		if (!isValid()) {
+		if (!isLoaded()) {
 			Material base = getDefault();
 			if(this != base) {
 				base.setProperty(name, property);
@@ -330,7 +328,7 @@ public class Material extends Asset {
 	// Matrix 2, 3, 4
 
 	public void setProperty(String name, Matrix2f property) {
-		if (!isValid()) {
+		if (!isLoaded()) {
 			Material base = getDefault();
 			if(this != base) {
 				base.setProperty(name, property);
@@ -341,7 +339,7 @@ public class Material extends Asset {
 	}
 
 	public void setProperty(String name, Matrix3f property) {
-		if (!isValid()) {
+		if (!isLoaded()) {
 			Material base = getDefault();
 			if(this != base) {
 				base.setProperty(name, property);
@@ -352,7 +350,7 @@ public class Material extends Asset {
 	}
 
 	public void setProperty(String name, Matrix3d property) {
-		if (!isValid()) {
+		if (!isLoaded()) {
 			Material base = getDefault();
 			if(this != base) {
 				base.setProperty(name, property);
@@ -363,7 +361,7 @@ public class Material extends Asset {
 	}
 
 	public void setProperty(String name, Matrix4f property) {
-		if (!isValid()) {
+		if (!isLoaded()) {
 			Material base = getDefault();
 			if(this != base) {
 				base.setProperty(name, property);
@@ -374,7 +372,7 @@ public class Material extends Asset {
 	}
 
 	public void setProperty(String name, Matrix4d property) {
-		if (!isValid()) {
+		if (!isLoaded()) {
 			Material base = getDefault();
 			if(this != base) {
 				base.setProperty(name, property);
@@ -387,18 +385,19 @@ public class Material extends Asset {
 	// Set projection
 
 	public void setProjection(Matrix4f projection) {
-		if (!isValid()) {
+		if (!isLoaded()) {
 			Material base = getDefault();
 			if(this != base) {
 				base.setProjection(projection);
 			}
 			return;
 		}
+
 		shader.setProjection(projection);
 	}
 
 	public void setProjection(Matrix4d projection) {
-		if (!isValid()) {
+		if (!isLoaded()) {
 			Material base = getDefault();
 			if(this != base) {
 				base.setProjection(projection);

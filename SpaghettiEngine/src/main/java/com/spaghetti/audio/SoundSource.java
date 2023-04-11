@@ -120,7 +120,7 @@ public class SoundSource extends GameObject {
 
 	@Override
 	public void render(Camera renderer, float delta, Transform transform) {
-		if (sound == null || !sound.isValid()) {
+		if (sound == null || !sound.isLoaded()) {
 			return;
 		}
 		if (id == 0) {

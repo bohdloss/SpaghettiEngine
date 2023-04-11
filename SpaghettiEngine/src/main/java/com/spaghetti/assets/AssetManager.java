@@ -347,7 +347,7 @@ public class AssetManager {
 		// Check if the asset is ready to be processed
 		AssetEntry asset = assets.get(name);
 		synchronized (asset) {
-			if (asset.asset.isUnloaded() || asset.unloading) {
+			if (!asset.asset.isLoaded() || asset.unloading) {
 				return true;
 			}
 
@@ -673,7 +673,7 @@ public class AssetManager {
 		}
 		AssetEntry asset = assets.get(name);
 		Asset ret = asset.asset;
-		if (!ret.isValid()) {
+		if (!ret.isLoaded()) {
 			loadAssetLazy(ret.getName());
 		}
 		return (T) ret;
@@ -696,7 +696,7 @@ public class AssetManager {
 		}
 		AssetEntry asset = assets.get(name);
 		Asset ret = asset.asset;
-		if (!ret.isValid()) {
+		if (!ret.isLoaded()) {
 			loadAssetNow(name);
 		}
 		return (T) ret;

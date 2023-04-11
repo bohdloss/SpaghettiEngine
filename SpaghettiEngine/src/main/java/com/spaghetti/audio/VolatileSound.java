@@ -8,7 +8,7 @@ import org.lwjgl.openal.AL10;
 public class VolatileSound extends StaticSound {
 
 	public void copyData() {
-		if (!isValid()) {
+		if (!isLoaded()) {
 			return;
 		}
 		AL10.alBufferData(id, format, data, frequency);

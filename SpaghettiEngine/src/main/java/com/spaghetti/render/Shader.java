@@ -44,7 +44,7 @@ public abstract class Shader extends Asset {
 
 	@Override
 	public void setData(Object[] objects) {
-		if (isValid()) {
+		if (isLoaded()) {
 			return;
 		}
 
@@ -97,7 +97,7 @@ public abstract class Shader extends Asset {
 	}
 
 	public int getId() {
-		return isValid() ? id : 0;
+		return isLoaded() ? id : 0;
 	}
 
 	public String getSource() {

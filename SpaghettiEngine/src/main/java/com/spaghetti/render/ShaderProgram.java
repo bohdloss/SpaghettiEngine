@@ -41,6 +41,7 @@ public final class ShaderProgram extends Asset {
 
 	protected int id;
 	protected Shader[] shaders;
+	protected boolean cullFace;
 
 	// cache
 	private FloatBuffer mat4 = BufferUtils.createFloatBuffer(16);
@@ -62,7 +63,7 @@ public final class ShaderProgram extends Asset {
 
 	@Override
 	public void setData(Object[] shaders) {
-		if (isValid()) {
+		if (isLoaded()) {
 			return;
 		}
 
@@ -94,7 +95,7 @@ public final class ShaderProgram extends Asset {
 
 			// Link all shaders
 			for (Shader shader : shaders) {
-				if (!shader.isValid()) {
+				if (!shader.isLoaded()) {
 					throw new IllegalArgumentException("Invalid shader");
 				}
 				GL20.glAttachShader(id, shader.getId());
@@ -144,13 +145,14 @@ public final class ShaderProgram extends Asset {
 	}
 
 	public void use() {
-		if (!isValid()) {
+		if (!isLoaded()) {
 			ShaderProgram base = getDefault();
 			if(this != base) {
 				base.use();
 			}
 			return;
 		}
+		GL20.glCullFace(cullFace ? GL20.GL_BACK : GL20.GL_FRONT);
 		GL20.glUseProgram(id);
 	}
 
@@ -162,15 +164,14 @@ public final class ShaderProgram extends Asset {
 	}
 
 	public int getId() {
-		return isValid() ? id : getDefault().id;
+		return isLoaded() ? id : getDefault().id;
 	}
 
-	// These are the most commonly used uniform methods and so are on top
-
 	private int getUniformLocation(String name) {
-		if (locations.containsKey(name)) {
-			// Check if the location is cached
-			return locations.get(name);
+		Integer location = locations.get(name);
+		if (location != null) {
+			// The location is cached
+			return location;
 		} else {
 			// Find the location and cache it
 			GL11.glGetError();
@@ -184,8 +185,10 @@ public final class ShaderProgram extends Asset {
 		}
 	}
 
+	// These are the most commonly used uniform methods and so are on top
+
 	public void setMat4Uniform(String name, Matrix4d value) {
-		if (!isValid()) {
+		if (!isLoaded()) {
 			ShaderProgram base = getDefault();
 			if(this != base) {
 				base.setMat4Uniform(name, value);
@@ -198,10 +201,28 @@ public final class ShaderProgram extends Asset {
 	}
 
 	public void setProjection(Matrix4d projection) {
+		// Absolute genius calculation that will not impact
+		// performance in any way whatsoever
+		Vector4d temp = new Vector4d();
+		double scaleX = projection.getColumn(0, temp).distance(0, 0, 0, temp.w);
+		double scaleY = projection.getColumn(1, temp).distance(0, 0, 0, temp.w);
+		double scaleZ = projection.getColumn(2, temp).distance(0, 0, 0, temp.w);
+		double result = scaleX * scaleY * scaleZ;
+		cullFace = result >= 0;
+
 		setMat4Uniform(PROJECTION, projection);
 	}
 
 	public void setProjection(Matrix4f projection) {
+		// Absolute genius calculation that will not impact
+		// performance in any way whatsoever
+		Vector4f temp = new Vector4f();
+		float scaleX = projection.getColumn(0, temp).distance(0, 0, 0, temp.w);
+		float scaleY = projection.getColumn(1, temp).distance(0, 0, 0, temp.w);
+		float scaleZ = projection.getColumn(2, temp).distance(0, 0, 0, temp.w);
+		float result = scaleX * scaleY * scaleZ;
+		cullFace = result >= 0;
+
 		setMat4Uniform(PROJECTION, projection);
 	}
 
@@ -210,7 +231,7 @@ public final class ShaderProgram extends Asset {
 	// Float, float array, float w_buffer
 
 	public void setFloatUniform(String name, float value) {
-		if (!isValid()) {
+		if (!isLoaded()) {
 			ShaderProgram base = getDefault();
 			if(this != base) {
 				base.setFloatUniform(name, value);
@@ -222,7 +243,7 @@ public final class ShaderProgram extends Asset {
 	}
 
 	public void setFloatArrayUniform(String name, float[] value) {
-		if (!isValid()) {
+		if (!isLoaded()) {
 			ShaderProgram base = getDefault();
 			if(this != base) {
 				base.setFloatArrayUniform(name, value);
@@ -234,7 +255,7 @@ public final class ShaderProgram extends Asset {
 	}
 
 	public void setFloatBufferUniform(String name, FloatBuffer value) {
-		if (!isValid()) {
+		if (!isLoaded()) {
 			ShaderProgram base = getDefault();
 			if(this != base) {
 				base.setFloatBufferUniform(name, value);
@@ -248,7 +269,7 @@ public final class ShaderProgram extends Asset {
 	// Int, int array, int w_buffer
 
 	public void setIntUniform(String name, int value) {
-		if (!isValid()) {
+		if (!isLoaded()) {
 			ShaderProgram base = getDefault();
 			if(this != base) {
 				base.setIntUniform(name, value);
@@ -260,7 +281,7 @@ public final class ShaderProgram extends Asset {
 	}
 
 	public void setIntArrayUniform(String name, int[] value) {
-		if (!isValid()) {
+		if (!isLoaded()) {
 			ShaderProgram base = getDefault();
 			if(this != base) {
 				base.setIntArrayUniform(name, value);
@@ -272,7 +293,7 @@ public final class ShaderProgram extends Asset {
 	}
 
 	public void setIntBufferUniform(String name, IntBuffer value) {
-		if (!isValid()) {
+		if (!isLoaded()) {
 			ShaderProgram base = getDefault();
 			if(this != base) {
 				base.setIntBufferUniform(name, value);
@@ -286,7 +307,7 @@ public final class ShaderProgram extends Asset {
 	// Vector 2 (all to float)
 
 	public void setVec2Uniform(String name, float x, float y) {
-		if (!isValid()) {
+		if (!isLoaded()) {
 			ShaderProgram base = getDefault();
 			if(this != base) {
 				base.setVec2Uniform(name, x, y);
@@ -302,7 +323,7 @@ public final class ShaderProgram extends Asset {
 	}
 
 	public void setVec2Uniform(String name, double x, double y) {
-		if (!isValid()) {
+		if (!isLoaded()) {
 			ShaderProgram base = getDefault();
 			if(this != base) {
 				base.setVec2Uniform(name, x, y);
@@ -320,7 +341,7 @@ public final class ShaderProgram extends Asset {
 	// Vector 3 (all to float)
 
 	public void setVec3Uniform(String name, float x, float y, float z) {
-		if (!isValid()) {
+		if (!isLoaded()) {
 			ShaderProgram base = getDefault();
 			if(this != base) {
 				base.setVec3Uniform(name, x, y, z);
@@ -336,7 +357,7 @@ public final class ShaderProgram extends Asset {
 	}
 
 	public void setVec3Uniform(String name, double x, double y, double z) {
-		if (!isValid()) {
+		if (!isLoaded()) {
 			ShaderProgram base = getDefault();
 			if(this != base) {
 				base.setVec3Uniform(name, x, y, z);
@@ -354,7 +375,7 @@ public final class ShaderProgram extends Asset {
 	// Vector 4 (all to float)
 
 	public void setVec4Uniform(String name, float x, float y, float z, float w) {
-		if (!isValid()) {
+		if (!isLoaded()) {
 			ShaderProgram base = getDefault();
 			if(this != base) {
 				base.setVec4Uniform(name, x, y, z, w);
@@ -370,7 +391,7 @@ public final class ShaderProgram extends Asset {
 	}
 
 	public void setVec4Uniform(String name, double x, double y, double z, double w) {
-		if (!isValid()) {
+		if (!isLoaded()) {
 			ShaderProgram base = getDefault();
 			if(this != base) {
 				base.setVec4Uniform(name, x, y, z, w);
@@ -388,7 +409,7 @@ public final class ShaderProgram extends Asset {
 	// Matrix 2, 3, 4
 
 	public void setMat2Uniform(String name, Matrix2f mat) {
-		if (!isValid()) {
+		if (!isLoaded()) {
 			ShaderProgram base = getDefault();
 			if(this != base) {
 				base.setMat2Uniform(name, mat);
@@ -401,7 +422,7 @@ public final class ShaderProgram extends Asset {
 	}
 
 	public void setMat3Uniform(String name, Matrix3f mat) {
-		if (!isValid()) {
+		if (!isLoaded()) {
 			ShaderProgram base = getDefault();
 			if(this != base) {
 				base.setMat3Uniform(name, mat);
@@ -414,7 +435,7 @@ public final class ShaderProgram extends Asset {
 	}
 
 	public void setMat3Uniform(String name, Matrix3d mat) {
-		if (!isValid()) {
+		if (!isLoaded()) {
 			ShaderProgram base = getDefault();
 			if(this != base) {
 				base.setMat3Uniform(name, mat);
@@ -427,7 +448,7 @@ public final class ShaderProgram extends Asset {
 	}
 
 	public void setMat4Uniform(String name, Matrix4f mat) {
-		if (!isValid()) {
+		if (!isLoaded()) {
 			ShaderProgram base = getDefault();
 			if(this != base) {
 				base.setMat4Uniform(name, mat);
