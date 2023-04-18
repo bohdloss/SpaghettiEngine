@@ -21,6 +21,8 @@ import com.spaghetti.render.Material;
 import com.spaghetti.render.Model;
 import org.joml.Vector3f;
 
+import java.util.Random;
+
 public class DemoMode extends GameMode {
 
     protected Level level;
@@ -73,6 +75,7 @@ public class DemoMode extends GameMode {
         // Stress test for physics
         int width = 10;
         int height = 10;
+        Random r = new Random();
         for (int i = 0; i < width; i++) {
             for (int j = 0; j < height; j++) {
                 Mesh mesh = new Mesh(Model.get("apple_model"), Material.get("apple_mat"));
@@ -84,7 +87,7 @@ public class DemoMode extends GameMode {
                 mesh_body.setShape(shape);
                 mesh.addComponent(mesh_body);
                 mesh.setRelativePosition(i * 1.1f, j * 10, 0);
-                mesh.setRelativeScale(-1f, 1f, -1);
+                mesh.setRelativeScale(-1f, r.nextBoolean() ? -1f : 1f, -1);
                 level.addObject(mesh);
             }
         }

@@ -41,7 +41,6 @@ public final class ShaderProgram extends Asset {
 
 	protected int id;
 	protected Shader[] shaders;
-	protected boolean cullFace;
 
 	// cache
 	private FloatBuffer mat4 = BufferUtils.createFloatBuffer(16);
@@ -147,12 +146,11 @@ public final class ShaderProgram extends Asset {
 	public void use() {
 		if (!isLoaded()) {
 			ShaderProgram base = getDefault();
-			if(this != base) {
+			if (this != base) {
 				base.use();
 			}
 			return;
 		}
-		GL20.glCullFace(cullFace ? GL20.GL_BACK : GL20.GL_FRONT);
 		GL20.glUseProgram(id);
 	}
 
@@ -201,29 +199,15 @@ public final class ShaderProgram extends Asset {
 	}
 
 	public void setProjection(Matrix4d projection) {
-		// Absolute genius calculation that will not impact
-		// performance in any way whatsoever
-		Vector4d temp = new Vector4d();
-		double scaleX = projection.getColumn(0, temp).distance(0, 0, 0, temp.w);
-		double scaleY = projection.getColumn(1, temp).distance(0, 0, 0, temp.w);
-		double scaleZ = projection.getColumn(2, temp).distance(0, 0, 0, temp.w);
-		double result = scaleX * scaleY * scaleZ;
-		cullFace = result >= 0;
-
 		setMat4Uniform(PROJECTION, projection);
 	}
 
 	public void setProjection(Matrix4f projection) {
-		// Absolute genius calculation that will not impact
-		// performance in any way whatsoever
-		Vector4f temp = new Vector4f();
-		float scaleX = projection.getColumn(0, temp).distance(0, 0, 0, temp.w);
-		float scaleY = projection.getColumn(1, temp).distance(0, 0, 0, temp.w);
-		float scaleZ = projection.getColumn(2, temp).distance(0, 0, 0, temp.w);
-		float result = scaleX * scaleY * scaleZ;
-		cullFace = result >= 0;
-
 		setMat4Uniform(PROJECTION, projection);
+	}
+
+	public void setCullFace(boolean cullFace) {
+		GL20.glCullFace(cullFace ? GL20.GL_BACK : GL20.GL_FRONT);
 	}
 
 	// All likely used uniform types are wrapped here

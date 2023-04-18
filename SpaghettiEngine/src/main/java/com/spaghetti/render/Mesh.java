@@ -31,8 +31,12 @@ public class Mesh extends GameObject {
 			matrix.rotateXYZ(transform.rotation);
 			matrix.scale(transform.scale);
 
+			// Is scale positive?
+			float scaleSign = transform.scale.x * transform.scale.y * transform.scale.z;
+
 			// Render
 			material.use();
+			material.setCullFace(scaleSign >= 0);
 			material.setProjection(matrix);
 			model.render();
 		}

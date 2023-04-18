@@ -407,7 +407,18 @@ public class Material extends Asset {
 		shader.setProjection(projection);
 	}
 
-	// Useless
+	public void setCullFace(boolean cullFace) {
+		if (!isLoaded()) {
+			Material base = getDefault();
+			if(this != base) {
+				base.setCullFace(cullFace);
+			}
+			return;
+		}
+		shader.setCullFace(cullFace);
+	}
+
+	// No loading / unloading needed
 
 	@Override
 	protected void load0() {
