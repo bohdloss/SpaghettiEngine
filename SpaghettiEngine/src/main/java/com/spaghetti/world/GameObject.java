@@ -52,7 +52,6 @@ public class GameObject implements Updatable, Renderable, Replicable {
 
 	public GameObject() {
 		this.id = IdProvider.newId(getGame());
-		setRenderCacheIndex(-1);
 		internal_setflag(REPLICATE, true);
 		internal_setflag(AWAKE, true);
 		internal_setflag(VISIBLE, true);
@@ -69,35 +68,6 @@ public class GameObject implements Updatable, Renderable, Replicable {
 	private final boolean internal_getflag(int flag) {
 		synchronized (flags_lock) {
 			return HashUtil.bitAt(flags, flag);
-		}
-	}
-
-	public final void triggerAlloc() {
-		if(!getGame().isHeadless() && getRenderCacheIndex() == -1) {
-			setRenderCacheIndex(getGame().getRenderer().allocCache());
-		}
-	}
-
-	public final void triggerAllocRecursive() {
-		if(!getGame().isHeadless()) {
-			triggerAlloc();
-			components.forEach((id, component) -> component.triggerAlloc());
-			children.forEach((id, object) -> object.triggerAllocRecursive());
-		}
-	}
-
-	public final void triggerDealloc() {
-		if(!getGame().isHeadless() && getRenderCacheIndex() != -1) {
-			getGame().getRenderer().deallocCache(getRenderCacheIndex());
-			setRenderCacheIndex(-1);
-		}
-	}
-
-	public final void triggerDeallocRecursive() {
-		if(!getGame().isHeadless()) {
-			triggerDealloc();
-			components.forEach((id, component) -> component.triggerDealloc());
-			children.forEach((id, object) -> object.triggerDeallocRecursive());
 		}
 	}
 
@@ -660,21 +630,7 @@ public class GameObject implements Updatable, Renderable, Replicable {
 	}
 
 	public final void setVisible(boolean visible) {
-		// Change flag and synchronize with cache
 		internal_setflag(VISIBLE, visible);
-		if(isInitialized() && visible) {
-			triggerAlloc();
-
-			// Force an update on components and children since this object is now visible
-			components.forEach((id, component) -> component.setVisible(component.isVisible()));
-			children.forEach((id, object) -> object.setVisible(object.isVisible()));
-		} else {
-			triggerDealloc();
-
-			// Deallocate all components and children cache since this object is now invisible
-			triggerDeallocRecursive();
-		}
-
 	}
 
 	public final boolean isAwake() {
@@ -683,21 +639,6 @@ public class GameObject implements Updatable, Renderable, Replicable {
 
 	public final void setAwake(boolean awake) {
 		internal_setflag(AWAKE, awake);
-	}
-
-	public final void setRenderCacheIndex(int index) {
-		synchronized(flags_lock) {
-			int mask = Integer.MAX_VALUE >> 16;
-			flags &= mask;
-			int write = index << 16;
-			flags |= write;
-		}
-	}
-
-	public final int getRenderCacheIndex() {
-		synchronized(flags_lock) {
-			return flags >> 16;
-		}
 	}
 
 	// Override for more precise control
@@ -1103,9 +1044,6 @@ public class GameObject implements Updatable, Renderable, Replicable {
 	private final void onbegin_check() {
 		if (!internal_getflag(INITIALIZED)) {
 			try {
-				if(isVisible()) {
-					triggerAlloc();
-				}
 				onBeginPlay();
 			} catch (Throwable t) {
 				Logger.error("onBeginPlay() Error:", t);
@@ -1117,7 +1055,6 @@ public class GameObject implements Updatable, Renderable, Replicable {
 	private final void onend_check() {
 		if (internal_getflag(INITIALIZED)) {
 			try {
-				triggerDealloc();
 				onEndPlay();
 			} catch (Throwable t) {
 				Logger.error("onEndPlay() Error:", t);
@@ -1204,29 +1141,10 @@ public class GameObject implements Updatable, Renderable, Replicable {
 		});
 
 		// Gather render cache
-		int cache_index = getRenderCacheIndex();
-		Transform transform;
-		if(cache_index == -1) {
-			transform = new Transform();
-			getWorldPosition(transform.position);
-			getWorldRotation(transform.rotation);
-			getWorldScale(transform.scale);
-		} else {
-			Transform trans = getGame().getRenderer().getTransformCache(cache_index);
-			Transform vel = getGame().getRenderer().getVelocityCache(cache_index);
-			float velDelta = getGame().getRenderer().getCacheUpdateDelta();
-
-			transform = new Transform();
-			vel.position.mul(velDelta, transform.position);
-			transform.position.add(trans.position);
-
-			vel.rotation.mul(velDelta, transform.rotation);
-			transform.rotation.add(trans.rotation);
-
-			transform.scale.set(0);
-			vel.scale.mul(velDelta, transform.scale);
-			transform.scale.add(trans.scale);
-		}
+		Transform transform = new Transform();
+		getWorldPosition(transform.position);
+		getWorldRotation(transform.rotation);
+		getWorldScale(transform.scale);
 
 		if(this != renderer) {
 			render(renderer, delta, transform);

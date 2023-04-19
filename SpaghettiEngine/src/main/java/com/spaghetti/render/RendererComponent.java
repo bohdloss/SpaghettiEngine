@@ -53,34 +53,12 @@ public class RendererComponent implements ThreadComponent {
 	protected Model sceneRenderer;
 	protected ShaderProgram defaultShader;
 
-	// 2.1 MB transform cache
-	protected final Transform[] transformCache;
-	// 2.1 MB velocity cache
-	protected final Transform[] velocityCache;
-	// 256 KB render cache allocation table
-	protected final boolean[] renderCache_alloc;
-	// Last cache update
-	protected long lastCacheUpdate, lastLastCacheUpdate;
-	protected long currentTime;
-	// Cache locks
-	protected boolean isRendering;
-	protected final Object cacheLock = new Object();
-
 	// FPS counter
 	protected int fps;
 	protected long lastCheck;
 
 	public RendererComponent() {
 		window = new GameWindow();
-
-		// Init render cache
-		transformCache = new Transform[Short.MAX_VALUE];
-		velocityCache = new Transform[Short.MAX_VALUE];
-		for(int i = 0; i < transformCache.length; i++) {
-			transformCache[i] = new Transform();
-			velocityCache[i] = new Transform();
-		}
-		renderCache_alloc = new boolean[Short.MAX_VALUE];
 	}
 
 	@Override
@@ -227,18 +205,10 @@ public class RendererComponent implements ThreadComponent {
 		window.setAsync(true);
 		window.destroy();
 		window.setAsync(async);
-
-		// Free render cache
-		for(int i = 0; i < renderCache_alloc.length; i++) {
-			if(renderCache_alloc[i]) {
-				Logger.info("Block " + i + " was not freed");
-			}
-		}
 	}
 
 	@Override
 	public void loop(float delta) throws Throwable {
-		currentTime += (long) (delta * 1000f);
 		try {
 			// Clear screen
 			GL11.glGetError();
@@ -281,49 +251,28 @@ public class RendererComponent implements ThreadComponent {
 	}
 
 	protected void renderCamera(float delta, Camera camera) {
-		synchronized (getCacheLock()) {
-			Transform transform = new Transform();
-			int camera_index = camera.getRenderCacheIndex();
-			if (camera_index == -1) {
-				camera.getWorldTransform(transform);
-			} else {
-				Transform trans = game.getRenderer().getTransformCache(camera_index);
-				Transform vel = game.getRenderer().getVelocityCache(camera_index);
-				float velDelta = game.getRenderer().getCacheUpdateDelta();
+		Transform transform = new Transform();
+		camera.getWorldTransform(transform);
 
-				vel.position.mul(velDelta, transform.position);
-				transform.position.add(trans.position);
-
-				vel.rotation.mul(velDelta, transform.rotation);
-				transform.rotation.add(trans.rotation);
-
-				transform.scale.set(0);
-				vel.scale.mul(velDelta, transform.scale);
-				transform.scale.add(trans.scale);
+		// Update position and velocity of OpenAL listener
+		if (openal) {
+			if (camera != lastCamera) {
+				lastCamera = camera;
+				oldCameraPosition.set(transform.position);
 			}
+			lastCameraPosition = transform.position;
+			lastCameraPosition.sub(oldCameraPosition, lastCameraVelocity);
 
-			// Update position and velocity of OpenAL listener
-			if (openal) {
-				if (camera != lastCamera) {
-					lastCamera = camera;
-					oldCameraPosition.set(transform.position);
-				}
-				lastCameraPosition = transform.position;
-				lastCameraPosition.sub(oldCameraPosition, lastCameraVelocity);
-
-				AL10.alListener3f(AL10.AL_POSITION, lastCameraPosition.x, lastCameraPosition.y, lastCameraPosition.z);
-				if (delta != 0) {
-					lastCameraVelocity.div(delta);
-					AL10.alListener3f(AL10.AL_VELOCITY, lastCameraVelocity.x, lastCameraVelocity.y, lastCameraVelocity.z);
-				}
-				oldCameraPosition.set(lastCameraPosition);
+			AL10.alListener3f(AL10.AL_POSITION, lastCameraPosition.x, lastCameraPosition.y, lastCameraPosition.z);
+			if (delta != 0) {
+				lastCameraVelocity.div(delta);
+				AL10.alListener3f(AL10.AL_VELOCITY, lastCameraVelocity.x, lastCameraVelocity.y, lastCameraVelocity.z);
 			}
-
-			// Draw level to camera frame buffer
-			isRendering = true;
-			camera.render(null, delta, transform);
-			isRendering = false;
+			oldCameraPosition.set(lastCameraPosition);
 		}
+
+		// Draw level to camera frame buffer
+		camera.render(null, delta, transform);
 
 		// Draw texture from frame buffer to screen
 
@@ -356,50 +305,6 @@ public class RendererComponent implements ThreadComponent {
 
 	public void setOpenALEnabled(boolean value) {
 		GameSettings.ssetEngineSetting("openal.enable", value);
-	}
-
-	public int allocCache() {
-		for(int i = 0; i < renderCache_alloc.length; i++) {
-			if(!renderCache_alloc[i]) {
-				renderCache_alloc[i] = true;
-				Logger.debug("Allocated render cache at index " + i);
-				return i;
-			}
-		}
-		return -1;
-	}
-
-	public void deallocCache(int index) {
-		if(index < 0 || index > renderCache_alloc.length) {
-			return;
-		}
-
-		renderCache_alloc[index] = false;
-		Logger.debug("Deallocated render cache at index " + index);
-	}
-
-	public Transform getTransformCache(int index) {
-		return transformCache[index];
-	}
-
-	public Transform getVelocityCache(int index) {
-		return velocityCache[index];
-	}
-
-	public boolean isRendering() {
-		return isRendering;
-	}
-
-	public Object getCacheLock() {
-		return cacheLock;
-	}
-
-	public long getCacheUpdateDelta() {
-		return currentTime - lastCacheUpdate;
-	}
-
-	public void markCacheUpdate() {
-		lastCacheUpdate = currentTime;
 	}
 
 }

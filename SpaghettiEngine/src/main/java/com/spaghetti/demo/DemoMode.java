@@ -73,8 +73,8 @@ public class DemoMode extends GameMode {
         level.addObject(skybox);
 
         // Stress test for physics
-        int width = 10;
-        int height = 10;
+        int width = 50;
+        int height = 50;
         Random r = new Random();
         for (int i = 0; i < width; i++) {
             for (int j = 0; j < height; j++) {

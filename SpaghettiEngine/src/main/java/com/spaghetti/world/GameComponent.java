@@ -22,19 +22,6 @@ public abstract class GameComponent implements Updatable, Renderable, Replicable
 		}
 	}
 
-	public final void triggerAlloc() {
-		if(!getGame().isHeadless() && getRenderCacheIndex() == -1) {
-			setRenderCacheIndex(getGame().getRenderer().allocCache());
-		}
-	}
-
-	public final void triggerDealloc() {
-		if(!getGame().isHeadless() && getRenderCacheIndex() != -1) {
-			getGame().getRenderer().deallocCache(getRenderCacheIndex());
-			setRenderCacheIndex(-1);
-		}
-	}
-
 	// O is attached flag
 	public static final int ATTACHED = 0;
 	// 1 is destroyed flag
@@ -58,7 +45,6 @@ public abstract class GameComponent implements Updatable, Renderable, Replicable
 
 	public GameComponent() {
 		this.id = IdProvider.newId(getGame());
-		setRenderCacheIndex(-1);
 		internal_setflag(REPLICATE, true);
 		internal_setflag(VISIBLE, true);
 		internal_setflag(AWAKE, true);
@@ -69,9 +55,6 @@ public abstract class GameComponent implements Updatable, Renderable, Replicable
 	protected final void onbegin_check() {
 		if (!internal_getflag(INITIALIZED)) {
 			try {
-				if(isVisible()) {
-					triggerAlloc();
-				}
 				onBeginPlay();
 			} catch (Throwable t) {
 				Logger.error("onBeginPlay() Error:", t);
@@ -83,7 +66,6 @@ public abstract class GameComponent implements Updatable, Renderable, Replicable
 	protected final void onend_check() {
 		if (internal_getflag(INITIALIZED)) {
 			try {
-				triggerDealloc();
 				onEndPlay();
 			} catch (Throwable t) {
 				Logger.error("onEndPlay() Error:", t);
@@ -107,29 +89,10 @@ public abstract class GameComponent implements Updatable, Renderable, Replicable
 		}
 
 		// Gather render cache
-		int cache_index = getRenderCacheIndex();
-		Transform transform;
-		if(cache_index == -1) {
-			transform = new Transform();
-			owner.getWorldPosition(transform.position);
-			owner.getWorldRotation(transform.rotation);
-			owner.getWorldScale(transform.scale);
-		} else {
-			Transform trans = getGame().getRenderer().getTransformCache(cache_index);
-			Transform vel = getGame().getRenderer().getVelocityCache(cache_index);
-			float velDelta = getGame().getRenderer().getCacheUpdateDelta();
-
-			transform = new Transform();
-			vel.position.mul(velDelta, transform.position);
-			transform.position.add(trans.position);
-
-			vel.rotation.mul(velDelta, transform.rotation);
-			transform.rotation.add(trans.rotation);
-
-			transform.scale.set(0);
-			vel.scale.mul(velDelta, transform.scale);
-			transform.scale.add(trans.scale);
-		}
+		Transform transform = new Transform();
+		owner.getWorldPosition(transform.position);
+		owner.getWorldRotation(transform.rotation);
+		owner.getWorldScale(transform.scale);
 
 		render(renderer, delta, transform);
 	}
@@ -221,11 +184,6 @@ public abstract class GameComponent implements Updatable, Renderable, Replicable
 
 	public final void setVisible(boolean visible) {
 		internal_setflag(VISIBLE, visible);
-		if(isInitialized() && visible) {
-			triggerAlloc();
-		} else {
-			triggerDealloc();
-		}
 	}
 
 	public final boolean isAwake() {
@@ -234,21 +192,6 @@ public abstract class GameComponent implements Updatable, Renderable, Replicable
 
 	public final void setAwake(boolean awake) {
 		internal_setflag(AWAKE, awake);
-	}
-
-	public final void setRenderCacheIndex(int index) {
-		synchronized(flags_lock) {
-			int mask = Integer.MAX_VALUE >> 16;
-			flags &= mask;
-			int write = index << 16;
-			flags |= write;
-		}
-	}
-
-	public final int getRenderCacheIndex() {
-		synchronized(flags_lock) {
-			return flags >> 16;
-		}
 	}
 
 	// Override for more precise control

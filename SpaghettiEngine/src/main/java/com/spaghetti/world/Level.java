@@ -191,77 +191,8 @@ public final class Level implements Updatable {
 					object.update(delta);
 				}
 			});
-
-			// Attempt to update render cache
-			RendererComponent renderer = getGame().getRenderer();
-			if(!getGame().isHeadless() && !renderer.isRendering()) {
-				synchronized (renderer.getCacheLock()) {
-					updateCaches(renderer);
-				}
-			}
 		} catch (ConcurrentModificationException e) {
 		}
-	}
-
-	protected final void updateCaches(RendererComponent renderer) {
-		float velDelta = renderer.getCacheUpdateDelta();
-		o_ordered.forEach((id, object) -> {
-			if (object != null) {
-				int cache_index = object.getRenderCacheIndex();
-
-				if(cache_index != -1) {
-
-					Transform oldTransform = renderer.getTransformCache(cache_index);
-					Transform oldVelocity = renderer.getVelocityCache(cache_index);
-
-					Transform newTransform = new Transform();
-
-					object.getWorldPosition(newTransform.position);
-					object.getWorldRotation(newTransform.rotation);
-					object.getWorldScale(newTransform.scale);
-
-					if(velDelta != 0) {
-						Transform newVelocity = new Transform();
-						newVelocity.set(newTransform);
-						newVelocity.sub(oldTransform);
-						newVelocity.div(velDelta);
-
-						oldVelocity.set(newVelocity);
-					}
-					oldTransform.set(newTransform);
-				}
-			}
-		});
-
-		c_ordered.forEach((id, component) -> {
-			if (component != null) {
-				int cache_index = component.getRenderCacheIndex();
-
-				if(cache_index != -1) {
-
-					GameObject object = component.getOwner();
-					Transform oldTransform = renderer.getTransformCache(cache_index);
-					Transform oldVelocity = renderer.getVelocityCache(cache_index);
-
-					Transform newTransform = new Transform();
-
-					object.getWorldPosition(newTransform.position);
-					object.getWorldRotation(newTransform.rotation);
-					object.getWorldScale(newTransform.scale);
-
-					if(velDelta != 0) {
-						Transform newVelocity = new Transform();
-						newVelocity.set(newTransform);
-						newVelocity.sub(oldTransform);
-						newVelocity.div(velDelta);
-
-						oldVelocity.set(newVelocity);
-					}
-					oldTransform.set(newTransform);
-				}
-			}
-		});
-		renderer.markCacheUpdate();
 	}
 
 	public final boolean isDestroyed() {
