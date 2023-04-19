@@ -15,7 +15,6 @@ import com.spaghetti.events.EventDispatcher;
 import com.spaghetti.events.GameEvent;
 import com.spaghetti.utils.FunctionDispatcher;
 import com.spaghetti.utils.Logger;
-import com.spaghetti.utils.ThreadUtil;
 
 public class ConnectionManager {
 
@@ -53,7 +52,7 @@ public class ConnectionManager {
 	// Member data
 
 	// Reference to owner
-	protected NetworkCore core;
+	protected NetworkComponent networkComponent;
 	protected ConnectionEndpoint endpoint;
 	protected NetworkBuffer writeBuffer, readBuffer;
 
@@ -68,8 +67,8 @@ public class ConnectionManager {
 	protected HashMap<Short, String> str_cache = new HashMap<>(256);
 	protected HashMap<Integer, RemoteProcedure> rpc_cache = new HashMap<>(256);
 
-	public ConnectionManager(NetworkCore core) {
-		this.core = core;
+	public ConnectionManager(NetworkComponent networkComponent) {
+		this.networkComponent = networkComponent;
 	}
 
 	public void destroy() {
@@ -396,14 +395,14 @@ public class ConnectionManager {
 			if (parent == null) {
 				// Add to level directly if it has no parent
 				final GameObject object_copy = object;
-				getGame().getUpdaterDispatcher().quickQueue(() -> {
+				getGame().getPrimaryDispatcher().quickQueue(() -> {
 					level.addObject(object_copy);
 					return null;
 				});
 			} else {
 				// Add to appropriate parent instead
 				final GameObject object_copy = object;
-				getGame().getUpdaterDispatcher().quickQueue(() -> {
+				getGame().getPrimaryDispatcher().quickQueue(() -> {
 					parent.addChild(object_copy);
 					return null;
 				});
@@ -440,7 +439,7 @@ public class ConnectionManager {
 				// Add the component to its owner using the updater thread
 				final GameObject object_copy = object;
 				final GameComponent component_copy = component;
-				getGame().getUpdaterDispatcher().quickQueue(() -> {
+				getGame().getPrimaryDispatcher().quickQueue(() -> {
 					object_copy.addComponent(component_copy);
 					return null;
 				});
@@ -557,7 +556,7 @@ public class ConnectionManager {
 			if (component != null) {
 
 				// Perform destroy
-				getGame().getUpdaterDispatcher().quickQueue(() -> {
+				getGame().getPrimaryDispatcher().quickQueue(() -> {
 					component.destroy();
 					return null;
 				});
@@ -569,7 +568,7 @@ public class ConnectionManager {
 			if (object != null) {
 
 				// Perform destroy
-				getGame().getUpdaterDispatcher().quickQueue(() -> {
+				getGame().getPrimaryDispatcher().quickQueue(() -> {
 					object.destroy();
 					return null;
 				});
@@ -692,7 +691,7 @@ public class ConnectionManager {
 
 		// Retrieve event and function dispatchers
 		EventDispatcher event_dispatcher = getGame().getEventDispatcher();
-		FunctionDispatcher func_dispatcher = getGame().getUpdaterDispatcher();
+		FunctionDispatcher func_dispatcher = getGame().getPrimaryDispatcher();
 
 		// Read event data
 		readReplicable(event);
@@ -742,7 +741,7 @@ public class ConnectionManager {
 		rpc.readArgs(readBuffer);
 
 		// Dispatch RemoteProcedure execution to the updater thread
-		getGame().getUpdaterDispatcher().queue(() -> {
+		getGame().getPrimaryDispatcher().queue(() -> {
 			// Execute
 			rpc.execute(this);
 
@@ -793,7 +792,7 @@ public class ConnectionManager {
 		f_rpcready.set(rpc, true); // Can be reused
 
 		// Queue callback to updater thread
-		getGame().getUpdaterDispatcher().queue(() -> rpc.executeReturnCallback());
+		getGame().getPrimaryDispatcher().queue(() -> rpc.executeReturnCallback());
 	}
 
 	public void readRPCAcknowledgement() throws Throwable {
@@ -817,7 +816,7 @@ public class ConnectionManager {
 		f_rpcready.set(rpc, true);
 
 		// Queue callback to updater
-		getGame().getUpdaterDispatcher().queue(() -> rpc.executeAckCallback());
+		getGame().getPrimaryDispatcher().queue(() -> rpc.executeAckCallback());
 	}
 
 	// Utility methods
@@ -909,7 +908,7 @@ public class ConnectionManager {
 	}
 
 	protected void perform_delete() {
-		long func = getGame().getUpdaterDispatcher().queue(() -> {
+		long func = getGame().getPrimaryDispatcher().queue(() -> {
 			delete_cache.forEach(object -> {
 				if (GameObject.class.isAssignableFrom(object.getClass())) {
 					((GameObject) object).destroy();
@@ -920,21 +919,21 @@ public class ConnectionManager {
 			delete_cache.clear();
 			return null;
 		});
-		getGame().getUpdaterDispatcher().waitFor(func);
+		getGame().getPrimaryDispatcher().waitFor(func);
 	}
 
 	// Getters and setters
 
 	public Game getGame() {
-		return getCore().getGame();
+		return getNetworkComponent().getGame();
 	}
 
 	public Level getLevel() {
 		return player.getLevel();
 	}
 
-	public NetworkCore getCore() {
-		return core;
+	public NetworkComponent getNetworkComponent() {
+		return networkComponent;
 	}
 
 	public boolean isForceReplication() {

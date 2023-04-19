@@ -51,7 +51,7 @@ public class SoundSource extends GameObject {
 			getGame().getServer().queueWriteObjectDestruction(this);
 		}
 		if (!getGame().isHeadless()) {
-			getGame().getRendererDispatcher().quickQueue(() -> {
+			getGame().getPrimaryDispatcher().quickQueue(() -> {
 				if (id != 0) {
 					AL10.alGetError();
 					AL10.alSourceStop(id);
@@ -185,7 +185,7 @@ public class SoundSource extends GameObject {
 		}
 		if (this.sound != null) {
 			if (!getGame().isHeadless()) {
-				getGame().getRendererDispatcher().quickQueue(() -> {
+				getGame().getPrimaryDispatcher().quickQueue(() -> {
 					this.sound.stop(this);
 					return null;
 				});

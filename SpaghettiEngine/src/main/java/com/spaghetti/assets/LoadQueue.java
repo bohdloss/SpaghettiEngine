@@ -114,7 +114,7 @@ public class LoadQueue {
                     manager.fillAsset(asset);
 
                     // Perform native loading
-                    manager.getGame().getRendererDispatcher().quickQueue(() -> {
+                    manager.getGame().getPrimaryDispatcher().quickQueue(() -> {
                         asset.asset.load();
                         return null;
                     });

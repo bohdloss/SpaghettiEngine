@@ -218,20 +218,22 @@ public class AssetManager {
 		}
 		// Check if the asset is ready to be processed
 		AssetEntry asset = assets.get(name);
-		synchronized (asset) {
-			// The asset is busy but not loading, forward it to the queue function
-			if (asset.asset.isLoaded() || asset.loading || asset.isBusy()) {
-				return false;
+		if (!asset.asset.isLoaded() && !asset.isBusy()) {
+			synchronized (asset) {
+				// The asset is busy but not loading, forward it to the queue function
+				if (asset.asset.isLoaded() || asset.isBusy()) {
+					return false;
+				}
+
+				asset.loading = true;
+
+				// Queue dependencies
+				meetDependencies(asset, dependency -> loadAssetLazy(dependency.name));
+
+				// Send asset to load queue
+				queue.queueAsset(asset);
+
 			}
-
-			asset.loading = true;
-
-			// Queue dependencies
-			meetDependencies(asset, dependency -> loadAssetLazy(dependency.name));
-
-			// Send asset to load queue
-			queue.queueAsset(asset);
-
 		}
 
 		return true;
@@ -248,10 +250,10 @@ public class AssetManager {
 	 */
 	public boolean loadAssetNow(String name) {
 		if(!game.isHeadless()) {
-			if (Thread.currentThread().getId() == game.getRendererId()) {
+			if (Thread.currentThread().getId() == game.getPrimaryId()) {
 				return loadAssetDirect(name);
 			} else {
-				FunctionDispatcher dispatcher = game.getRendererDispatcher();
+				FunctionDispatcher dispatcher = game.getPrimaryDispatcher();
 				return (Boolean) dispatcher.quickQueue(() -> loadAssetDirect(name));
 			}
 		}
@@ -329,10 +331,10 @@ public class AssetManager {
 	 */
 	public boolean unloadAssetNow(String name) {
 		if(!game.isHeadless()) {
-			if (Thread.currentThread().getId() == game.getRendererId()) {
+			if (Thread.currentThread().getId() == game.getPrimaryId()) {
 				return unloadAssetDirect(name);
 			} else {
-				FunctionDispatcher dispatcher = game.getRendererDispatcher();
+				FunctionDispatcher dispatcher = game.getPrimaryDispatcher();
 				return (Boolean) dispatcher.quickQueue(() -> unloadAssetDirect(name));
 			}
 		}
@@ -340,7 +342,7 @@ public class AssetManager {
 	}
 
 	protected boolean unloadAssetDirect(String name) {
-		if ((Thread.currentThread() != game.getRenderer()) || !assetExists(name) || game.isHeadless()) {
+		if ((Thread.currentThread() != game.getPrimary().getThread()) || !assetExists(name) || game.isHeadless()) {
 			return false;
 		}
 

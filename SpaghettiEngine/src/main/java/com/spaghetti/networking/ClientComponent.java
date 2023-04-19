@@ -4,7 +4,7 @@ import java.io.IOException;
 import java.net.UnknownHostException;
 import java.util.ArrayList;
 
-import com.spaghetti.core.CoreComponent;
+import com.spaghetti.core.Game;
 import com.spaghetti.world.GameComponent;
 import com.spaghetti.world.GameObject;
 import com.spaghetti.events.GameEvent;
@@ -17,7 +17,7 @@ import com.spaghetti.networking.events.OnInvalidToken;
 import com.spaghetti.utils.Logger;
 import com.spaghetti.utils.ThreadUtil;
 
-public abstract class ClientCore extends NetworkCore {
+public abstract class ClientComponent extends NetworkComponent {
 
 	// Queue events
 	protected ArrayList<NetworkFunction> functions_queue1 = new ArrayList<>(256);
@@ -31,27 +31,33 @@ public abstract class ClientCore extends NetworkCore {
 	protected boolean giveUp;
 	protected int reconnectAttempts = 10;
 
-	public ClientCore() {
+	public ClientComponent() {
 	}
 
 	@Override
-	protected void initialize0() throws Throwable {
+	public void initialize(Game game) throws Throwable {
+		this.game = game;
+
 		flags = new ClientFlags();
 		manager = new ConnectionManager(this);
-		reconnectAttempts = getGame().getEngineSetting("network.reconnectAttempts");
+		reconnectAttempts = this.game.getEngineSetting("network.reconnectAttempts");
 	}
 
 	@Override
-	protected void postInitialize() throws Throwable {
+	public void postInitialize() throws Throwable {
 	}
 
 	@Override
-	protected void terminate0() throws Throwable {
+	public void preTerminate() throws Throwable {
+	}
+
+	@Override
+	public void terminate() throws Throwable {
 		internal_disconnect();
 	}
 
 	@Override
-	protected void loopEvents(float delta) throws Throwable {
+	public void loop(float delta) throws Throwable {
 		ConnectionEndpoint endpoint = manager.getEndpoint();
 
 		// Check if we are connected to a server
@@ -97,11 +103,6 @@ public abstract class ClientCore extends NetworkCore {
 		} catch (Throwable t) {
 			internal_clienterror(t); // Something went wrong, attempt reconnection
 		}
-	}
-
-	@Override
-	protected final CoreComponent provideSelf() {
-		return getGame().getClient();
 	}
 
 	// Client interface
@@ -219,7 +220,7 @@ public abstract class ClientCore extends NetworkCore {
 	}
 
 	public boolean connect(String ip, int port, long token) {
-		return (boolean) getDispatcher().quickQueue(() -> internal_connect(ip, port, token));
+		return (boolean) game.getAuxiliaryDispatcher().quickQueue(() -> internal_connect(ip, port, token));
 	}
 
 	protected boolean internal_connect(String ip, int port, long token) {
@@ -265,29 +266,29 @@ public abstract class ClientCore extends NetworkCore {
 					internal_disconnect(false);
 					return false;
 				}
-				getGame().getEventDispatcher().raiseEvent(new OnClientConnect(manager, token));
+				game.getEventDispatcher().raiseEvent(new OnClientConnect(manager, token));
 				break;
 			case INVALID_TOKEN:
 				message = readBuf.getString();
-				getGame().getEventDispatcher().raiseEvent(new OnInvalidToken(token, message));
+				game.getEventDispatcher().raiseEvent(new OnInvalidToken(token, message));
 				giveUp = true;
 				internal_disconnect(false);
 				return false;
 			case BANNED:
 				message = readBuf.getString();
-				getGame().getEventDispatcher().raiseEvent(new OnClientBanned(manager, token, message));
+				game.getEventDispatcher().raiseEvent(new OnClientBanned(manager, token, message));
 				giveUp = true;
 				internal_disconnect(false);
 				return false;
 			case REACHED_MAX:
 				message = readBuf.getString();
-				getGame().getEventDispatcher().raiseEvent(new OnConnectionRefused(REACHED_MAX, message));
+				game.getEventDispatcher().raiseEvent(new OnConnectionRefused(REACHED_MAX, message));
 				giveUp = true;
 				internal_disconnect(false);
 				return false;
 			case SNEAKED_IN:
 				message = readBuf.getString();
-				getGame().getEventDispatcher().raiseEvent(new OnConnectionRefused(SNEAKED_IN, message));
+				game.getEventDispatcher().raiseEvent(new OnConnectionRefused(SNEAKED_IN, message));
 				giveUp = true;
 				internal_disconnect(false);
 				return false;
@@ -327,7 +328,7 @@ public abstract class ClientCore extends NetworkCore {
 	}
 
 	public boolean disconnect() {
-		return (boolean) getDispatcher().quickQueue(this::internal_disconnect);
+		return (boolean) game.getAuxiliaryDispatcher().quickQueue(this::internal_disconnect);
 	}
 
 	protected boolean internal_disconnect() {
@@ -353,7 +354,7 @@ public abstract class ClientCore extends NetworkCore {
 				endpoint.send();
 			} catch(Throwable t) {
 			}
-			getGame().getEventDispatcher().raiseEvent(new OnClientDisconnect(manager, flags.clientId));
+			game.getEventDispatcher().raiseEvent(new OnClientDisconnect(manager, flags.clientId));
 		}
 
 		// Destroy endpoint
@@ -412,8 +413,8 @@ public abstract class ClientCore extends NetworkCore {
 		return reconnectAttempts;
 	}
 
-	public void setReconnectAttempts(int reconnectAttemtps) {
-		this.reconnectAttempts = reconnectAttemtps;
+	public void setReconnectAttempts(int reconnectAttempts) {
+		this.reconnectAttempts = reconnectAttempts;
 	}
 
 }

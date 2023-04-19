@@ -7,7 +7,8 @@ import java.util.Map.Entry;
 import java.util.Random;
 import java.util.concurrent.ConcurrentHashMap;
 
-import com.spaghetti.core.CoreComponent;
+import com.spaghetti.core.Game;
+import com.spaghetti.core.GameThread;
 import com.spaghetti.utils.HashUtil;
 import com.spaghetti.world.GameComponent;
 import com.spaghetti.world.GameObject;
@@ -21,7 +22,7 @@ import com.spaghetti.networking.events.OnClientKicked;
 import com.spaghetti.networking.events.OnClientUnbanned;
 import com.spaghetti.utils.Logger;
 
-public abstract class ServerCore extends NetworkCore {
+public abstract class ServerComponent extends NetworkComponent {
 
 	// Queue events
 	protected ArrayList<NetworkFunction> functions_queue1 = new ArrayList<>(256);
@@ -40,11 +41,13 @@ public abstract class ServerCore extends NetworkCore {
 	protected Random tokenGen = new Random();
 	protected ArrayList<Long> clientTokens = new ArrayList<>();
 
-	public ServerCore() {
+	public ServerComponent() {
 	}
 
 	@Override
-	protected void initialize0() throws Throwable {
+	public void initialize(Game game) throws Throwable {
+		this.game = game;
+
 		internal_bind(getGame().getEngineSetting("network.port"));
 		maxClients = getGame().getEngineSetting("network.maxClients");
 		awaitReconnect = getGame().getEngineSetting("network.awaitTimeout");
@@ -52,7 +55,15 @@ public abstract class ServerCore extends NetworkCore {
 	}
 
 	@Override
-	protected void terminate0() throws Throwable {
+	public void postInitialize() {
+	}
+
+	@Override
+	public void preTerminate() {
+	}
+
+	@Override
+	public void terminate() throws Throwable {
 		internal_banall("Server closed");
 		clients.clear();
 		clients = null;
@@ -78,7 +89,7 @@ public abstract class ServerCore extends NetworkCore {
 
 	// Packet read, write loop
 	@Override
-	protected void loopEvents(float delta) throws Throwable {
+	public void loop(float delta) throws Throwable {
 		// Catch any exception for extra safety
 		try {
 
@@ -197,11 +208,6 @@ public abstract class ServerCore extends NetworkCore {
 	}
 
 	// Server interface
-
-	@Override
-	protected final CoreComponent provideSelf() {
-		return getGame().getServer();
-	}
 
 	@Override
 	public void queueNetworkFunction(NetworkFunction function) {
@@ -364,7 +370,7 @@ public abstract class ServerCore extends NetworkCore {
 		if(reason == null) {
 			throw new IllegalArgumentException("Reason cannot be null");
 		}
-		return (boolean) getDispatcher().quickQueue(() -> internal_kick(id, reason));
+		return (boolean) game.getAuxiliaryDispatcher().quickQueue(() -> internal_kick(id, reason));
 	}
 
 	protected boolean internal_kick(long id, String reason) {
@@ -402,7 +408,7 @@ public abstract class ServerCore extends NetworkCore {
 	}
 
 	public boolean ban(long id, String reason) {
-		return (boolean) getDispatcher().quickQueue(() -> internal_ban(id, reason));
+		return (boolean) game.getAuxiliaryDispatcher().quickQueue(() -> internal_ban(id, reason));
 	}
 
 	protected boolean internal_ban(long id, String reason) {
@@ -425,7 +431,7 @@ public abstract class ServerCore extends NetworkCore {
 	}
 
 	public boolean pardon(long id) {
-		return (boolean) getDispatcher().quickQueue(() -> internal_pardon(id));
+		return (boolean) game.getAuxiliaryDispatcher().quickQueue(() -> internal_pardon(id));
 	}
 
 	protected boolean internal_pardon(long id) {
@@ -442,7 +448,7 @@ public abstract class ServerCore extends NetworkCore {
 	}
 
 	public boolean kickAll(String reason) {
-		return (boolean) getDispatcher().quickQueue(() -> internal_kickall(reason));
+		return (boolean) game.getAuxiliaryDispatcher().quickQueue(() -> internal_kickall(reason));
 	}
 
 	protected boolean internal_kickall(String reason) {
@@ -454,7 +460,7 @@ public abstract class ServerCore extends NetworkCore {
 	}
 
 	public boolean banAll(String reason) {
-		return (boolean) getDispatcher().quickQueue(() -> internal_banall(reason));
+		return (boolean) game.getAuxiliaryDispatcher().quickQueue(() -> internal_banall(reason));
 	}
 
 	protected boolean internal_banall(String reason) {
@@ -466,7 +472,7 @@ public abstract class ServerCore extends NetworkCore {
 	}
 
 	public boolean pardonAll() {
-		return (boolean) getDispatcher().quickQueue(this::internal_pardonall);
+		return (boolean) game.getAuxiliaryDispatcher().quickQueue(this::internal_pardonall);
 	}
 
 	protected boolean internal_pardonall() {
@@ -599,7 +605,7 @@ public abstract class ServerCore extends NetworkCore {
 	protected abstract ConnectionEndpoint internal_acceptsocket() throws Throwable;
 
 	public boolean bind(int port) {
-		return (boolean) getDispatcher().quickQueue(() -> internal_bind(port));
+		return (boolean) game.getAuxiliaryDispatcher().quickQueue(() -> internal_bind(port));
 	}
 
 	protected boolean internal_bind(int port) {
@@ -623,7 +629,7 @@ public abstract class ServerCore extends NetworkCore {
 	protected abstract void internal_startserver(int port) throws Throwable;
 
 	public boolean unbind() {
-		return (boolean) getDispatcher().quickQueue(this::internal_unbind);
+		return (boolean) game.getAuxiliaryDispatcher().quickQueue(this::internal_unbind);
 	}
 
 	protected boolean internal_unbind() {

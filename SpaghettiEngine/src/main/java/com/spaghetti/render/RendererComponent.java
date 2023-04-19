@@ -4,6 +4,8 @@ import java.nio.ByteBuffer;
 import java.nio.IntBuffer;
 
 import com.spaghetti.assets.loaders.*;
+import com.spaghetti.core.Game;
+import com.spaghetti.core.ThreadComponent;
 import com.spaghetti.core.events.ExitRequestedEvent;
 import com.spaghetti.events.EventDispatcher;
 import com.spaghetti.utils.*;
@@ -23,13 +25,14 @@ import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.system.MemoryUtil;
 
 import com.spaghetti.assets.AssetManager;
-import com.spaghetti.core.CoreComponent;
+import com.spaghetti.core.GameThread;
 import com.spaghetti.core.GameWindow;
 import com.spaghetti.exceptions.GLException;
 
-public class RendererCore extends CoreComponent {
+public class RendererComponent implements ThreadComponent {
 
 	// Internal data
+	protected Game game;
 	protected GameWindow window;
 	protected GLCapabilities glCapabilities;
 	protected ALCapabilities alCapabilities;
@@ -67,7 +70,7 @@ public class RendererCore extends CoreComponent {
 	protected int fps;
 	protected long lastCheck;
 
-	public RendererCore() {
+	public RendererComponent() {
 		window = new GameWindow();
 
 		// Init render cache
@@ -81,7 +84,9 @@ public class RendererCore extends CoreComponent {
 	}
 
 	@Override
-	public void initialize0() throws Throwable {
+	public void initialize(Game game) throws Throwable {
+		this.game = game;
+
 		// Find out if openal needs to be enabled or not
 		openal = GameSettings.sgetEngineSetting("openal.enable");
 		EventDispatcher.getInstance().registerEventListener(SettingChangedEvent.class, (isClient, event) -> {
@@ -92,8 +97,8 @@ public class RendererCore extends CoreComponent {
 		});
 
 		// Init window and obtain asset manager
-		window.winInit(getGame());
-		assetManager = getGame().getAssetManager();
+		window.winInit(game);
+		assetManager = game.getAssetManager();
 
 		// Initializes OpenGL
 		window.makeContextCurrent();
@@ -101,11 +106,11 @@ public class RendererCore extends CoreComponent {
 		GL43.glDebugMessageCallback((source, type, id, severity, length, message, userParam) -> {
 			String message_str = MemoryUtil.memUTF8(message, length);
 			if(severity <= GL43.GL_DEBUG_SEVERITY_NOTIFICATION) {
-				Logger.debug(getGame(), "[NOTIFICATION] OpenGL: ");
-				Logger.debug(getGame(), "[NOTIFICATION] " + message_str);
+				Logger.debug(game, "[NOTIFICATION] OpenGL: ");
+				Logger.debug(game, "[NOTIFICATION] " + message_str);
 			} else if(severity <= GL43.GL_DEBUG_SEVERITY_LOW) {
-				Logger.debug(getGame(), "[LOW] OpenGL: ");
-				Logger.debug(getGame(), "[LOW] " + message_str);
+				Logger.debug(game, "[LOW] OpenGL: ");
+				Logger.debug(game, "[LOW] " + message_str);
 			} else {
 				GLException error = new GLException(source, type, id, severity, message_str);
 
@@ -117,11 +122,11 @@ public class RendererCore extends CoreComponent {
 				error.setStackTrace(new_stack);
 
 				if(severity == GL43.GL_DEBUG_SEVERITY_MEDIUM) {
-					Logger.error(getGame(), "[MEDIUM] OpenGL: ");
-					Logger.error(getGame(), "[MEDIUM] " + message_str, error);
+					Logger.error(game, "[MEDIUM] OpenGL: ");
+					Logger.error(game, "[MEDIUM] " + message_str, error);
 				} else if(severity == GL43.GL_DEBUG_SEVERITY_HIGH) {
-					Logger.error(getGame(), "[HIGH] OpenGL: ");
-					Logger.error(getGame(), "[HIGH] " + message_str, error);
+					Logger.error(game, "[HIGH] OpenGL: ");
+					Logger.error(game, "[HIGH] " + message_str, error);
 				}
 
 			}
@@ -140,8 +145,8 @@ public class RendererCore extends CoreComponent {
 		}
 
 		// Load asset sheets
-		assetManager.loadAssetSheet(getGame().getEngineSetting("assets.internalSheet"));
-		assetManager.loadAssetSheet(getGame().getEngineSetting("assets.assetSheet"));
+		assetManager.loadAssetSheet(game.getEngineSetting("assets.internalSheet"));
+		assetManager.loadAssetSheet(game.getEngineSetting("assets.assetSheet"));
 
 		GL11.glEnable(GL11.GL_TEXTURE_2D);
 		GL11.glEnable(GL11.GL_BLEND);
@@ -195,7 +200,7 @@ public class RendererCore extends CoreComponent {
 	}
 
 	@Override
-	protected void postInitialize() throws Throwable {
+	public void postInitialize() throws Throwable {
 //		for(String device : MicrophoneInputStream.getCaptureDevices()) {
 //			Logger.info(device);
 //		}
@@ -212,7 +217,7 @@ public class RendererCore extends CoreComponent {
 	}
 
 	@Override
-	protected void terminate0() throws Throwable {
+	public void terminate() throws Throwable {
 		if (openal) {
 			destroyOpenAL();
 		}
@@ -232,7 +237,7 @@ public class RendererCore extends CoreComponent {
 	}
 
 	@Override
-	protected void loopEvents(float delta) throws Throwable {
+	public void loop(float delta) throws Throwable {
 		currentTime += (long) (delta * 1000f);
 		try {
 			// Clear screen
@@ -242,18 +247,18 @@ public class RendererCore extends CoreComponent {
 			// Check if the window should be closed
 			if (window.shouldClose()) {
 				ExitRequestedEvent event = new ExitRequestedEvent();
-				getGame().getEventDispatcher().raiseEvent(event);
+				game.getEventDispatcher().raiseEvent(event);
 
 				// Event cancelled, do not close the window
 				if(event.isCancelled()) {
 					window.setShouldClose(false);
 				} else {
-					getGame().stopAsync();
+					game.stopAsync();
 				}
 			}
 
 			// Render the world
-			Camera camera = getCamera();
+			Camera camera = game.getLocalCamera();
 			if (camera != null) {
 				renderCamera(delta, camera);
 			}
@@ -271,6 +276,10 @@ public class RendererCore extends CoreComponent {
 		}
 	}
 
+	@Override
+	public void preTerminate() throws Throwable {
+	}
+
 	protected void renderCamera(float delta, Camera camera) {
 		synchronized (getCacheLock()) {
 			Transform transform = new Transform();
@@ -278,9 +287,9 @@ public class RendererCore extends CoreComponent {
 			if (camera_index == -1) {
 				camera.getWorldTransform(transform);
 			} else {
-				Transform trans = getGame().getRenderer().getTransformCache(camera_index);
-				Transform vel = getGame().getRenderer().getVelocityCache(camera_index);
-				float velDelta = getGame().getRenderer().getCacheUpdateDelta();
+				Transform trans = game.getRenderer().getTransformCache(camera_index);
+				Transform vel = game.getRenderer().getVelocityCache(camera_index);
+				float velDelta = game.getRenderer().getCacheUpdateDelta();
 
 				vel.position.mul(velDelta, transform.position);
 				transform.position.add(trans.position);
@@ -333,11 +342,6 @@ public class RendererCore extends CoreComponent {
 		camera.getFrameBuffer().getColorTexture().use(0);
 
 		sceneRenderer.render();
-	}
-
-	@Override
-	protected final CoreComponent provideSelf() {
-		return getGame().getRenderer();
 	}
 
 	// Getters and setters

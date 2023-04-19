@@ -1,24 +1,7 @@
 package com.spaghetti.utils;
 
-import java.io.Closeable;
-import java.io.IOException;
-import java.io.InputStream;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
-import java.net.Socket;
-import java.nio.ByteBuffer;
-
-import org.lwjgl.assimp.AIString;
-import org.lwjgl.assimp.Assimp;
-import org.lwjgl.openal.AL;
-import org.lwjgl.openal.AL10;
-import org.lwjgl.openal.ALC10;
-import org.lwjgl.opengl.GL;
-import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL30;
-import org.lwjgl.opengl.GL45;
-
-import com.spaghetti.core.CoreComponent;
+import com.spaghetti.core.Game;
+import com.spaghetti.core.GameThread;
 
 /**
  * ThreadUtil is a namespace for common useful thread functions
@@ -59,13 +42,17 @@ public final class ThreadUtil {
 	/**
 	 * Yields execution to the current thread's
 	 * {@link FunctionDispatcher#computeEvents()} method only if the current thread
-	 * is and {@link CoreComponent} instance
+	 * is and {@link GameThread} instance
 	 */
 	public static void yield() {
 		Thread thread = Thread.currentThread();
-		if (CoreComponent.class.isAssignableFrom(thread.getClass())) {
-			CoreComponent core = (CoreComponent) thread;
-			core.getDispatcher().computeEvents();
+		Game game = Game.getInstance();
+		for(int i = 0; i < game.getThreadAmount(); i++) {
+			GameThread gameThread = game.getThreadAt(i);
+			if(gameThread.getThread().getId() == thread.getId()) {
+				gameThread.getDispatcher().computeEvents();
+				break;
+			}
 		}
 	}
 

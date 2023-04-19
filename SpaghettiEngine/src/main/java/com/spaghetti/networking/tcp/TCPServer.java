@@ -5,9 +5,9 @@ import java.nio.channels.ServerSocketChannel;
 import java.nio.channels.SocketChannel;
 
 import com.spaghetti.networking.ConnectionEndpoint;
-import com.spaghetti.networking.ServerCore;
+import com.spaghetti.networking.ServerComponent;
 
-public class TCPServer extends ServerCore {
+public class TCPServer extends ServerComponent {
 
 	// Server object
 	ServerSocketChannel server;

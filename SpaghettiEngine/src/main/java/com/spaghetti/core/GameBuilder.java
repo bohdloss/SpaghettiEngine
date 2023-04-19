@@ -3,22 +3,22 @@ package com.spaghetti.core;
 import com.spaghetti.assets.AssetManager;
 import com.spaghetti.events.EventDispatcher;
 import com.spaghetti.input.InputDispatcher;
-import com.spaghetti.input.UpdaterCore;
-import com.spaghetti.networking.ClientCore;
-import com.spaghetti.networking.ServerCore;
+import com.spaghetti.input.UpdaterComponent;
+import com.spaghetti.networking.ClientComponent;
+import com.spaghetti.networking.ServerComponent;
 import com.spaghetti.networking.tcp.TCPClient;
 import com.spaghetti.networking.tcp.TCPServer;
-import com.spaghetti.render.RendererCore;
+import com.spaghetti.render.RendererComponent;
 import com.spaghetti.utils.GameSettings;
 import com.spaghetti.utils.Logger;
 import com.spaghetti.world.GameState;
 
 public final class GameBuilder {
 
-	private Class<? extends UpdaterCore> updater;
-	private Class<? extends RendererCore> renderer;
-	private Class<? extends ClientCore> client;
-	private Class<? extends ServerCore> server;
+	private Class<? extends UpdaterComponent> updater;
+	private Class<? extends RendererComponent> renderer;
+	private Class<? extends ClientComponent> client;
+	private Class<? extends ServerComponent> server;
 
 	private Class<? extends EventDispatcher> eventDispatcherClass = EventDispatcher.class;
 	private Class<? extends GameSettings> gameOptionsClass = GameSettings.class;
@@ -28,40 +28,40 @@ public final class GameBuilder {
 	private Class<? extends GameState> gameStateClass = GameState.class;
 	private Class<? extends Logger> loggerClass = Logger.class;
 
-	public GameBuilder setUpdater(Class<? extends UpdaterCore> updater) {
+	public GameBuilder setUpdater(Class<? extends UpdaterComponent> updater) {
 		this.updater = updater;
 		return this;
 	}
 
-	public Class<? extends UpdaterCore> getUpdater() {
+	public Class<? extends UpdaterComponent> getUpdater() {
 		return updater;
 	}
 
 	public GameBuilder enableUpdater() {
-		updater = UpdaterCore.class;
+		updater = UpdaterComponent.class;
 		return this;
 	}
 
-	public GameBuilder setRenderer(Class<? extends RendererCore> renderer) {
+	public GameBuilder setRenderer(Class<? extends RendererComponent> renderer) {
 		this.renderer = renderer;
 		return this;
 	}
 
-	public Class<? extends RendererCore> getRenderer() {
+	public Class<? extends RendererComponent> getRenderer() {
 		return renderer;
 	}
 
 	public GameBuilder enableRenderer() {
-		renderer = RendererCore.class;
+		renderer = RendererComponent.class;
 		return this;
 	}
 
-	public GameBuilder setClient(Class<? extends ClientCore> client) {
+	public GameBuilder setClient(Class<? extends ClientComponent> client) {
 		this.client = client;
 		return this;
 	}
 
-	public Class<? extends ClientCore> getClient() {
+	public Class<? extends ClientComponent> getClient() {
 		return client;
 	}
 
@@ -70,12 +70,12 @@ public final class GameBuilder {
 		return this;
 	}
 
-	public GameBuilder setServer(Class<? extends ServerCore> server) {
+	public GameBuilder setServer(Class<? extends ServerComponent> server) {
 		this.server = server;
 		return this;
 	}
 
-	public Class<? extends ServerCore> getServer() {
+	public Class<? extends ServerComponent> getServer() {
 		return server;
 	}
 

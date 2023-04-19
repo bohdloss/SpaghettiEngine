@@ -1,13 +1,16 @@
 package com.spaghetti.core;
 
-import com.spaghetti.render.Camera;
 import com.spaghetti.utils.FunctionDispatcher;
 import com.spaghetti.utils.Logger;
 import com.spaghetti.utils.ThreadUtil;
 
-public abstract class CoreComponent extends Thread {
+import java.util.ArrayList;
+import java.util.List;
 
-	private volatile Game source;
+public abstract class GameThread {
+
+	private Thread thread;
+	private volatile Game game;
 	private final FunctionDispatcher functionDispatcher;
 	private volatile boolean stop;
 	private volatile boolean init;
@@ -16,9 +19,20 @@ public abstract class CoreComponent extends Thread {
 	private volatile boolean executionEnd;
 	private volatile boolean requestChance;
 	private volatile long lastTime;
+	private volatile boolean run;
 
-	public CoreComponent() {
-		functionDispatcher = new FunctionDispatcher(this);
+	private List<ThreadComponent> componentList = new ArrayList<>(4);
+
+	public GameThread() {
+		this(null);
+	}
+
+	public GameThread(Thread thread) {
+		if(thread == null) {
+			thread = new Thread(() -> run());
+		}
+		this.thread = thread;
+		functionDispatcher = new FunctionDispatcher(thread);
 	}
 
 	public final void initialize() throws Throwable {
@@ -27,15 +41,12 @@ public abstract class CoreComponent extends Thread {
 					"Error: attempted to initialize core thread state outside the context of a game");
 		}
 		try {
-			initialize0();
+			for(ThreadComponent component : componentList) {
+				component.initialize(getGame());
+			}
 		} finally {
 			init = true;
 		}
-	}
-
-	protected abstract void initialize0() throws Throwable; // Your custom initialization code here!
-
-	protected void postInitialize() throws Throwable {
 	}
 
 	public final void terminate() {
@@ -43,11 +54,6 @@ public abstract class CoreComponent extends Thread {
 			throw new IllegalStateException("Error: attempted to stop core thread outside the context of a game");
 		}
 		stop = true;
-	}
-
-	protected abstract void terminate0() throws Throwable; // Your custom finalization code here!
-
-	protected void preTerminate() throws Throwable {
 	}
 
 	public final void waitInit() {
@@ -84,25 +90,26 @@ public abstract class CoreComponent extends Thread {
 		allowStop = true;
 	}
 
-	@Override
+
 	public final void start() {
 		if (!validStarting()) {
 			throw new IllegalStateException("Error: attempted to start core thread outside the context of a game");
 		}
-		super.start();
+		thread.start();
 	}
 
-	public final void start(Game source) {
-		if (this.source != null && this.source != source) {
+	public final void start(Game game) {
+		if (this.game != null && this.game != game) {
 			throw new IllegalStateException("Error: attempted to start core multiple times in different games");
 		}
-		this.source = source;
+		this.game = game;
 		start();
 	}
 
-	@Override
+
 	public final void run() {
-		if (Thread.currentThread().getId() != this.getId()) {
+		run = true;
+		if (Thread.currentThread().getId() != thread.getId()) {
 			throw new IllegalStateException("Error: run() called but no new thread started");
 		}
 
@@ -120,7 +127,9 @@ public abstract class CoreComponent extends Thread {
 				functionDispatcher.computeEvents();
 				ThreadUtil.sleep(1);
 			}
-			postInitialize();
+			for(ThreadComponent component : componentList) {
+				component.postInitialize();
+			}
 			while (!stop) {
 				// Calculate delta
 				long current = System.currentTimeMillis();
@@ -133,14 +142,18 @@ public abstract class CoreComponent extends Thread {
 
 				// Compute queued operations
 				functionDispatcher.computeEvents();
-				loopEvents(source.getTickMultiplier(delta));
+				for(ThreadComponent component : componentList) {
+					component.loop(game.getTickMultiplier(delta));
+				}
 			}
-			preTerminate();
+			for(ThreadComponent component : componentList) {
+				component.preTerminate();
+			}
 		} catch (Throwable t) {
 			_uncaught(t);
 		} finally {
 			stop = true;
-			source.stopAsync();
+			game.stopAsync();
 		}
 
 		executionEnd = true;
@@ -151,7 +164,9 @@ public abstract class CoreComponent extends Thread {
 
 		// Terminate
 		try {
-			terminate0();
+			for(ThreadComponent component : componentList) {
+				component.terminate();
+			}
 		} catch(Throwable t) {
 			_uncaught(t);
 		}
@@ -160,8 +175,8 @@ public abstract class CoreComponent extends Thread {
 		requestChance = true;
 		while (true) {
 			boolean found = true;
-			for (int i = 0; i < source.getComponentAmount(); i++) {
-				if (!source.getComponentAt(i).requestChance) {
+			for (int i = 0; i < game.getThreadAmount(); i++) {
+				if (!game.getThreadAt(i).requestChance) {
 					found = false;
 					break;
 				}
@@ -175,15 +190,19 @@ public abstract class CoreComponent extends Thread {
 	}
 
 	private void _uncaught(Throwable t) {
-		Logger.error("Fatal uncaught error in game " + source.getIndex() + ":", t);
+		Logger.error("Fatal uncaught error in game " + game.getIndex() + ":", t);
 	}
 
-	protected abstract void loopEvents(float delta) throws Throwable; // Your custom loop code here!
+	public void addComponent(ThreadComponent component) {
+		if(!run && !componentList.contains(component)) {
+			componentList.add(component);
+		}
+	}
 
 	// Getters
 
 	public final boolean stopped() {
-		return stop && !isAlive();
+		return stop && !thread.isAlive();
 	}
 
 	public final boolean initialized() {
@@ -194,28 +213,32 @@ public abstract class CoreComponent extends Thread {
 		return executionEnd;
 	}
 
-	protected abstract CoreComponent provideSelf();
+	protected abstract GameThread provideSelf();
 
 	private final boolean validStarting() {
-		return source != null && source.isStarting() && this == provideSelf();
+		return game != null && game.isStarting() && this == provideSelf();
 	}
 
 	private final boolean validStopping() {
-		return source != null && source.isStopping() && this == provideSelf();
+		return game != null && game.isStopping() && this == provideSelf();
 	}
 
 	// Getters and setters
 
 	public final Game getGame() {
-		return source;
-	}
-
-	public final Camera getCamera() {
-		return getGame().getLocalCamera();
+		return game;
 	}
 
 	public final FunctionDispatcher getDispatcher() {
 		return functionDispatcher;
 	}
+
+	public final void setName(String name) {
+		thread.setName(name);
+	}
+
+    public Thread getThread() {
+        return thread;
+    }
 
 }

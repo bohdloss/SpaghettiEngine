@@ -6,9 +6,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.BiConsumer;
 
 import com.spaghetti.core.Game;
-import com.spaghetti.render.RendererCore;
 import com.spaghetti.utils.*;
-import org.joml.Matrix3f;
 import org.joml.Vector3f;
 
 import com.spaghetti.render.Renderable;

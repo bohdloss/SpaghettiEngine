@@ -91,6 +91,7 @@ public final class FunctionDispatcher {
 		wrapper.function = function;
 		wrapper.ignoreReturnValue = ignoreReturnValue;
 
+//		System.out.println(Thread.currentThread().getName() + " -> " + thread.getName());
 		if (thread.getId() == Thread.currentThread().getId()) {
 			processFunction(wrapper);
 		} else {

@@ -36,7 +36,7 @@ public class EventDispatcher {
 	 * @param event
 	 */
 	public void raiseEvent(GameEvent event) {
-		game.getUpdaterDispatcher().quickQueueVoid(() -> {
+		game.getPrimaryDispatcher().quickQueueVoid(() -> {
 			event.setFrom(game.isClient() ? GameEvent.CLIENT : GameEvent.SERVER);
 			dispatchEvent(event);
 			if (!event.isCancelled() && !event.isLocal()) {
@@ -48,7 +48,7 @@ public class EventDispatcher {
 	// Dispatch events before sending them over network and when they are received
 	// from network
 	protected void dispatchEvent(GameEvent event) {
-		game.getUpdaterDispatcher().queueVoid(() -> {
+		game.getPrimaryDispatcher().queueVoid(() -> {
 			event.setFrom(game.isClient() ? GameEvent.SERVER : GameEvent.CLIENT);
 
 			/*Logger.info(game,

@@ -10,7 +10,7 @@ import java.util.function.Consumer;
 
 import com.spaghetti.core.Game;
 import com.spaghetti.input.Updatable;
-import com.spaghetti.render.RendererCore;
+import com.spaghetti.render.RendererComponent;
 import com.spaghetti.utils.ReflectionUtil;
 import com.spaghetti.utils.Transform;
 
@@ -193,7 +193,7 @@ public final class Level implements Updatable {
 			});
 
 			// Attempt to update render cache
-			RendererCore renderer = getGame().getRenderer();
+			RendererComponent renderer = getGame().getRenderer();
 			if(!getGame().isHeadless() && !renderer.isRendering()) {
 				synchronized (renderer.getCacheLock()) {
 					updateCaches(renderer);
@@ -203,7 +203,7 @@ public final class Level implements Updatable {
 		}
 	}
 
-	protected final void updateCaches(RendererCore renderer) {
+	protected final void updateCaches(RendererComponent renderer) {
 		float velDelta = renderer.getCacheUpdateDelta();
 		o_ordered.forEach((id, object) -> {
 			if (object != null) {

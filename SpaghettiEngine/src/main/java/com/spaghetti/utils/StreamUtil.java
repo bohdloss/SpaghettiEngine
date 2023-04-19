@@ -1,21 +1,8 @@
 package com.spaghetti.utils;
 
-import com.spaghetti.core.CoreComponent;
-import org.lwjgl.assimp.AIString;
-import org.lwjgl.assimp.Assimp;
-import org.lwjgl.openal.AL;
-import org.lwjgl.openal.AL10;
-import org.lwjgl.openal.ALC10;
-import org.lwjgl.opengl.GL;
-import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL30;
-import org.lwjgl.opengl.GL45;
-
 import java.io.Closeable;
 import java.io.IOException;
 import java.io.InputStream;
-import java.lang.reflect.Field;
-import java.lang.reflect.Method;
 import java.net.Socket;
 import java.nio.ByteBuffer;
 

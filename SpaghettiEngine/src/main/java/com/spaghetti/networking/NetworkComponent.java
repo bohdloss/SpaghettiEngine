@@ -1,11 +1,12 @@
 package com.spaghetti.networking;
 
-import com.spaghetti.core.CoreComponent;
+import com.spaghetti.core.Game;
+import com.spaghetti.core.ThreadComponent;
 import com.spaghetti.world.GameComponent;
 import com.spaghetti.world.GameObject;
 import com.spaghetti.events.GameEvent;
 
-public abstract class NetworkCore extends CoreComponent {
+public abstract class NetworkComponent implements ThreadComponent {
 
 	public static final int[][] SERVER_KEY = {{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -8634561, -8634561, -8634561, -8634561, -8634561, -8634561, -8634561, -8634561, -8634561, -8634561, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -12966328, -12966328, -12966328, -12966328, -12966328, -12966328, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
 			{0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -8634561, -8634561, -8634561, -8634561, -8634561, -8634561, -8634561, -8634561, -8634561, -8634561, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -12966328, -12966328, -12966328, -12966328, -12966328, -12966328, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0},
@@ -105,6 +106,8 @@ public abstract class NetworkCore extends CoreComponent {
 			{-4232598, -4232598, -4232598, -4232598, -4232598, -4232598, -4232598, -4232598, -4232598, -4232598, -4232598, -4232598, -4232598, -4232598, -4232598, -4232598, -4232598, -4232598, -4232598, -4232598, -4232598, -4232598, -4232598, -4232598, -4232598, -4232598, -4232598, -4232598, -4232598, -4232598, -8634561, -8634561, -8634561, -8634561, -8634561, -8634561, -8634561, -8634561, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, -11718304, -11718304, -11718304, -11718304, -11718304, -11718304, -11718304, -11718304, 0, 0, 0, 0, -11718304, -11718304, -11718304, -11718304, 0, 0, 0, 0, 0, 0, 0, 0, -11718304, -11718304, -11718304, -11718304, -11718304, -11718304, -11718304, -11718304, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}};
 
 
+	protected Game game;
+
 	// Handshake return codes
 	public static final byte HUG = (byte) 0; // Success, client and server hug each other after handshake
 	public static final byte INVALID_TOKEN = (byte) 1;
@@ -131,5 +134,9 @@ public abstract class NetworkCore extends CoreComponent {
 	public abstract void queueWriteComponentDestruction(GameComponent comp);
 	public abstract void queueWriteObject(GameObject obj);
 	public abstract void queueWriteComponent(GameComponent comp);
+
+	public Game getGame() {
+		return game;
+	}
 
 }

@@ -1,18 +1,19 @@
 package com.spaghetti.input;
 
-import com.spaghetti.core.CoreComponent;
+import com.spaghetti.core.GameThread;
 import com.spaghetti.core.Game;
+import com.spaghetti.core.ThreadComponent;
 import com.spaghetti.utils.Logger;
 import com.spaghetti.utils.ThreadUtil;
 
-public class UpdaterCore extends CoreComponent {
+public class UpdaterComponent implements ThreadComponent {
 
 	protected int fps;
 	protected long lastCheck;
+	protected Game game;
 
 	@Override
-	protected void loopEvents(float delta) throws Throwable {
-		Game game = getGame();
+	public void loop(float delta) throws Throwable {
 		try {
 			if (!game.isHeadless()) {
 				game.getInputDispatcher().update();
@@ -37,23 +38,22 @@ public class UpdaterCore extends CoreComponent {
 	}
 
 	@Override
-	protected void initialize0() throws Throwable {
-
+	public void initialize(Game game) throws Throwable {
+		this.game = game;
 	}
 
 	@Override
-	protected void preTerminate() throws Throwable {
-		getGame().getGameState().destroy();
+	public void postInitialize() throws Throwable {
 	}
 
 	@Override
-	protected void terminate0() throws Throwable {
-
+	public void preTerminate() throws Throwable {
+		game.getGameState().destroy();
 	}
 
 	@Override
-	protected final CoreComponent provideSelf() {
-		return getGame().getUpdater();
+	public void terminate() throws Throwable {
+
 	}
 
 }

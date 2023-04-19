@@ -70,7 +70,7 @@ public class Camera extends GameObject {
 			getGame().setLocalCamera(null);
 		}
 		if (!getGame().isHeadless()) {
-			getGame().getRendererDispatcher().queueVoid(renderTarget::unload, true);
+			getGame().getPrimaryDispatcher().queueVoid(renderTarget::unload, true);
 		}
 	}
 

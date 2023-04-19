@@ -10,16 +10,17 @@ import com.spaghetti.core.events.GameStoppingEvent;
 import com.spaghetti.events.EventDispatcher;
 import com.spaghetti.input.Controller;
 import com.spaghetti.input.InputDispatcher;
-import com.spaghetti.input.UpdaterCore;
-import com.spaghetti.networking.ClientCore;
-import com.spaghetti.networking.NetworkCore;
-import com.spaghetti.networking.ServerCore;
+import com.spaghetti.input.UpdaterComponent;
+import com.spaghetti.networking.ClientComponent;
+import com.spaghetti.networking.NetworkComponent;
+import com.spaghetti.networking.ServerComponent;
 import com.spaghetti.render.Camera;
-import com.spaghetti.render.RendererCore;
+import com.spaghetti.render.RendererComponent;
 import com.spaghetti.utils.FunctionDispatcher;
 import com.spaghetti.utils.GameSettings;
 import com.spaghetti.utils.Logger;
 import com.spaghetti.utils.ThreadUtil;
+import com.spaghetti.world.GameComponent;
 import com.spaghetti.world.GameObject;
 import com.spaghetti.world.GameState;
 import com.spaghetti.world.Level;
@@ -29,8 +30,8 @@ public final class Game {
 	// Support for multiple instances of the engine
 	// in the same java process
 	protected static ArrayList<Game> games = new ArrayList<>();
-	protected static HashMap<Long, Game> links = new HashMap<>();
-	protected static Object handlerLock = new Object();
+	private static HashMap<Long, Game> links = new HashMap<>();
+	private static Object handlerLock = new Object();
 	protected static HandlerThread handlerThread;
 
 	private static void init() {
@@ -94,11 +95,14 @@ public final class Game {
 	private final Logger logger;
 
 	// Components
-	private final ArrayList<CoreComponent> components = new ArrayList<>(4);
-	private final UpdaterCore updater;
-	private final RendererCore renderer;
-	private final ClientCore client;
-	private final ServerCore server;
+	private final GameThread primary;
+	private final GameThread auxiliary;
+	private final ArrayList<GameThread> gameThreads = new ArrayList<>(2);
+	private final UpdaterComponent updater;
+	private final RendererComponent renderer;
+	private final ClientComponent client;
+	private final ServerComponent server;
+	private final ArrayList<ThreadComponent> threadComponents = new ArrayList<>(4);
 
 	// Initialization / Finalization
 	private final int index;
@@ -119,12 +123,12 @@ public final class Game {
 	private final boolean hasAuthority;
 
 	// Constructors using custom classes
-	public Game(Class<? extends UpdaterCore> updaterClass, Class<? extends RendererCore> rendererClass,
-			Class<? extends ClientCore> clientClass, Class<? extends ServerCore> serverClass,
-			Class<? extends EventDispatcher> eventDispatcherClass, Class<? extends GameSettings> gameOptionsClass,
-			Class<? extends AssetManager> assetManagerClass, Class<? extends InputDispatcher> inputDispatcherClass,
-			Class<? extends ClientState> clientStateClass, Class<? extends GameState> gameStateClass,
-			Class<? extends Logger> loggerClass) {
+	public Game(Class<? extends UpdaterComponent> updaterClass, Class<? extends RendererComponent> rendererClass,
+				Class<? extends ClientComponent> clientClass, Class<? extends ServerComponent> serverClass,
+				Class<? extends EventDispatcher> eventDispatcherClass, Class<? extends GameSettings> gameOptionsClass,
+				Class<? extends AssetManager> assetManagerClass, Class<? extends InputDispatcher> inputDispatcherClass,
+				Class<? extends ClientState> clientStateClass, Class<? extends GameState> gameStateClass,
+				Class<? extends Logger> loggerClass) {
 		// Sanity checks
 		if (clientClass != null && serverClass != null) {
 			throw new IllegalArgumentException("Cannot have both a client and a server in a Game");
@@ -139,27 +143,58 @@ public final class Game {
 			throw new IllegalArgumentException("Cannot have a client or a server without an updater in a Game");
 		}
 
+		// Initialize primary thread if an updater or renderer is present
+		if(updaterClass != null || rendererClass != null) {
+			primary = new GameThread() {
+				@Override
+				protected GameThread provideSelf() {
+					return primary;
+				}
+			};
+		} else {
+			primary = null;
+		}
+		// Initialize the auxiliary thread if a server or client is present
+		if(serverClass != null || clientClass != null) {
+			auxiliary = new GameThread() {
+				@Override
+				protected GameThread provideSelf() {
+					return auxiliary;
+				}
+			};
+		} else {
+			auxiliary = null;
+		}
+
 		// Initialize cores
 		try {
 			if (clientClass != null) {
-				this.client = clientClass.getConstructor().newInstance();
+				client = clientClass.getConstructor().newInstance();
+				threadComponents.add(client);
+				auxiliary.addComponent(client);
 			} else {
-				this.client = null;
+				client = null;
 			}
 			if (serverClass != null) {
-				this.server = serverClass.getConstructor().newInstance();
+				server = serverClass.getConstructor().newInstance();
+				threadComponents.add(server);
+				auxiliary.addComponent(server);
 			} else {
-				this.server = null;
+				server = null;
 			}
 			if (updaterClass != null) {
-				this.updater = updaterClass.getConstructor().newInstance();
+				updater = updaterClass.getConstructor().newInstance();
+				threadComponents.add(updater);
+				primary.addComponent(updater);
 			} else {
-				this.updater = null;
+				updater = null;
 			}
 			if (rendererClass != null) {
-				this.renderer = rendererClass.getConstructor().newInstance();
+				renderer = rendererClass.getConstructor().newInstance();
+				threadComponents.add(renderer);
+				primary.addComponent(renderer);
 			} else {
-				this.renderer = null;
+				renderer = null;
 			}
 		} catch (InstantiationException e) {
 			throw new RuntimeException("Error initializing a core: class is abstract", e);
@@ -178,26 +213,16 @@ public final class Game {
 		games.add(this);
 		this.index = games.indexOf(this);
 
-		// Register components
-		if (updater != null) {
-			this.components.add(updater);
-			this.updater.setName("UPDATER");
-			registerThread(this.updater);
+		// Register threads
+		if (primary != null) {
+			gameThreads.add(primary);
+			primary.setName("PRIMARY");
+			registerThread(primary.getThread());
 		}
-		if (renderer != null) {
-			this.components.add(renderer);
-			this.renderer.setName("RENDERER");
-			registerThread(this.renderer);
-		}
-		if (client != null) {
-			this.components.add(client);
-			this.client.setName("CLIENT");
-			registerThread(this.client);
-		}
-		if (server != null) {
-			this.components.add(server);
-			this.server.setName("SERVER");
-			registerThread(this.server);
+		if (auxiliary != null) {
+			gameThreads.add(auxiliary);
+			auxiliary.setName("AUXILIARY");
+			registerThread(auxiliary.getThread());
 		}
 
 		// Initialize global variables
@@ -279,53 +304,24 @@ public final class Game {
 		starting = true;
 
 		// First start all threads
-
 		Logger.loading(this, "Telling threads to start...");
-		if (updater != null) {
-			updater.start(this);
-		}
-		if (renderer != null) {
-			renderer.start(this);
-		}
-		if (client != null) {
-			client.start(this);
-		}
-		if (server != null) {
-			server.start(this);
+		for(GameThread thread : gameThreads) {
+			thread.start(this);
 		}
 
 		// Then wait for initialization
-
 		Logger.loading(this, "Waiting for initialization...");
-		if (updater != null) {
-			updater.waitInit();
+		for(GameThread thread : gameThreads) {
+			thread.waitInit();
 		}
-		if (renderer != null) {
-			renderer.waitInit();
-		}
-		if (client != null) {
-			client.waitInit();
-		}
-		if (server != null) {
-			server.waitInit();
+
+		// Allow threads to run
+		Logger.loading(this, "Allowing threads to run...");
+		for(GameThread thread : gameThreads) {
+			thread.allowRun();
 		}
 
 		// Mark this instance as initialized
-
-		Logger.loading(this, "Allowing threads to run...");
-		if (updater != null) {
-			updater.allowRun();
-		}
-		if (renderer != null) {
-			renderer.allowRun();
-		}
-		if (client != null) {
-			client.allowRun();
-		}
-		if (server != null) {
-			server.allowRun();
-		}
-
 		init = true;
 		starting = false;
 
@@ -344,83 +340,37 @@ public final class Game {
 		stopping = true;
 
 		// First send stop signal to all threads
-
 		Logger.info(this, "Telling threads to shut down...");
-		if (renderer != null) {
-			renderer.terminate();
-		}
-		if (updater != null) {
-			updater.terminate();
-		}
-		if (client != null) {
-			client.terminate();
-		}
-		if (server != null) {
-			server.terminate();
+		for(GameThread thread : gameThreads) {
+			thread.terminate();
 		}
 
 		// Wait for execution to stop
-
 		Logger.info(this, "Waiting for execution to end...");
-		if (updater != null) {
-			updater.waitExecution();
-		}
-		if (renderer != null) {
-			renderer.waitExecution();
-		}
-		if (client != null) {
-			client.waitExecution();
-		}
-		if (server != null) {
-			server.waitExecution();
+		for(GameThread thread : gameThreads) {
+			thread.waitExecution();
 		}
 
-		// Raise shutdown signal
-
+		// Raise shutdown event
 		Logger.info(this, "Dispatching stop event...");
 		eventDispatcher.raiseEvent(new GameStoppingEvent(this));
 
 		// Allow finalization to begin
-
 		Logger.info(this, "Allowing threads to stop...");
-		if (updater != null) {
-			updater.allowStop();
-		}
-		if (renderer != null) {
-			renderer.allowStop();
-		}
-		if (client != null) {
-			client.allowStop();
-		}
-		if (server != null) {
-			server.allowStop();
+		for(GameThread thread : gameThreads) {
+			thread.allowStop();
 		}
 
 		// Then wait for finalization
-
 		Logger.info(this, "Executing cleanup...");
-		if (updater != null) {
-			updater.waitTerminate();
-		}
-		if (renderer != null) {
-			renderer.waitTerminate();
-		}
-		if (client != null) {
-			client.waitTerminate();
-		}
-		if (server != null) {
-			server.waitTerminate();
+		for(GameThread thread : gameThreads) {
+			thread.waitTerminate();
 		}
 
-		internal_finishstop();
-	}
-
-	protected void internal_finishstop() {
 		stopped = true;
 		stopping = false;
 
 		Logger.info(this, "Stopped");
-		System.gc();
 	}
 
 	public void stopAsync() {
@@ -435,23 +385,31 @@ public final class Game {
 		return stopping;
 	}
 
-	public RendererCore getRenderer() {
+	public GameThread getPrimary() {
+		return primary;
+	}
+
+	public GameThread getAuxiliary() {
+		return auxiliary;
+	}
+
+	public RendererComponent getRenderer() {
 		return renderer;
 	}
 
-	public UpdaterCore getUpdater() {
+	public UpdaterComponent getUpdater() {
 		return updater;
 	}
 
-	public ClientCore getClient() {
+	public ClientComponent getClient() {
 		return client;
 	}
 
-	public ServerCore getServer() {
+	public ServerComponent getServer() {
 		return server;
 	}
 
-	public NetworkCore getNetworkManager() {
+	public NetworkComponent getNetworkManager() {
 		return client == null ? server : client;
 	}
 
@@ -489,22 +447,11 @@ public final class Game {
 	}
 
 	public boolean isDead() {
-		boolean updNull = updater == null;
-		boolean renderNull = renderer == null;
-		boolean clientNull = client == null;
-		boolean serverNull = server == null;
-
-		if (updNull && renderNull && clientNull && serverNull) {
-			return true;
+		for(GameThread thread : gameThreads) {
+			if(thread.stopped()) {
+				return true;
+			}
 		}
-
-		if ((!updNull && updater.stopped()) || (!renderNull && renderer.stopped())) {
-			return true;
-		}
-		if ((!clientNull && client.stopped()) || (!serverNull && server.stopped())) {
-			return true;
-		}
-
 		return false;
 	}
 
@@ -524,48 +471,36 @@ public final class Game {
 		return (delta / 1000f) * gameState.getTickMultiplier();
 	}
 
-	public long getUpdaterId() {
-		return updater.getId();
+	public long getPrimaryId() {
+		return primary.getThread().getId();
 	}
 
-	public long getRendererId() {
-		return renderer.getId();
+	public long getAuxiliaryId() {
+		return auxiliary.getThread().getId();
 	}
 
-	public long getClientId() {
-		return client.getId();
+	public FunctionDispatcher getPrimaryDispatcher() {
+		return primary.getDispatcher();
 	}
 
-	public long getServerId() {
-		return server.getId();
-	}
-
-	public FunctionDispatcher getUpdaterDispatcher() {
-		return updater.getDispatcher();
-	}
-
-	public FunctionDispatcher getRendererDispatcher() {
-		return renderer.getDispatcher();
-	}
-
-	public FunctionDispatcher getClientDispatcher() {
-		return client.getDispatcher();
-	}
-
-	public FunctionDispatcher getServerDispatcher() {
-		return server.getDispatcher();
-	}
-
-	public FunctionDispatcher getNetworkDispatcher() {
-		return getNetworkManager().getDispatcher();
+	public FunctionDispatcher getAuxiliaryDispatcher() {
+		return auxiliary.getDispatcher();
 	}
 
 	public int getComponentAmount() {
-		return components.size();
+		return threadComponents.size();
 	}
 
-	public CoreComponent getComponentAt(int index) {
-		return components.get(index);
+	public ThreadComponent getComponentAt(int index) {
+		return threadComponents.get(index);
+	}
+
+	public int getThreadAmount() {
+		return gameThreads.size();
+	}
+
+	public GameThread getThreadAt(int index) {
+		return gameThreads.get(index);
 	}
 
 	public AssetManager getAssetManager() {

@@ -1,13 +1,14 @@
 package com.spaghetti.networking.tcp;
 
-import com.spaghetti.networking.ClientCore;
+import com.spaghetti.core.Game;
+import com.spaghetti.networking.ClientComponent;
 import com.spaghetti.networking.ConnectionEndpoint;
 
-public class TCPClient extends ClientCore {
+public class TCPClient extends ClientComponent {
 
 	@Override
-	public void initialize0() throws Throwable {
-		super.initialize0();
+	public void initialize(Game game) throws Throwable {
+		super.initialize(game);
 	}
 
 	@Override
