@@ -68,8 +68,8 @@ public final class GameWindow {
 			this.savedHeight = height;
 
 			// GLFW native window initialization
-			boolean debug_context = (boolean) game.getEngineSetting("window.debugContext");
-			GLFW.glfwWindowHint(GLFW.GLFW_OPENGL_DEBUG_CONTEXT, debug_context ? GL11.GL_TRUE : GL11.GL_FALSE);
+			boolean debugContext = game.getEngineSetting("window.debugContext");
+			GLFW.glfwWindowHint(GLFW.GLFW_OPENGL_DEBUG_CONTEXT, debugContext ? GL11.GL_TRUE : GL11.GL_FALSE);
 
 			id = GLFW.glfwCreateWindow(width, height, title, 0, 0);
 			if (id == 0) {

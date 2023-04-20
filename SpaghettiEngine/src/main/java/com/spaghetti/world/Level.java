@@ -10,9 +10,7 @@ import java.util.function.Consumer;
 
 import com.spaghetti.core.Game;
 import com.spaghetti.input.Updatable;
-import com.spaghetti.render.RendererComponent;
 import com.spaghetti.utils.ReflectionUtil;
-import com.spaghetti.utils.Transform;
 
 public final class Level implements Updatable {
 
@@ -23,7 +21,7 @@ public final class Level implements Updatable {
 
 	protected boolean destroyed;
 	protected boolean attached;
-	protected final Game source;
+	protected final Game game;
 	protected final ArrayList<GameObject> objects = new ArrayList<>();
 	protected final ConcurrentHashMap<Integer, GameObject> o_ordered = new ConcurrentHashMap<>();
 	protected final ConcurrentHashMap<Integer, GameComponent> c_ordered = new ConcurrentHashMap<>();
@@ -34,7 +32,7 @@ public final class Level implements Updatable {
 		if(name == null) {
 			throw new NullPointerException();
 		}
-		this.source = game;
+		this.game = game;
 		this.name = name;
 	}
 
@@ -397,7 +395,7 @@ public final class Level implements Updatable {
 	// Other getters / setters
 
 	public Game getGame() {
-		return source;
+		return game;
 	}
 
 	public String getName() {

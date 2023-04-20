@@ -569,7 +569,7 @@ public class GameObject implements Updatable, Renderable, Replicable {
 	}
 
 	public final Game getGame() {
-		return level == null ? Game.getInstance() : level.source;
+		return level == null ? Game.getInstance() : level.game;
 	}
 
 	/**
@@ -581,7 +581,7 @@ public class GameObject implements Updatable, Renderable, Replicable {
 	 * @return
 	 */
 	protected final Game getGameDirect() {
-		return level.source;
+		return level.game;
 	}
 
 	public final int getId() {
@@ -656,8 +656,9 @@ public class GameObject implements Updatable, Renderable, Replicable {
 	// World interaction
 
 	protected final Vector3f relativePosition = new Vector3f();
-	protected final Vector3f relativeScale = new Vector3f(1, 1, 1);
+	protected final Vector3f relativeScale = new Vector3f(1);
 	protected final Vector3f relativeRotation = new Vector3f();
+
 
 	// Transform getters and setters
 
