@@ -45,6 +45,7 @@ public class GameSettings {
 		setEngineSetting("window.maximumSize", new Vector2i(resolution));
 		setEngineSetting("window.fullscreen", false);
 		setEngineSetting("window.resizable", true);
+		setEngineSetting("window.vsync", true);
 
 		setEngineSetting("window.debugContext", true);
 

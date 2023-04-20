@@ -687,28 +687,6 @@ public class GameObject implements Updatable, Renderable, Replicable {
 
 	// Position getters
 
-	protected void computeWorldPosition(Vector3f relativePosition,
-										Vector3f superPosition, Vector3f superRotation,
-										Vector3f pointer) {
-		pointer.zero();
-
-		if(parent == null) {
-			pointer.set(relativePosition);
-		} else {
-			float targetX = relativePosition.x;
-			float targetY = relativePosition.y;
-
-			float dist = MathUtil.distance(0, 0, relativePosition.x, relativePosition.y);
-			float angle = MathUtil.lookAt(relativePosition.x, relativePosition.y);
-			float targetAngle = angle + superRotation.z;
-
-			targetX = (float) (dist * Math.cos(targetAngle));
-			targetY = (float) (dist * Math.sin(targetAngle));
-
-			pointer.set(targetX + superPosition.x, targetY + superPosition.y, superPosition.z + relativePosition.z);
-		}
-	}
-
 	public final Vector3f getRelativePosition() {
 		return new Vector3f().set(relativePosition);
 	}

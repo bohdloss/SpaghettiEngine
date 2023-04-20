@@ -256,14 +256,16 @@ public final class GameWindow {
 
 	public void setX(int x) {
 		quickQueue(() -> {
-			GLFW.glfwSetWindowPos(id, x, getWindowY());
+			GLFW.glfwGetWindowPos(id, intx, inty);
+			GLFW.glfwSetWindowPos(id, x, inty[0]);
 			return null;
 		});
 	}
 
 	public void setY(int y) {
 		quickQueue(() -> {
-			GLFW.glfwSetWindowPos(id, getWindowX(), y);
+			GLFW.glfwGetWindowPos(id, intx, inty);
+			GLFW.glfwSetWindowPos(id, intx[0], y);
 			return null;
 		});
 	}
@@ -315,6 +317,10 @@ public final class GameWindow {
 
 	public void swap() {
 		GLFW.glfwSwapBuffers(id);
+	}
+
+	public void setVSync(boolean enabled) {
+		GLFW.glfwSwapInterval(enabled ? 1 : 0);
 	}
 
 	public void setFullscreen(boolean fullscreen) {
@@ -501,7 +507,7 @@ public final class GameWindow {
 
 	public void setIconified(boolean iconified) {
 		quickQueue(() -> {
-			if (iconified) {
+			if (isIconified()) {
 				GLFW.glfwIconifyWindow(id);
 			} else {
 				GLFW.glfwRestoreWindow(id);
@@ -517,7 +523,7 @@ public final class GameWindow {
 
 	public void setMaximized(boolean maximized) {
 		quickQueue(() -> {
-			if (maximized) {
+			if (isMaximized()) {
 				GLFW.glfwMaximizeWindow(id);
 			} else {
 				GLFW.glfwRestoreWindow(id);
@@ -528,12 +534,8 @@ public final class GameWindow {
 	}
 
 	private Object quickQueue(Function action) {
-		try {
-			long funcId = Game.handlerThread.dispatcher.queue(action);
-			return async ? null : Game.handlerThread.dispatcher.waitReturnValue(funcId);
-		} catch (Throwable t) {
-			throw new RuntimeException(t);
-		}
+		long funcId = Game.handlerThread.dispatcher.queue(action);
+		return async ? null : Game.handlerThread.dispatcher.waitReturnValue(funcId);
 	}
 
 	public boolean isAsync() {

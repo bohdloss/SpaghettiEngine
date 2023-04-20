@@ -133,7 +133,9 @@ public class RendererComponent implements ThreadComponent {
 		GL11.glEnable(GL11.GL_DEPTH_TEST);
 		GL11.glDepthFunc(GL11.GL_LEQUAL);
 		GL11.glDisable(GL11.GL_LIGHTING);
-		GLFW.glfwSwapInterval(1);
+
+		// Requires OpenGL context
+		window.setVSync(game.getEngineSetting("window.vsync"));
 
 		sceneRenderer = new Model(new float[] { -1f, 1f, 0f, 1f, 1f, 0f, 1f, -1f, 0f, -1f, -1f, 0 },
 				new float[] { 0f, 0f, 1f, 0f, 1f, 1f, 0f, 1f }, new float[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
