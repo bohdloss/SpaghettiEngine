@@ -14,7 +14,7 @@ Every dependency is included in the pom.xml file
 
 Spaghetti engine features:
 - Asset import system (models, textures, shaders, and custom asset types too)
-- Multithread asset manager and loader
+- Multithreaded asset manager and loader~~~~
 - Levels, game components and game objects framework
 - Highly customizable and easy to use networking support
 
@@ -68,6 +68,9 @@ First step necessary to do anything else
 
 The code is:
 ```java
+// Initialize Game
+Game.initialize();
+
 // Initialize an instance
 GameBuilder builder = new GameBuilder();
 builder.enableRenderer();
@@ -80,7 +83,9 @@ GameState state = game.getGameState();
 state.setGameMode(new DemoMode(state));
 
 // Start game threads (will initialize the provided components)
-myGame.begin();
+myGame.beginAsync();
+
+Game.idle();
 ```
 
 ### How to create a Level and place a rotating Mesh into it
@@ -96,15 +101,15 @@ public class MyGameMode {
 
     protected void initialize0() {
         // Abort the initialization in multiplayer unless we are the server
-        if (!game.hasAuthority()) {
+        if (!getGame().hasAuthority()) {
             return;
         }
         
         // Create a new Level
-        myLevel = game.addLevel("myLevel");
+        myLevel = getGame().addLevel("myLevel");
         
         // Set the level as the active one
-        game.activateLevel("myLevel");
+        getGame().activateLevel("myLevel");
 
         /*
          * You will need a Camera to render the scene
@@ -121,7 +126,7 @@ public class MyGameMode {
         myLevel.addObject(mesh);
 
         // Now the Renderer will use this camera to render the scene
-        game.setLocalCamera(camera);
+        getGame().setLocalCamera(camera);
     }
 }
 ```
@@ -145,7 +150,7 @@ public class RotatingMesh {
     }
 }
 ```
-All the following code can be found in the demo pacakge of this repository (```com.spaghetti.demo```)
+All the following code can be found in the demo package of this repository (```com.spaghetti.demo```)
 
 To understand how to actually import your assets read the next example
 

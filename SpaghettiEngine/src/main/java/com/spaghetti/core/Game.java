@@ -54,11 +54,19 @@ public final class Game {
 		}
 	}
 
+	public static void loop() {
+		GameWindow.loop();
+	}
+
+	public static void terminate() {
+		GameWindow.terminate();
+	}
+
 	public static void idle() {
-		GameWindow.idle();
 		while(handlerThread != null) {
-			ThreadUtil.sleep(500);
+			loop();
 		}
+		terminate();
 	}
 
 	// Stop all instances
@@ -104,7 +112,7 @@ public final class Game {
 	private final EventDispatcher eventDispatcher;
 	private final GameState gameState;
 	private final ClientState clientState;
-	private final GameSettings options;
+	private final GameSettings settings;
 	private final InputDispatcher inputDispatcher;
 	private final Logger logger;
 
@@ -130,6 +138,7 @@ public final class Game {
 	protected ArrayList<Game> dependencies = new ArrayList<>();
 
 	// Cached booleans
+	private final boolean currentAsPrimary;
 	private final boolean isHeadless;
 	private final boolean isClient;
 	private final boolean isServer;
@@ -157,9 +166,30 @@ public final class Game {
 			throw new IllegalArgumentException("Cannot have a client or a server without an updater in a Game");
 		}
 
+		// Initialize global variables
+		try {
+			this.eventDispatcher = eventDispatcherClass.getConstructor(Game.class).newInstance(this);
+			this.settings = gameOptionsClass.getConstructor(Game.class).newInstance(this);
+			this.assetManager = assetManagerClass.getConstructor(Game.class).newInstance(this);
+			this.inputDispatcher = inputDispatcherClass.getConstructor(Game.class).newInstance(this);
+			this.gameState = gameStateClass.getConstructor(Game.class).newInstance(this);
+			this.clientState = clientStateClass.getConstructor(Game.class).newInstance(this);
+			this.logger = loggerClass.getConstructor(Game.class).newInstance(this);
+		} catch (InstantiationException e) {
+			throw new RuntimeException("Error initializing an object: class is abstract", e);
+		} catch (InvocationTargetException e) {
+			throw new RuntimeException("Error initializing an object: exception in constructor", e);
+		} catch (NoSuchMethodException e) {
+			throw new RuntimeException("Error initializing an object: please define a constructor taking Game as the only argument", e);
+		} catch (IllegalAccessException e) {
+			throw new RuntimeException("Error initializing an object: constructor is private", e);
+		}
+
+		currentAsPrimary = settings.getEngineSetting("engine.useCurrentThreadAsPrimary");
+
 		// Initialize primary thread if an updater or renderer is present
 		if(updaterClass != null || rendererClass != null) {
-			primary = new GameThread() {
+			primary = new GameThread(currentAsPrimary ? Thread.currentThread() : null) {
 				@Override
 				protected GameThread provideSelf() {
 					return primary;
@@ -234,25 +264,6 @@ public final class Game {
 			gameThreads.add(auxiliary);
 			auxiliary.setName("AUXILIARY");
 			registerThread(auxiliary.getThread());
-		}
-
-		// Initialize global variables
-		try {
-			this.eventDispatcher = eventDispatcherClass.getConstructor(Game.class).newInstance(this);
-			this.options = gameOptionsClass.getConstructor(Game.class).newInstance(this);
-			this.assetManager = assetManagerClass.getConstructor(Game.class).newInstance(this);
-			this.inputDispatcher = inputDispatcherClass.getConstructor(Game.class).newInstance(this);
-			this.gameState = gameStateClass.getConstructor(Game.class).newInstance(this);
-			this.clientState = clientStateClass.getConstructor(Game.class).newInstance(this);
-			this.logger = loggerClass.getConstructor(Game.class).newInstance(this);
-		} catch (InstantiationException e) {
-			throw new RuntimeException("Error initializing an object: class is abstract", e);
-		} catch (InvocationTargetException e) {
-			throw new RuntimeException("Error initializing an object: exception in constructor", e);
-		} catch (NoSuchMethodException e) {
-			throw new RuntimeException("Error initializing an object: please define a constructor taking Game as the only argument", e);
-		} catch (IllegalAccessException e) {
-			throw new RuntimeException("Error initializing an object: constructor is private", e);
 		}
 
 		// Cache booleans
@@ -339,12 +350,22 @@ public final class Game {
 		eventDispatcher.raiseEvent(new GameStartedEvent(this));
 
 		Logger.info(this, "Ready!");
+
+		if(currentAsPrimary) {
+			primary.allowRunDelayed();
+		}
 	}
 
 	public void beginAsync() {
-		Thread startThread = new Thread(() -> {
-			begin();
-		});
+		Thread startThread = new Thread() {
+			@Override
+			public void run() {
+				registerThread(this);
+				begin();
+				unregisterThread(this);
+			}
+		};
+		startThread.setName("GAME STARTER " + startThread.hashCode());
 		startThread.start();
 	}
 
@@ -525,8 +546,8 @@ public final class Game {
 		return assetManager;
 	}
 
-	public GameSettings getOptions() {
-		return options;
+	public GameSettings getSettings() {
+		return settings;
 	}
 
 	public InputDispatcher getInputDispatcher() {
@@ -614,27 +635,27 @@ public final class Game {
 	}
 
 	public void setEngineSetting(String name, Object option) {
-		options.setEngineSetting(name, option);
+		settings.setEngineSetting(name, option);
 	}
 
 	public Object ngetEngineSetting(String name) {
-		return options.ngetEngineSetting(name);
+		return settings.ngetEngineSetting(name);
 	}
 
 	public <T> T getEngineSetting(String name) {
-		return options.<T>getEngineSetting(name);
+		return settings.<T>getEngineSetting(name);
 	}
 
 	public void setSetting(String name, Object option) {
-		options.setSetting(name, option);
+		settings.setSetting(name, option);
 	}
 
 	public Object ngetSetting(String name) {
-		return options.ngetSetting(name);
+		return settings.ngetSetting(name);
 	}
 
 	public <T> T getSetting(String name) {
-		return options.<T>getSetting(name);
+		return settings.<T>getSetting(name);
 	}
 
 }

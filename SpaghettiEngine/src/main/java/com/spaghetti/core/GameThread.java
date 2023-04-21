@@ -10,6 +10,7 @@ import java.util.List;
 public abstract class GameThread {
 
 	private Thread thread;
+	private boolean isMain;
 	private volatile Game game;
 	private final FunctionDispatcher functionDispatcher;
 	private volatile boolean stop;
@@ -30,6 +31,8 @@ public abstract class GameThread {
 	public GameThread(Thread thread) {
 		if(thread == null) {
 			thread = new Thread(() -> run());
+		} else {
+			isMain = true;
 		}
 		this.thread = thread;
 		functionDispatcher = new FunctionDispatcher(thread);
@@ -57,8 +60,12 @@ public abstract class GameThread {
 	}
 
 	public final void waitInit() {
-		while (!initialized()) {
-			ThreadUtil.sleep(1);
+		if(isMain) {
+			runInit();
+		} else {
+			while (!initialized()) {
+				ThreadUtil.sleep(1);
+			}
 		}
 	}
 
@@ -82,6 +89,12 @@ public abstract class GameThread {
 		allowRun = true;
 	}
 
+	public final void allowRunDelayed() {
+		if(isMain) {
+			runLoop();
+		}
+	}
+
 	public final void allowStop() {
 		if (!validStopping()) {
 			throw new IllegalStateException(
@@ -95,7 +108,9 @@ public abstract class GameThread {
 		if (!validStarting()) {
 			throw new IllegalStateException("Error: attempted to start core thread outside the context of a game");
 		}
-		thread.start();
+		if(!isMain) {
+			thread.start();
+		}
 	}
 
 	public final void start(Game game) {
@@ -108,6 +123,11 @@ public abstract class GameThread {
 
 
 	public final void run() {
+		runInit();
+		runLoop();
+	}
+
+	private void runInit() {
 		run = true;
 		if (Thread.currentThread().getId() != thread.getId()) {
 			throw new IllegalStateException("Error: run() called but no new thread started");
@@ -120,14 +140,16 @@ public abstract class GameThread {
 			_uncaught(t);
 			stop = true;
 		}
+	}
 
+	private void runLoop() {
 		// Game loop
 		try {
 			while (!allowRun) {
 				functionDispatcher.computeEvents();
 				ThreadUtil.sleep(1);
 			}
-			for(ThreadComponent component : componentList) {
+			for (ThreadComponent component : componentList) {
 				component.postInitialize();
 			}
 			while (!stop) {
@@ -142,11 +164,14 @@ public abstract class GameThread {
 
 				// Compute queued operations
 				functionDispatcher.computeEvents();
-				for(ThreadComponent component : componentList) {
+				if(isMain) {
+					Game.loop();
+				}
+				for (ThreadComponent component : componentList) {
 					component.loop(game.getTickMultiplier(delta));
 				}
 			}
-			for(ThreadComponent component : componentList) {
+			for (ThreadComponent component : componentList) {
 				component.preTerminate();
 			}
 		} catch (Throwable t) {
@@ -169,6 +194,9 @@ public abstract class GameThread {
 			}
 		} catch(Throwable t) {
 			_uncaught(t);
+		}
+		if(isMain) {
+			Game.terminate();
 		}
 
 		// Final chance to handle some requests

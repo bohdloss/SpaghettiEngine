@@ -27,7 +27,6 @@ public class InputDispatcher {
 
 	public InputDispatcher(Game game) {
 		this.game = game;
-		this.window = game.getRenderer() == null ? null : game.getWindow();
 
 		// Initialize variables
 		mouseButtons = new boolean[GLFW.GLFW_MOUSE_BUTTON_LAST];
@@ -36,6 +35,9 @@ public class InputDispatcher {
 	}
 
 	public void update() {
+		if(window == null) {
+			window = game.getWindow();
+		}
 
 		// Fire mouse movement events
 		Vector2i pointer = new Vector2i();

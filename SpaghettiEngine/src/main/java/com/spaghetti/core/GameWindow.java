@@ -15,7 +15,6 @@ import org.lwjgl.glfw.GLFWWindowSizeCallback;
 import org.lwjgl.opengl.GL11;
 
 import com.spaghetti.render.Camera;
-import org.lwjgl.system.CallbackI;
 
 public final class GameWindow {
 
@@ -23,24 +22,29 @@ public final class GameWindow {
 
 		public static FunctionDispatcher dispatcher;
 
-		public static void init() {
-			dispatcher = new FunctionDispatcher(Thread.currentThread());
-		}
-
-		public static void loop() {
+		public static void initialize() {
 			if(!GraphicsEnvironment.isHeadless()) {
+				dispatcher = new FunctionDispatcher(Thread.currentThread());
 				GLFW.glfwInit();
 				GLFW.glfwSetErrorCallback((error, description) -> {
 					throw new GLFWException(error, description);
 				});
-				while(Game.handlerThread != null) {
-					// This makes sure windows can be interacted with
-					// In Windows this also unties the renderer from
-					// any window event
-					GLFW.glfwPollEvents();
-					dispatcher.computeEvents();
-					ThreadUtil.sleep(1);
-				}
+			}
+		}
+
+		public static void loop() {
+			if(!GraphicsEnvironment.isHeadless()) {
+				// This makes sure windows can be interacted with
+				// In Windows this also unties the renderer from
+				// any window event
+				GLFW.glfwPollEvents();
+				dispatcher.computeEvents();
+				ThreadUtil.sleep(1);
+			}
+		}
+
+		public static void terminate() {
+			if(!GraphicsEnvironment.isHeadless()) {
 				GLFW.glfwTerminate();
 			}
 		}
@@ -48,11 +52,15 @@ public final class GameWindow {
 	}
 
 	public static void initialize() {
-		GLFWThread.init();
+		GLFWThread.initialize();
 	}
 
-	public static void idle() {
+	public static void loop() {
 		GLFWThread.loop();
+	}
+
+	public static void terminate() {
+		GLFWThread.terminate();
 	}
 
 	// Instance fields and methods

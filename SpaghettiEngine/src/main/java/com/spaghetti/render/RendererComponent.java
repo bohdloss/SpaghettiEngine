@@ -223,9 +223,8 @@ public class RendererComponent implements ThreadComponent {
 				game.getEventDispatcher().raiseEvent(event);
 
 				// Event cancelled, do not close the window
-				if(event.isCancelled()) {
-					window.setShouldClose(false);
-				} else {
+				window.setShouldClose(false);
+				if(!event.isCancelled()) {
 					game.stopAsync();
 				}
 			}

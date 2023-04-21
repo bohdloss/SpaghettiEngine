@@ -38,6 +38,7 @@ public class GameSettings {
 		setEngineSetting("stopTimeout", 10000L); // 10 s
 		setEngineSetting("assets.assetSheet", "/res/main.txt");
 		setEngineSetting("assets.internalSheet", "/internal/internal_assets.txt");
+		setEngineSetting("engine.useCurrentThreadAsPrimary", false);
 
 		// Game window
 		setEngineSetting("window.size", new Vector2i(400, 400));
@@ -76,27 +77,27 @@ public class GameSettings {
 	// Public getters and setters
 
 	public static final void ssetEngineSetting(String name, Object value) {
-		Game.getInstance().getOptions().setEngineSetting(name, value);
+		Game.getInstance().getSettings().setEngineSetting(name, value);
 	}
 
 	public static final Object sngetEngineSetting(String name) {
-		return Game.getInstance().getOptions().ngetEngineSetting(name);
+		return Game.getInstance().getSettings().ngetEngineSetting(name);
 	}
 
 	public static final <T> T sgetEngineSetting(String name) {
-		return Game.getInstance().getOptions().<T>getEngineSetting(name);
+		return Game.getInstance().getSettings().<T>getEngineSetting(name);
 	}
 
 	public static final void ssetSetting(String name, Object value) {
-		Game.getInstance().getOptions().setSetting(name, value);
+		Game.getInstance().getSettings().setSetting(name, value);
 	}
 
 	public static final Object sngetSetting(String name) {
-		return Game.getInstance().getOptions().ngetSetting(name);
+		return Game.getInstance().getSettings().ngetSetting(name);
 	}
 
 	public static final <T> T sgetSetting(String name) {
-		return Game.getInstance().getOptions().<T>getSetting(name);
+		return Game.getInstance().getSettings().<T>getSetting(name);
 	}
 
 	public final void setEngineSetting(String name, Object value) {
