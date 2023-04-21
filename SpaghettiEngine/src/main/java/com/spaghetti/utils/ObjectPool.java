@@ -18,10 +18,18 @@ public class ObjectPool<T> {
         return pool;
     }
 
+    public static <T> T sget(Class<T> cls) {
+        return getOrCreate(cls).get();
+    }
+
+    public static <T> void sdrop(Class<T> cls, T object) {
+        getOrCreate(cls).drop(object);
+    }
+
     protected final int poolSize;
     protected final List<ObjectEntry> objects;
     protected int getPointer;
-    protected final Map<Object, ObjectEntry> indexes;
+    protected int dropPointer;
     protected final Class<T> cls;
 
     /**
@@ -31,13 +39,12 @@ public class ObjectPool<T> {
      * @param cls The class of the object
      */
     public ObjectPool(Class<T> cls) {
-        this(100, cls);
+        this(10, cls);
     }
 
     public ObjectPool(int poolSize, Class<T> cls) {
         this.poolSize = poolSize;
         this.objects = new ArrayList<>(poolSize);
-        this.indexes = new HashMap<>(poolSize);
         this.cls = cls;
         for(int i = 0; i < poolSize; i++) {
             ObjectEntry entry = new ObjectEntry();
@@ -69,12 +76,11 @@ public class ObjectPool<T> {
 
             if(!entry.inUse) {
                 entry.inUse = true;
-                indexes.put(entry.object, entry);
                 return (T) entry.object;
             }
 
             cycles++;
-            if(cycles > poolSize) {
+            if(cycles >= poolSize) {
                 try {
                     return cls.newInstance();
                 } catch (InstantiationException e) {
@@ -93,10 +99,27 @@ public class ObjectPool<T> {
      * @param object The object to return
      */
     public synchronized void drop(T object) {
-        ObjectEntry entry = indexes.get(object);
-        if(entry != null) {
-            entry.inUse = false;
+        int cycles = 0;
+        while(true) {
+            ObjectEntry entry = objects.get(dropPointer--);
+            if (dropPointer == -1) {
+                dropPointer = poolSize - 1;
+            }
+
+            if(entry.object == object) {
+                entry.inUse = false;
+                return;
+            }
+
+            cycles++;
+            if(cycles >= poolSize) {
+                return;
+            }
         }
+    }
+
+    public int getPoolSize() {
+        return poolSize;
     }
 
     private class ObjectEntry {
