@@ -16,7 +16,7 @@ public final class Level implements Updatable {
 
 	private static final Field o_level = ReflectionUtil.getPrivateField(GameObject.class, "level");
 	private static final Field o_parent = ReflectionUtil.getPrivateField(GameObject.class, "parent");
-	private static final Method o_setflag = ReflectionUtil.getPrivateMethod(GameObject.class, "internal_setflag", int.class,
+	private static final Method o_setflag = ReflectionUtil.getPrivateMethod(GameObject.class, "setFlag", int.class,
 			boolean.class);
 
 	protected boolean destroyed;
@@ -38,13 +38,13 @@ public final class Level implements Updatable {
 
 	protected void onBeginPlay() {
 		for (GameObject obj : objects) {
-			obj.onbegin_forward();
+			obj.doRecursiveBegin();
 		}
 	}
 
 	protected void onEndPlay() {
 		for (GameObject obj : objects) {
-			obj.onend_forward();
+			obj.doRecursiveEnd();
 		}
 	}
 
@@ -96,7 +96,7 @@ public final class Level implements Updatable {
 		} catch (Throwable t) {
 		}
 		if (isAttached()) {
-			object.onbegin_forward();
+			object.doRecursiveBegin();
 		}
 	}
 
@@ -120,7 +120,7 @@ public final class Level implements Updatable {
 			return null;
 		}
 
-		object.onend_forward();
+		object.doRecursiveEnd();
 		synchronized(objects) {
 			objects.remove(object);
 		}

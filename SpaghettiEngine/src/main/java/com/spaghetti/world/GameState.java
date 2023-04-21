@@ -51,7 +51,7 @@ public class GameState implements Updatable, Replicable {
 
 	public GameState(Game game) {
 		this.game = game;
-		this.gameMode = new EmptyMode(this);
+		this.gameMode = new EmptyMode();
 	}
 
 	// Update
@@ -182,9 +182,6 @@ public class GameState implements Updatable, Replicable {
 	public void setGameMode(GameMode gameMode) {
 		if(gameMode == null) {
 			throw new NullPointerException();
-		}
-		if(gameMode.gameState != this) {
-			throw new IllegalArgumentException();
 		}
 		if(this.gameMode != null) {
 			this.gameMode.destroy();

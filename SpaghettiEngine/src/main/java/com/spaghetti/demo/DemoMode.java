@@ -35,18 +35,14 @@ public class DemoMode extends GameMode {
 
     protected GameObject floorContainer;
 
-    public DemoMode(GameState state) {
-        super(state);
-    }
-
     @Override
     public void onBeginPlay() {
-        if (!game.hasAuthority()) {
+        if (!getGame().hasAuthority()) {
             return;
         }
 
-        level = game.addLevel("myWorld");
-        game.activateLevel("myWorld");
+        level = getGame().addLevel("myWorld");
+        getGame().activateLevel("myWorld");
 
         // Init physics world
         level.addObject(Physics2D.getInstance());
@@ -107,7 +103,7 @@ public class DemoMode extends GameMode {
 //		}
 
         // Init local player
-        if (!game.isMultiplayer()) {
+        if (!getGame().isMultiplayer()) {
             Player p = new Player();
             p.setRelativePosition(0, 10, 0);
             level.addObject(p);

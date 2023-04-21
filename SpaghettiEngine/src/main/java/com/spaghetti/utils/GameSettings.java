@@ -28,8 +28,8 @@ public class GameSettings {
 				resolution.x = dimension.width;
 				resolution.y = dimension.height;
 			} catch (Throwable t) {
-				resolution.x = 1;
-				resolution.y = 1;
+				resolution.x = 256;
+				resolution.y = 256;
 			}
 		}
 		setEngineSetting("openal.enable", true);
@@ -69,8 +69,8 @@ public class GameSettings {
 		setEngineSetting("log.logSeverity", Logger.DEBUG_SEVERITY);
 
 		// Physics
-		setEngineSetting("physics.d2.physicsClass", JBox2DPhysics.class.getName());
-		setEngineSetting("physics.d2.rigidBodyClass", JBox2DRigidBody.class.getName());
+		setEngineSetting("physics.d2.physicsClass", JBox2DPhysics.class);
+		setEngineSetting("physics.d2.rigidBodyClass", JBox2DRigidBody.class);
 	}
 
 	// Public getters and setters

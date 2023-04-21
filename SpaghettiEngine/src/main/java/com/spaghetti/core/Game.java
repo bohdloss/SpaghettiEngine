@@ -20,30 +20,44 @@ import com.spaghetti.utils.FunctionDispatcher;
 import com.spaghetti.utils.GameSettings;
 import com.spaghetti.utils.Logger;
 import com.spaghetti.utils.ThreadUtil;
-import com.spaghetti.world.GameComponent;
 import com.spaghetti.world.GameObject;
 import com.spaghetti.world.GameState;
 import com.spaghetti.world.Level;
 
+/**
+ * This class represents an instance of a game
+ * <br>
+ * It is your responsibility to call the initialize() method
+ * FROM THE MAIN THREAD before using this class,
+ * and to call idle() from the same thread.
+ * This will block until all game instances are dead.
+ * If you want to do something else in the meantime, create
+ * a new thread before calling idle()
+ *
+ */
 public final class Game {
 
 	// Support for multiple instances of the engine
 	// in the same java process
 	protected static ArrayList<Game> games = new ArrayList<>();
 	private static HashMap<Long, Game> links = new HashMap<>();
-	private static Object handlerLock = new Object();
+	private static Object initLock = new Object();
 	protected static HandlerThread handlerThread;
 
-	private static void init() {
-		synchronized(handlerLock) {
+	public static void initialize() {
+		synchronized(initLock) {
 			if (handlerThread == null) {
-				HandlerThread newThread = new HandlerThread();
-				handlerThread = newThread;
-				newThread.start();
-				while (newThread.dispatcher == null) {
-					ThreadUtil.sleep(1);
-				}
+				handlerThread = new HandlerThread();
+				handlerThread.start();
 			}
+			GameWindow.initialize();
+		}
+	}
+
+	public static void idle() {
+		GameWindow.idle();
+		while(handlerThread != null) {
+			ThreadUtil.sleep(500);
 		}
 	}
 
@@ -206,9 +220,6 @@ public final class Game {
 			throw new RuntimeException("Error initializing a core: constructor is private", e);
 		}
 
-		// Possibly initialize HANDLER and GLFW
-		init();
-
 		// Initialize Handler hints
 		games.add(this);
 		this.index = games.indexOf(this);
@@ -328,6 +339,13 @@ public final class Game {
 		eventDispatcher.raiseEvent(new GameStartedEvent(this));
 
 		Logger.info(this, "Ready!");
+	}
+
+	public void beginAsync() {
+		Thread startThread = new Thread(() -> {
+			begin();
+		});
+		startThread.start();
 	}
 
 	// Getters

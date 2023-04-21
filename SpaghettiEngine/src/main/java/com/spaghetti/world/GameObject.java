@@ -52,20 +52,20 @@ public class GameObject implements Updatable, Renderable, Replicable {
 
 	public GameObject() {
 		this.id = IdProvider.newId(getGame());
-		internal_setflag(REPLICATE, true);
-		internal_setflag(AWAKE, true);
-		internal_setflag(VISIBLE, true);
+		setFlag(REPLICATE, true);
+		setFlag(AWAKE, true);
+		setFlag(VISIBLE, true);
 	}
 
 	// Utility
 
-	private final void internal_setflag(int flag, boolean value) {
+	private final void setFlag(int flag, boolean value) {
 		synchronized (flags_lock) {
 			flags = HashUtil.bitAt(flags, flag, value);
 		}
 	}
 
-	private final boolean internal_getflag(int flag) {
+	private final boolean getFlag(int flag) {
 		synchronized (flags_lock) {
 			return HashUtil.bitAt(flags, flag);
 		}
@@ -101,7 +101,7 @@ public class GameObject implements Updatable, Renderable, Replicable {
 		}
 
 		// If 'object' is attached, cut away its owners (onEndPlay opportunity here)
-		if (object.internal_getflag(ATTACHED)) {
+		if (object.getFlag(ATTACHED)) {
 			if (object.parent == null) {
 				// If this object has no parent remove it from the level directly
 				if (object.level != null) {
@@ -114,19 +114,19 @@ public class GameObject implements Updatable, Renderable, Replicable {
 		}
 
 		// Update the level pointers and add elements to level
-		internal_updatelevel(object);
+		addObjectPointersToLevel(object);
 
 		// Finally add the object, set flags and activate the object (onBeginPlay
 		// triggers)
 		object.parent = this;
 		children.put(object.id, object);
-		object.internal_setflag(ATTACHED, true);
+		object.setFlag(ATTACHED, true);
 		if (isGloballyAttached()) {
-			object.onbegin_forward();
+			object.doRecursiveBegin();
 		}
 	}
 
-	private final void internal_updatelevel(GameObject object) {
+	private final void addObjectPointersToLevel(GameObject object) {
 		object.level = level;
 		if (isGloballyAttached()) {
 			level.o_ordered.put(object.id, object);
@@ -135,7 +135,7 @@ public class GameObject implements Updatable, Renderable, Replicable {
 			});
 		}
 		object.children.forEach((id, child) -> {
-			internal_updatelevel(child);
+			addObjectPointersToLevel(child);
 		});
 	}
 
@@ -374,7 +374,7 @@ public class GameObject implements Updatable, Renderable, Replicable {
 		if (object != null) {
 			if (isGloballyAttached()) {
 				// Trigger end
-				object.onend_forward();
+				object.doRecursiveEnd();
 				// Remove from level
 				level.o_ordered.remove(id);
 			}
@@ -383,7 +383,7 @@ public class GameObject implements Updatable, Renderable, Replicable {
 			object.parent = null;
 			object.level = null;
 			children.remove(id);
-			object.internal_setflag(ATTACHED, false);
+			object.setFlag(ATTACHED, false);
 
 			return object;
 		}
@@ -493,10 +493,10 @@ public class GameObject implements Updatable, Renderable, Replicable {
 		if (isDestroyed()) {
 			return;
 		}
-		ondestroy_forward();
+		doRecursiveDestroy();
 	}
 
-	private final void destroy_finalize() {
+	private final void doDestroy() {
 		if (parent == null) {
 			if (level != null) {
 				level.removeObject(id);
@@ -511,43 +511,43 @@ public class GameObject implements Updatable, Renderable, Replicable {
 		}
 		level = null;
 		parent = null;
-		internal_setflag(DESTROYED, true);
+		setFlag(DESTROYED, true);
 	}
 
-	protected final void onbegin_forward() {
-		onbegin_check();
+	protected final void doRecursiveBegin() {
+		doBegin();
 		for (Object obj : components.values().toArray()) {
 			GameComponent component = (GameComponent) obj;
 			component.onbegin_check();
 		}
 		for (Object obj : children.values().toArray()) {
 			GameObject object = (GameObject) obj;
-			object.onbegin_forward();
+			object.doRecursiveBegin();
 		}
 	}
 
-	protected final void onend_forward() {
+	protected final void doRecursiveEnd() {
 		for (Object obj : children.values().toArray()) {
 			GameObject object = (GameObject) obj;
-			object.onend_check();
+			object.doEnd();
 		}
 		for (Object obj : components.values().toArray()) {
 			GameComponent component = (GameComponent) obj;
 			component.onend_check();
 		}
-		onend_check();
+		doEnd();
 	}
 
-	protected final void ondestroy_forward() {
+	protected final void doRecursiveDestroy() {
 		for (Object obj : children.values().toArray()) {
 			GameObject child = (GameObject) obj;
-			child.ondestroy_forward();
+			child.doRecursiveDestroy();
 		}
 		for (Object obj : components.values().toArray()) {
 			GameComponent component = (GameComponent) obj;
 			component.destroy();
 		}
-		destroy_finalize();
+		doDestroy();
 	}
 
 	// Getters
@@ -572,18 +572,6 @@ public class GameObject implements Updatable, Renderable, Replicable {
 		return level == null ? Game.getInstance() : level.game;
 	}
 
-	/**
-	 * Just like {@link #getGame()} but more likely to be optimized by the JIT compiler
-	 * <p>
-	 * Unlike the original function , it is undefined behaviour what happens if this function
-	 * is called while the object is not attached to a level
-	 *
-	 * @return
-	 */
-	protected final Game getGameDirect() {
-		return level.game;
-	}
-
 	public final int getId() {
 		return id;
 	}
@@ -600,20 +588,20 @@ public class GameObject implements Updatable, Renderable, Replicable {
 	}
 
 	public final boolean isDestroyed() {
-		return internal_getflag(DESTROYED);
+		return getFlag(DESTROYED);
 	}
 
 	public final boolean isLocallyAttached() {
-		return internal_getflag(ATTACHED);
+		return getFlag(ATTACHED);
 	}
 
 	public final boolean isGloballyAttached() {
-		if (!internal_getflag(ATTACHED)) {
+		if (!getFlag(ATTACHED)) {
 			return false;
 		}
 		GameObject obj = parent;
 		while (obj != null) {
-			if (!obj.internal_getflag(ATTACHED)) {
+			if (!obj.getFlag(ATTACHED)) {
 				return false;
 			}
 			obj = obj.parent;
@@ -622,35 +610,35 @@ public class GameObject implements Updatable, Renderable, Replicable {
 	}
 
 	public final boolean isInitialized() {
-		return internal_getflag(INITIALIZED);
+		return getFlag(INITIALIZED);
 	}
 
 	public final boolean isVisible() {
-		return internal_getflag(VISIBLE);
+		return getFlag(VISIBLE);
 	}
 
 	public final void setVisible(boolean visible) {
-		internal_setflag(VISIBLE, visible);
+		setFlag(VISIBLE, visible);
 	}
 
 	public final boolean isAwake() {
-		return internal_getflag(AWAKE);
+		return getFlag(AWAKE);
 	}
 
 	public final void setAwake(boolean awake) {
-		internal_setflag(AWAKE, awake);
+		setFlag(AWAKE, awake);
 	}
 
 	// Override for more precise control
 	@Override
 	public boolean needsReplication(ConnectionManager connection) {
-		boolean flag = internal_getflag(REPLICATE);
-		internal_setflag(REPLICATE, false);
+		boolean flag = getFlag(REPLICATE);
+		setFlag(REPLICATE, false);
 		return flag;
 	}
 
 	protected final void setReplicateFlag(boolean flag) {
-		internal_setflag(REPLICATE, flag);
+		setFlag(REPLICATE, flag);
 	}
 
 	// World interaction
@@ -1020,25 +1008,25 @@ public class GameObject implements Updatable, Renderable, Replicable {
 
 	// Interface methods
 
-	private final void onbegin_check() {
-		if (!internal_getflag(INITIALIZED)) {
+	private final void doBegin() {
+		if (!getFlag(INITIALIZED)) {
 			try {
 				onBeginPlay();
 			} catch (Throwable t) {
 				Logger.error("onBeginPlay() Error:", t);
 			}
-			internal_setflag(INITIALIZED, true);
+			setFlag(INITIALIZED, true);
 		}
 	}
 
-	private final void onend_check() {
-		if (internal_getflag(INITIALIZED)) {
+	private final void doEnd() {
+		if (getFlag(INITIALIZED)) {
 			try {
 				onEndPlay();
 			} catch (Throwable t) {
 				Logger.error("onEndPlay() Error:", t);
 			}
-			internal_setflag(INITIALIZED, false);
+			setFlag(INITIALIZED, false);
 		}
 	}
 
@@ -1053,7 +1041,7 @@ public class GameObject implements Updatable, Renderable, Replicable {
 
 	@Override
 	public final void update(float delta) {
-		if(!internal_getflag(AWAKE)) {
+		if(!getFlag(AWAKE)) {
 			return;
 		}
 
@@ -1109,7 +1097,7 @@ public class GameObject implements Updatable, Renderable, Replicable {
 	}
 
 	public final void render(Camera renderer, float delta) {
-		if(!internal_getflag(VISIBLE)) {
+		if(!getFlag(VISIBLE)) {
 			return;
 		}
 

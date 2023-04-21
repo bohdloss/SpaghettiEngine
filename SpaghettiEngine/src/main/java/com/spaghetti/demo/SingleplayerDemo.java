@@ -11,6 +11,8 @@ public class SingleplayerDemo {
 	public static Game game;
 
 	public static void main(String[] args) {
+		Game.initialize();
+
 		// Use a game builder
 		GameBuilder builder = new GameBuilder();
 		builder.enableRenderer();
@@ -32,12 +34,12 @@ public class SingleplayerDemo {
 		game.getInputDispatcher().registerListener(new FullscreenListener());
 
 		// Set custom game mode
-		GameState state = game.getGameState();
-		state.setGameMode(new DemoMode(state));
+		game.getGameState().setGameMode(new DemoMode());
 
 		// Initialize
-		game.begin();
+		game.beginAsync();
 
+		Game.idle();
 	}
 
 }

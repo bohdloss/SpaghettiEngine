@@ -17,17 +17,15 @@ import com.spaghetti.networking.ConnectionEndpoint;
  */
 public abstract class GameMode implements Updatable {
 
-	protected final Game game;
-	protected final GameState gameState;
+	private Game game;
 	private boolean initialized;
 
-	public GameMode(GameState gameState) {
-		this.gameState = gameState;
-		this.game = gameState.getGame();
+	public GameMode() {
 	}
 
 	public final void initialize() {
 		if(!initialized) {
+			game = Game.getInstance();
 			onBeginPlay();
 			initialized = true;
 		}
@@ -106,6 +104,10 @@ public abstract class GameMode implements Updatable {
 	 */
 	public void update(float delta) {
 
+	}
+
+	public Game getGame() {
+		return game;
 	}
 
 }

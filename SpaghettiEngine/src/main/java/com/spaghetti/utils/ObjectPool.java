@@ -9,7 +9,7 @@ public class ObjectPool<T> {
 
     private static Map<Class<?>, ObjectPool<?>> pools = new HashMap<>();
 
-    public static <T> ObjectPool<T> getOrCreate(Class<T> cls) {
+    public static synchronized <T> ObjectPool<T> getOrCreate(Class<T> cls) {
         ObjectPool<T> pool = (ObjectPool<T>) pools.get(cls);
         if(pool == null) {
             pool = new ObjectPool(cls);
@@ -18,19 +18,19 @@ public class ObjectPool<T> {
         return pool;
     }
 
-    public static <T> T sget(Class<T> cls) {
+    public static synchronized <T> T sget(Class<T> cls) {
         return getOrCreate(cls).get();
     }
 
-    public static <T> void sdrop(Class<T> cls, T object) {
+    public static synchronized <T> void sdrop(Class<T> cls, T object) {
         getOrCreate(cls).drop(object);
     }
 
     protected final int poolSize;
     protected final List<ObjectEntry> objects;
+    protected final Class<T> cls;
     protected int getPointer;
     protected int dropPointer;
-    protected final Class<T> cls;
 
     /**
      * Initializes a new Object pool for the given type.

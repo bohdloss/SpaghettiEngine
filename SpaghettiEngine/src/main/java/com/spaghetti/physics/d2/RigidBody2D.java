@@ -27,28 +27,10 @@ import java.lang.reflect.InvocationTargetException;
 
 public abstract class RigidBody2D extends RigidBody<Vector2f, Float> {
 
-	private static Class<? extends RigidBody2D> bodyClass;
-	private static String bodyClassName;
-
-	private static void updateClass() {
-		try {
-			// Change in body class, update class
-			String setting = GameSettings.sgetEngineSetting("physics.d2.rigidBodyClass");
-			if (!setting.equals(bodyClassName)) {
-				bodyClassName = setting;
-				bodyClass = (Class<? extends RigidBody2D>) Class.forName(bodyClassName);
-			}
-		} catch(ClassNotFoundException e) {
-			throw new RuntimeException(e);
-		}
-	}
-
 	public static RigidBody2D getInstance(BodyType type) {
 		try {
-			updateClass();
-
-			// Instantiate body and return
-			return bodyClass.getConstructor(BodyType.class).newInstance();
+			Class<? extends RigidBody2D> bodyClass = GameSettings.sgetEngineSetting("physics.d2.rigidBodyClass");
+			return bodyClass.getConstructor(BodyType.class).newInstance(type);
 		} catch(NoSuchMethodException | InstantiationException | InvocationTargetException | IllegalAccessException e) {
 			throw new RuntimeException(e);
 		}
@@ -56,9 +38,7 @@ public abstract class RigidBody2D extends RigidBody<Vector2f, Float> {
 
 	public static RigidBody2D getInstance() {
 		try {
-			updateClass();
-
-			// Instantiate body and return
+			Class<? extends RigidBody2D> bodyClass = GameSettings.sgetEngineSetting("physics.d2.rigidBodyClass");
 			return bodyClass.getConstructor().newInstance();
 		} catch(NoSuchMethodException | InstantiationException | InvocationTargetException | IllegalAccessException e) {
 			throw new RuntimeException(e);

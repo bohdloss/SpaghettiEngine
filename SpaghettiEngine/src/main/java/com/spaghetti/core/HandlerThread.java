@@ -11,30 +11,17 @@ import com.spaghetti.utils.ThreadUtil;
 public final class HandlerThread extends Thread {
 
 	protected boolean stop;
-	protected final FunctionDispatcher dispatcher;
 
 	public HandlerThread() {
 		super("HANDLER");
-		dispatcher = new FunctionDispatcher(this);
+		setPriority(Thread.MIN_PRIORITY);
 	}
 
 	@Override
 	public void run() {
-		if (!GraphicsEnvironment.isHeadless()) {
-			GLFW.glfwInit();
-			GLFW.glfwSetErrorCallback((error, description) -> {
-				throw new GLFWException(error, description);
-			});
-		}
 		while (!stop) {
 			try {
-				ThreadUtil.sleep(1);
-
-				// This makes sure windows can be interacted with
-				// In Windows this also unties the renderer from
-				// any window event
-				GameWindow.pollEvents();
-				dispatcher.computeEvents();
+				ThreadUtil.sleep(500);
 
 				boolean found = false;
 				for (Game game : Game.games) {
@@ -64,9 +51,6 @@ public final class HandlerThread extends Thread {
 			} catch (Throwable t) {
 				// Catch anything because we can't have this thread die
 			}
-		}
-		if (!GraphicsEnvironment.isHeadless()) {
-			GLFW.glfwTerminate();
 		}
 		Game.handlerThread = null;
 	}

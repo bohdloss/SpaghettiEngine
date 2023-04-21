@@ -75,40 +75,43 @@ public class RendererComponent implements ThreadComponent {
 		});
 
 		// Init window and obtain asset manager
+		window.setAsync(false);
 		window.winInit(game);
 		assetManager = game.getAssetManager();
 
 		// Initializes OpenGL
 		window.makeContextCurrent();
 		glCapabilities = GL.createCapabilities();
-		GL43.glDebugMessageCallback((source, type, id, severity, length, message, userParam) -> {
-			String message_str = MemoryUtil.memUTF8(message, length);
-			if(severity <= GL43.GL_DEBUG_SEVERITY_NOTIFICATION) {
-				Logger.debug(game, "[NOTIFICATION] OpenGL: ");
-				Logger.debug(game, "[NOTIFICATION] " + message_str);
-			} else if(severity <= GL43.GL_DEBUG_SEVERITY_LOW) {
-				Logger.debug(game, "[LOW] OpenGL: ");
-				Logger.debug(game, "[LOW] " + message_str);
-			} else {
-				GLException error = new GLException(source, type, id, severity, message_str);
+		if(GameSettings.sgetEngineSetting("window.debugContext")) {
+			GL43.glDebugMessageCallback((source, type, id, severity, length, message, userParam) -> {
+				String message_str = MemoryUtil.memUTF8(message, length);
+				if (severity <= GL43.GL_DEBUG_SEVERITY_NOTIFICATION) {
+					Logger.debug(game, "[NOTIFICATION] OpenGL: ");
+					Logger.debug(game, "[NOTIFICATION] " + message_str);
+				} else if (severity <= GL43.GL_DEBUG_SEVERITY_LOW) {
+					Logger.debug(game, "[LOW] OpenGL: ");
+					Logger.debug(game, "[LOW] " + message_str);
+				} else {
+					GLException error = new GLException(source, type, id, severity, message_str);
 
-				// Remove useless lines from stacktrace
-				final int useless_lines = 2;
-				StackTraceElement[] stack = error.getStackTrace();
-				StackTraceElement[] new_stack = new StackTraceElement[stack.length - useless_lines];
-				System.arraycopy(stack, useless_lines, new_stack, 0, new_stack.length);
-				error.setStackTrace(new_stack);
+					// Remove useless lines from stacktrace
+					final int useless_lines = 2;
+					StackTraceElement[] stack = error.getStackTrace();
+					StackTraceElement[] new_stack = new StackTraceElement[stack.length - useless_lines];
+					System.arraycopy(stack, useless_lines, new_stack, 0, new_stack.length);
+					error.setStackTrace(new_stack);
 
-				if(severity == GL43.GL_DEBUG_SEVERITY_MEDIUM) {
-					Logger.error(game, "[MEDIUM] OpenGL: ");
-					Logger.error(game, "[MEDIUM] " + message_str, error);
-				} else if(severity == GL43.GL_DEBUG_SEVERITY_HIGH) {
-					Logger.error(game, "[HIGH] OpenGL: ");
-					Logger.error(game, "[HIGH] " + message_str, error);
+					if (severity == GL43.GL_DEBUG_SEVERITY_MEDIUM) {
+						Logger.error(game, "[MEDIUM] OpenGL: ");
+						Logger.error(game, "[MEDIUM] " + message_str, error);
+					} else if (severity == GL43.GL_DEBUG_SEVERITY_HIGH) {
+						Logger.error(game, "[HIGH] OpenGL: ");
+						Logger.error(game, "[HIGH] " + message_str, error);
+					}
+
 				}
-
-			}
-		}, 0);
+			}, 0);
+		}
 
 		// Register asset loaders
 		assetManager.registerAssetLoader("Model", new ModelLoader());
@@ -203,10 +206,8 @@ public class RendererComponent implements ThreadComponent {
 		}
 
 		// Terminates OpenGL
-		boolean async = window.isAsync();
 		window.setAsync(true);
 		window.destroy();
-		window.setAsync(async);
 	}
 
 	@Override

@@ -5,8 +5,4 @@ import com.spaghetti.world.GameState;
 
 public class EmptyMode extends GameMode {
 
-    public EmptyMode(GameState gameState) {
-        super(gameState);
-    }
-
 }

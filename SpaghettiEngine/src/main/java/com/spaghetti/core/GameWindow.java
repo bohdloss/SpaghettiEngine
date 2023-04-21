@@ -1,8 +1,11 @@
 package com.spaghetti.core;
 
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.nio.ByteBuffer;
 
+import com.spaghetti.exceptions.GLFWException;
+import com.spaghetti.utils.*;
 import org.joml.Vector2i;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.glfw.GLFWImage;
@@ -11,16 +14,45 @@ import org.lwjgl.glfw.GLFWVidMode;
 import org.lwjgl.glfw.GLFWWindowSizeCallback;
 import org.lwjgl.opengl.GL11;
 
-import com.spaghetti.utils.Function;
 import com.spaghetti.render.Camera;
-import com.spaghetti.utils.ImageUtil;
-import com.spaghetti.utils.Logger;
-import com.spaghetti.utils.ResourceLoader;
+import org.lwjgl.system.CallbackI;
 
 public final class GameWindow {
 
-	public static void pollEvents() {
-		GLFW.glfwPollEvents();
+	private static class GLFWThread extends Thread {
+
+		public static FunctionDispatcher dispatcher;
+
+		public static void init() {
+			dispatcher = new FunctionDispatcher(Thread.currentThread());
+		}
+
+		public static void loop() {
+			if(!GraphicsEnvironment.isHeadless()) {
+				GLFW.glfwInit();
+				GLFW.glfwSetErrorCallback((error, description) -> {
+					throw new GLFWException(error, description);
+				});
+				while(Game.handlerThread != null) {
+					// This makes sure windows can be interacted with
+					// In Windows this also unties the renderer from
+					// any window event
+					GLFW.glfwPollEvents();
+					dispatcher.computeEvents();
+					ThreadUtil.sleep(1);
+				}
+				GLFW.glfwTerminate();
+			}
+		}
+
+	}
+
+	public static void initialize() {
+		GLFWThread.init();
+	}
+
+	public static void idle() {
+		GLFWThread.loop();
 	}
 
 	// Instance fields and methods
@@ -42,7 +74,7 @@ public final class GameWindow {
 
 	public void winInit(Game game) {
 		quickQueue(() -> {
-			// Cannot be instantiated outside of a game's context
+			// Cannot be instantiated outside a game's context
 			this.source = game;
 			if (source == null || source.getRenderer() == null) {
 				throw new UnsupportedOperationException();
@@ -534,8 +566,8 @@ public final class GameWindow {
 	}
 
 	private Object quickQueue(Function action) {
-		long funcId = Game.handlerThread.dispatcher.queue(action);
-		return async ? null : Game.handlerThread.dispatcher.waitReturnValue(funcId);
+		long funcId = GLFWThread.dispatcher.queue(action);
+		return async ? null : GLFWThread.dispatcher.waitReturnValue(funcId);
 	}
 
 	public boolean isAsync() {
