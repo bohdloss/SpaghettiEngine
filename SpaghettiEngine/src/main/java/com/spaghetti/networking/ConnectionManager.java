@@ -33,12 +33,12 @@ public class ConnectionManager {
 	protected static final Field f_rpcid = ReflectionUtil.getPrivateField(RemoteProcedure.class, "id");
 
 	// Flag management methods
-	protected static final Method me_osetflag = ReflectionUtil.getPrivateMethod(GameObject.class, "internal_setflag", int.class,
+	protected static final Method me_osetflag = ReflectionUtil.getPrivateMethod(GameObject.class, "setFlag", int.class,
 			boolean.class);
-	protected static final Method me_csetflag = ReflectionUtil.getPrivateMethod(GameComponent.class, "internal_setflag",
+	protected static final Method me_csetflag = ReflectionUtil.getPrivateMethod(GameComponent.class, "setFlag",
 			int.class, boolean.class);
-	protected static final Method me_ogetflag = ReflectionUtil.getPrivateMethod(GameObject.class, "internal_getflag", int.class);
-	protected static final Method me_cgetflag = ReflectionUtil.getPrivateMethod(GameComponent.class, "internal_getflag",
+	protected static final Method me_ogetflag = ReflectionUtil.getPrivateMethod(GameObject.class, "getFlag", int.class);
+	protected static final Method me_cgetflag = ReflectionUtil.getPrivateMethod(GameComponent.class, "getFlag",
 			int.class);
 
 	// RemoteProcedure related

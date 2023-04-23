@@ -13,23 +13,25 @@ import com.spaghetti.core.Game;
 public class Logger {
 
 	public static final Object loggerLock = new Object();
+	private static final Logger globalLogger = new Logger(null);
 
 	protected SimpleDateFormat printFormatter = new SimpleDateFormat("dd/MM/yyyy HH:mm:ss.SSS");
 	protected SimpleDateFormat logFormatter = new SimpleDateFormat("dd_MM_yyyy_HH_mm");
 
 	protected static final String[] CODES = {"DEBUG", "INFO", "LOADING", "WARNING", "ERROR", "FATAL"};
-	public static final int DEBUG_SEVERITY = 0, MIN_SEVERITY = DEBUG_SEVERITY;
-	public static final int INFO_SEVERITY = 1;
-	public static final int LOADING_SEVERITY = 2;
-	public static final int WARNING_SEVERITY = 3;
-	public static final int ERROR_SEVERITY = 4;
-	public static final int FATAL_SEVERITY = 5, MAX_SEVERITY = FATAL_SEVERITY;
+	protected static final int UNKNOWN_SEVERITY = 0;
+	public static final int DEBUG_SEVERITY = 1, MIN_SEVERITY = DEBUG_SEVERITY;
+	public static final int INFO_SEVERITY = 2;
+	public static final int LOADING_SEVERITY = 3;
+	public static final int WARNING_SEVERITY = 4;
+	public static final int ERROR_SEVERITY = 5;
+	public static final int FATAL_SEVERITY = 6, MAX_SEVERITY = FATAL_SEVERITY;
 
 	protected Game game;
 	protected Logger superLogger;
 	protected String superPrefix;
-	protected int printSeverity = -2;
-	protected int logSeverity = -2;
+	protected int printSeverity = UNKNOWN_SEVERITY;
+	protected int logSeverity = UNKNOWN_SEVERITY;
 	protected PrintStream logDevice;
 
 	public Logger(Game game) {
@@ -37,6 +39,7 @@ public class Logger {
 	}
 
 	protected Logger(Logger superLogger, String superPrefix) {
+		this.game = superLogger.game;
 		this.superLogger = superLogger;
 		this.superPrefix = "[" + superPrefix + "] ";
 	}
@@ -60,9 +63,24 @@ public class Logger {
 			superLogger.print(severity, superPrefix + string);
 			return;
 		}
-		if(printSeverity < -1 || logSeverity < -1) {
-			printSeverity = game.<Integer>getEngineSetting("log.printSeverity");
-			logSeverity = game.<Integer>getEngineSetting("log.logSeverity");
+		if(printSeverity == UNKNOWN_SEVERITY || logSeverity == UNKNOWN_SEVERITY) {
+			if(game == null) {
+				printSeverity = MIN_SEVERITY;
+				logSeverity = MIN_SEVERITY;
+			} else {
+				printSeverity = game.getEngineSetting("log.printSeverity");
+				logSeverity = game.getEngineSetting("log.logSeverity");
+
+				// Register setting change listener
+				game.getEventDispatcher().registerEventListener(SettingChangedEvent.class, (isClient, event) -> {
+					if(event.getSettingName().equals("log.printSeverity")) {
+						printSeverity = event.getNewValue();
+					}
+					if(event.getSettingName().equals("log.logSeverity")) {
+						logSeverity = event.getNewValue();
+					}
+				});
+			}
 
 			if(printSeverity < -1 || logSeverity < -1) {
 				printSeverity = -1;
@@ -70,7 +88,7 @@ public class Logger {
 			}
 		}
 
-		String line = getPrintDate() + "[GAME " + game.getIndex() + "][" + thread() + "][" +
+		String line = getPrintDate() + (game == null ? "[GLOBAL" : "[GAME " + game.getIndex()) + "][" + thread() + "][" +
 				CODES[(int) MathUtil.clamp(severity, MIN_SEVERITY, MAX_SEVERITY)] + "]: " + string;
 
 		// Print to console
@@ -80,7 +98,7 @@ public class Logger {
 
 		// Print to file
 		if(logDevice == null) {
-			if(game.<Boolean>getEngineSetting("log.autoCreate")) {
+			if(game != null && game.<Boolean>getEngineSetting("log.autoCreate")) {
 				File folder = new File("./logs");
 				if(!folder.exists()) {
 					folder.mkdir();
@@ -107,7 +125,7 @@ public class Logger {
 			}
 		}
 
-		if(severity >= logSeverity) {
+		if(severity >= logSeverity && logDevice != null) {
 			logDevice.println(line);
 		}
 	}
@@ -116,7 +134,7 @@ public class Logger {
 		String res = throwable.getClass().getName() + ": " + throwable.getMessage() + "\n";
 		StackTraceElement[] s = throwable.getStackTrace();
 		for (int i = 0; i < s.length; i++) {
-			res += s[i].toString() + (i == s.length - 1 ? "" : "\n");
+			res += "at " + s[i].toString() + (i == s.length - 1 ? "" : "\n");
 		}
 		if (throwable.getCause() != null) {
 			res += "\nCaused by ";
@@ -130,17 +148,21 @@ public class Logger {
 	}
 
 	protected static Logger logger() {
-		return Game.getInstance().getLogger();
+		return logger(Game.getInstance());
 	}
 
 	protected static Logger logger(Game game) {
-		return game.getLogger();
+		return game == null ? globalLogger : game.getLogger();
 	}
 
 	// Configuration
 
 	public void setPrintSeverity(int severity) {
-		printSeverity = severity;
+		if(game == null) {
+			printSeverity = severity;
+		} else {
+			game.setEngineSetting("log.printSeverity", severity);
+		}
 	}
 
 	public int getPrintSeverity() {
@@ -148,7 +170,11 @@ public class Logger {
 	}
 
 	public void setLogSeverity(int severity) {
-		logSeverity = severity;
+		if(game == null) {
+			logSeverity = severity;
+		} else {
+			game.setEngineSetting("log.logSeverity", severity);
+		}
 	}
 
 	public int getLogSeverity() {

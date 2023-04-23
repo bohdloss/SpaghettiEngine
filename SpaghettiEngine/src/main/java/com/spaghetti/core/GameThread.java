@@ -45,6 +45,7 @@ public abstract class GameThread {
 		}
 		try {
 			for(ThreadComponent component : componentList) {
+				Logger.info("Initializing " + component.getClass().getSimpleName() + "...");
 				component.initialize(getGame());
 			}
 		} finally {

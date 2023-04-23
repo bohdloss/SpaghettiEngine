@@ -133,9 +133,8 @@ public final class FunctionDispatcher {
 		callMap.remove(funcId);
 	}
 
-	public synchronized boolean hasReturnValue(long funcId) {
-		FunctionWrapper wrapper = callMap.get(funcId);
-		return wrapper.finished && wrapper.returnValue != null;
+	public boolean hasFinished(long funcId) {
+		return callMap.get(funcId).finished;
 	}
 
 	public synchronized boolean hasException(long funcId) {
@@ -143,12 +142,11 @@ public final class FunctionDispatcher {
 		return wrapper.finished && wrapper.exception != null;
 	}
 
-	public synchronized boolean ignoresReturnValue(long funcId) {
-		return callMap.get(funcId).ignoreReturnValue;
-	}
-
 	public synchronized Object getReturnValue(long funcId) {
 		FunctionWrapper wrapper = callMap.get(funcId);
+		if(!wrapper.finished) {
+			return null;
+		}
 		if (hasException(funcId)) {
 			callMap.remove(funcId);
 			throw new DispatcherException(wrapper.exception);

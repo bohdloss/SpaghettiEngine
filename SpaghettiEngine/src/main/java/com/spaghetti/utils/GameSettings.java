@@ -125,11 +125,14 @@ public class GameSettings {
 		// the new value
 		if(settings.containsKey(name)) {
 			Object oldValue = settings.get(name);
-			SettingChangedEvent event = new SettingChangedEvent(name, oldValue, value);
+			SettingChangeRequestEvent event = new SettingChangeRequestEvent(name, oldValue, value);
 			game.getEventDispatcher().raiseEvent(event);
 
 			if(!event.isCancelled()) {
-				settings.put(event.getSettingName(), event.getNewValue());
+				settings.put(name, event.getNewValue());
+
+				// Dispatch setting changed event
+				game.getEventDispatcher().raiseEventAsync(new SettingChangedEvent(name, oldValue, value));
 			}
 		}
 	}

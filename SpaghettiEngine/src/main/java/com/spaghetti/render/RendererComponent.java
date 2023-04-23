@@ -11,7 +11,6 @@ import com.spaghetti.events.EventDispatcher;
 import com.spaghetti.utils.*;
 import org.joml.Matrix4d;
 import org.joml.Vector3f;
-import org.lwjgl.glfw.GLFW;
 import org.lwjgl.openal.AL;
 import org.lwjgl.openal.AL10;
 import org.lwjgl.openal.ALC;
@@ -25,7 +24,6 @@ import org.lwjgl.opengl.GLCapabilities;
 import org.lwjgl.system.MemoryUtil;
 
 import com.spaghetti.assets.AssetManager;
-import com.spaghetti.core.GameThread;
 import com.spaghetti.core.GameWindow;
 import com.spaghetti.exceptions.GLException;
 
@@ -67,9 +65,9 @@ public class RendererComponent implements ThreadComponent {
 
 		// Find out if openal needs to be enabled or not
 		openal = GameSettings.sgetEngineSetting("openal.enable");
-		EventDispatcher.getInstance().registerEventListener(SettingChangedEvent.class, (isClient, event) -> {
+		game.getEventDispatcher().registerEventListener(SettingChangedEvent.class, (isClient, event) -> {
 			if(event.getSettingName().equals("openal.enable")) {
-				openal = (Boolean) event.getNewValue();
+				openal = event.getNewValue();
 				updateOpenAL();
 			}
 		});

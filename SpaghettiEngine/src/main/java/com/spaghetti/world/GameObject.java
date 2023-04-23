@@ -161,7 +161,7 @@ public class GameObject implements Updatable, Renderable, Replicable {
 		if (isGloballyAttached()) {
 			level.c_ordered.put(component.getId(), component);
 			try {
-				component.onbegin_check();
+				component.doBegin();
 			} catch (Throwable t) {
 				Logger.error("Error occurred in component", t);
 			}
@@ -409,7 +409,7 @@ public class GameObject implements Updatable, Renderable, Replicable {
 			if (isGloballyAttached()) {
 				// Trigger end
 				try {
-					component.onend_check();
+					component.doEnd();
 				} catch (Throwable t) {
 					Logger.error("Error occurred in component", t);
 				}
@@ -518,7 +518,7 @@ public class GameObject implements Updatable, Renderable, Replicable {
 		doBegin();
 		for (Object obj : components.values().toArray()) {
 			GameComponent component = (GameComponent) obj;
-			component.onbegin_check();
+			component.doBegin();
 		}
 		for (Object obj : children.values().toArray()) {
 			GameObject object = (GameObject) obj;
@@ -529,11 +529,11 @@ public class GameObject implements Updatable, Renderable, Replicable {
 	protected final void doRecursiveEnd() {
 		for (Object obj : children.values().toArray()) {
 			GameObject object = (GameObject) obj;
-			object.doEnd();
+			object.doRecursiveEnd();
 		}
 		for (Object obj : components.values().toArray()) {
 			GameComponent component = (GameComponent) obj;
-			component.onend_check();
+			component.doEnd();
 		}
 		doEnd();
 	}

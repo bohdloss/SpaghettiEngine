@@ -11,6 +11,8 @@ public class ServerDemo {
 	public static Game server;
 
 	public static void main(String[] args) {
+		Game.initialize();
+
 		// Build client
 		GameBuilder clientBuilder = new GameBuilder();
 		clientBuilder.enableRenderer();
@@ -45,9 +47,10 @@ public class ServerDemo {
 		server.depend(client);
 
 		// Initialize
-		client.begin();
-		server.begin();
+		client.beginAsync();
+		server.beginAsync();
 
+		Game.idle();
 	}
 
 }

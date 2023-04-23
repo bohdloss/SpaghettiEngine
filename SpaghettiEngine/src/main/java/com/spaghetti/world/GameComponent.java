@@ -10,13 +10,13 @@ import com.spaghetti.utils.*;
 
 public abstract class GameComponent implements Updatable, Renderable, Replicable {
 
-	private final void internal_setflag(int flag, boolean value) {
+	private final void setFlag(int flag, boolean value) {
 		synchronized (flags_lock) {
 			flags = HashUtil.bitAt(flags, flag, value);
 		}
 	}
 
-	private final boolean internal_getflag(int flag) {
+	private final boolean getFlag(int flag) {
 		synchronized (flags_lock) {
 			return HashUtil.bitAt(flags, flag);
 		}
@@ -45,32 +45,32 @@ public abstract class GameComponent implements Updatable, Renderable, Replicable
 
 	public GameComponent() {
 		this.id = IdProvider.newId(getGame());
-		internal_setflag(REPLICATE, true);
-		internal_setflag(VISIBLE, true);
-		internal_setflag(AWAKE, true);
+		setFlag(REPLICATE, true);
+		setFlag(VISIBLE, true);
+		setFlag(AWAKE, true);
 	}
 
 	// Interfaces
 
-	protected final void onbegin_check() {
-		if (!internal_getflag(INITIALIZED)) {
+	protected final void doBegin() {
+		if (!getFlag(INITIALIZED)) {
 			try {
 				onBeginPlay();
 			} catch (Throwable t) {
 				Logger.error("onBeginPlay() Error:", t);
 			}
-			internal_setflag(INITIALIZED, true);
+			setFlag(INITIALIZED, true);
 		}
 	}
 
-	protected final void onend_check() {
-		if (internal_getflag(INITIALIZED)) {
+	protected final void doEnd() {
+		if (getFlag(INITIALIZED)) {
 			try {
 				onEndPlay();
 			} catch (Throwable t) {
 				Logger.error("onEndPlay() Error:", t);
 			}
-			internal_setflag(INITIALIZED, false);
+			setFlag(INITIALIZED, false);
 		}
 	}
 
@@ -84,7 +84,7 @@ public abstract class GameComponent implements Updatable, Renderable, Replicable
 	}
 
 	public final void render(Camera renderer, float delta) {
-		if(!internal_getflag(VISIBLE)) {
+		if(!getFlag(VISIBLE)) {
 			return;
 		}
 
@@ -105,7 +105,7 @@ public abstract class GameComponent implements Updatable, Renderable, Replicable
 	// update methods apply here as well
 	@Override
 	public final void update(float delta) {
-		if(!internal_getflag(AWAKE)) {
+		if(!getFlag(AWAKE)) {
 			return;
 		}
 
@@ -141,13 +141,13 @@ public abstract class GameComponent implements Updatable, Renderable, Replicable
 			Logger.error("Error occurred in component", t);
 		}
 		owner = null;
-		internal_setflag(DESTROYED, true);
+		setFlag(DESTROYED, true);
 	}
 
 	// Getters and setters
 
 	protected final boolean isDestroyed() {
-		return internal_getflag(DESTROYED);
+		return getFlag(DESTROYED);
 	}
 
 	public final GameObject getOwner() {
@@ -167,7 +167,7 @@ public abstract class GameComponent implements Updatable, Renderable, Replicable
 	}
 
 	public final boolean isLocallyAttached() {
-		return internal_getflag(ATTACHED);
+		return getFlag(ATTACHED);
 	}
 
 	public final boolean isGloballyAttached() {
@@ -175,35 +175,35 @@ public abstract class GameComponent implements Updatable, Renderable, Replicable
 	}
 
 	public final boolean isInitialized() {
-		return internal_getflag(INITIALIZED);
+		return getFlag(INITIALIZED);
 	}
 
 	public final boolean isVisible() {
-		return internal_getflag(VISIBLE);
+		return getFlag(VISIBLE);
 	}
 
 	public final void setVisible(boolean visible) {
-		internal_setflag(VISIBLE, visible);
+		setFlag(VISIBLE, visible);
 	}
 
 	public final boolean isAwake() {
-		return internal_getflag(AWAKE);
+		return getFlag(AWAKE);
 	}
 
 	public final void setAwake(boolean awake) {
-		internal_setflag(AWAKE, awake);
+		setFlag(AWAKE, awake);
 	}
 
 	// Override for more precise control
 	@Override
 	public boolean needsReplication(ConnectionManager connection) {
-		boolean flag = internal_getflag(REPLICATE);
-		internal_setflag(REPLICATE, false);
+		boolean flag = getFlag(REPLICATE);
+		setFlag(REPLICATE, false);
 		return flag;
 	}
 
 	protected final void setReplicateFlag(boolean flag) {
-		internal_setflag(ATTACHED, flag);
+		setFlag(ATTACHED, flag);
 	}
 
 }

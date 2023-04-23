@@ -45,6 +45,25 @@ public class EventDispatcher {
 		});
 	}
 
+	/**
+	 * Raises an event, but doesn't guarantee the event will have been processed
+	 * by the time this function returns.
+	 * If you want to check when this event has been processed, obtain the
+	 * primary thread's dispatcher and call either hasFinished() or waitFor()
+	 * with the returned id as the parameter
+	 *
+	 * @param event
+	 */
+	public long raiseEventAsync(GameEvent event) {
+		return game.getPrimaryDispatcher().queueVoid(() -> {
+			event.setFrom(game.isClient() ? GameEvent.CLIENT : GameEvent.SERVER);
+			dispatchEvent(event);
+			if (!event.isCancelled() && !event.isLocal()) {
+				game.getNetworkManager().queueEvent(event);
+			}
+		}, true);
+	}
+
 	// Dispatch events before sending them over network and when they are received
 	// from network
 	protected void dispatchEvent(GameEvent event) {
