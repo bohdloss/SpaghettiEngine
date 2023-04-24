@@ -9,6 +9,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import com.spaghetti.core.Game;
+import com.spaghetti.utils.settings.SettingChangedEvent;
 
 public class Logger {
 
@@ -89,7 +90,7 @@ public class Logger {
 		}
 
 		String line = getPrintDate() + (game == null ? "[GLOBAL" : "[GAME " + game.getIndex()) + "][" + thread() + "][" +
-				CODES[(int) MathUtil.clamp(severity, MIN_SEVERITY, MAX_SEVERITY)] + "]: " + string;
+				CODES[(int) MathUtil.clamp(severity, MIN_SEVERITY, MAX_SEVERITY) - MIN_SEVERITY] + "]: " + string;
 
 		// Print to console
 		if(severity >= printSeverity) {

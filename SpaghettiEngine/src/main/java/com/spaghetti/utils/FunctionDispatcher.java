@@ -22,7 +22,7 @@ public final class FunctionDispatcher {
 		this.random = new Random();
 	}
 
-	public synchronized long queue(boolean ignoreReturnValue, Object target, String funcName, Object... args) {
+	public long queue(boolean ignoreReturnValue, Object target, String funcName, Object... args) {
 
 		try {
 
@@ -51,37 +51,39 @@ public final class FunctionDispatcher {
 
 	}
 
-	public synchronized long queue(Object target, String funcName, Object... args) {
+	public long queue(Object target, String funcName, Object... args) {
 		return queue(false, target, funcName, args);
 	}
 
 	// Queue by function object
 
-	public synchronized long queue(Function function) {
+	public long queue(Function function) {
 		return queue(function, false);
 	}
 
-	public synchronized long queueVoid(VoidFunction function) {
+	public long queueVoid(VoidFunction function) {
 		return queue(function, false);
 	}
 
-	public synchronized long queueVoid(VoidFunction function, boolean ignoreReturnValue) {
+	public long queueVoid(VoidFunction function, boolean ignoreReturnValue) {
 		return queue(function, ignoreReturnValue);
 	}
 
-	public synchronized long queue(Function function, boolean ignoreReturnValue) {
+	public long queue(Function function, boolean ignoreReturnValue) {
 		if (function == null) {
 			throw new IllegalArgumentException();
 		}
 
 		// Make sure the random number is unique
 		long rand = 0;
-		while (true) {
-			ThreadUtil.sleep(1);
-			rand = random.nextLong();
+		synchronized (this) {
+			while (true) {
+				ThreadUtil.sleep(1);
+				rand = random.nextLong();
 
-			if(!callMap.containsKey(rand) && !callQueue.contains(rand)) {
-				break;
+				if (!callMap.containsKey(rand) && !callQueue.contains(rand)) {
+					break;
+				}
 			}
 		}
 
@@ -94,11 +96,16 @@ public final class FunctionDispatcher {
 //		System.out.println(Thread.currentThread().getName() + " -> " + thread.getName());
 		if (thread.getId() == Thread.currentThread().getId()) {
 			processFunction(wrapper);
+			synchronized (this) {
+				callMap.put(wrapper.id, wrapper);
+			}
 		} else {
-			callQueue.add(wrapper);
+			synchronized (this) {
+				callQueue.add(wrapper);
+				callMap.put(wrapper.id, wrapper);
+			}
 		}
 
-		callMap.put(wrapper.id, wrapper);
 		return rand;
 	}
 
@@ -115,7 +122,10 @@ public final class FunctionDispatcher {
 	}
 
 	public Object waitReturnValue(long funcId) {
-		FunctionWrapper wrapper = callMap.get(funcId);
+		FunctionWrapper wrapper;
+		synchronized (this) {
+			wrapper = callMap.get(funcId);
+		}
 		if (wrapper.ignoreReturnValue) {
 			return null;
 		}
@@ -126,14 +136,19 @@ public final class FunctionDispatcher {
 	}
 
 	public void waitFor(long funcId) {
-		FunctionWrapper wrapper = callMap.get(funcId);
+		FunctionWrapper wrapper;
+		synchronized (this) {
+			wrapper = callMap.get(funcId);
+		}
 		while (!wrapper.finished) {
 			ThreadUtil.sleep(1);
 		}
-		callMap.remove(funcId);
+		synchronized (this) {
+			callMap.remove(funcId);
+		}
 	}
 
-	public boolean hasFinished(long funcId) {
+	public synchronized boolean hasFinished(long funcId) {
 		return callMap.get(funcId).finished;
 	}
 
@@ -142,35 +157,45 @@ public final class FunctionDispatcher {
 		return wrapper.finished && wrapper.exception != null;
 	}
 
-	public synchronized Object getReturnValue(long funcId) {
-		FunctionWrapper wrapper = callMap.get(funcId);
+	public Object getReturnValue(long funcId) {
+		FunctionWrapper wrapper;
+		synchronized (this) {
+			wrapper = callMap.get(funcId);
+		}
 		if(!wrapper.finished) {
 			return null;
 		}
 		if (hasException(funcId)) {
-			callMap.remove(funcId);
+			synchronized (this) {
+				callMap.remove(funcId);
+			}
 			throw new DispatcherException(wrapper.exception);
 		}
-		callMap.remove(funcId);
+		synchronized (this) {
+			callMap.remove(funcId);
+		}
 		return wrapper.returnValue;
 	}
 
-	public synchronized void computeEvents(int amount) {
+	public void computeEvents(int amount) {
 		if (Thread.currentThread().getId() != thread.getId()) {
 			return;
 		}
 
 		for (int i = 0; i < (int) MathUtil.min(amount, callQueue.size()); i++) {
-			processFunction(callQueue.get(0));
-			callQueue.remove(0);
+			FunctionWrapper function;
+			synchronized (this) {
+				function = callQueue.remove(0);
+			}
+			processFunction(function);
 		}
 	}
 
-	public synchronized void computeEvents() {
+	public void computeEvents() {
 		computeEvents(Integer.MAX_VALUE);
 	}
 
-	private synchronized void processFunction(FunctionWrapper wrapper) {
+	private void processFunction(FunctionWrapper wrapper) {
 		try {
 			Object ret = wrapper.function.execute();
 			if (!wrapper.ignoreReturnValue) {

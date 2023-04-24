@@ -2,6 +2,7 @@ package com.spaghetti.core;
 
 import java.awt.GraphicsEnvironment;
 
+import com.spaghetti.utils.Logger;
 import org.lwjgl.glfw.GLFW;
 
 import com.spaghetti.exceptions.GLFWException;
@@ -11,10 +12,11 @@ import com.spaghetti.utils.ThreadUtil;
 public final class HandlerThread extends Thread {
 
 	protected boolean stop;
+	protected boolean started;
 
 	public HandlerThread() {
 		super("HANDLER");
-		setPriority(Thread.MIN_PRIORITY);
+		setPriority(MIN_PRIORITY);
 	}
 
 	@Override
@@ -25,6 +27,7 @@ public final class HandlerThread extends Thread {
 
 				boolean found = false;
 				for (Game game : Game.games) {
+					started = true;
 					for (Game dependency : game.dependencies) {
 						if (dependency.isStopped() || dependency.isDead()) {
 							game.stopAsync();
@@ -45,7 +48,7 @@ public final class HandlerThread extends Thread {
 					}
 				}
 
-				if (!found) {
+				if (!found && started) {
 					stop = true;
 				}
 			} catch (Throwable t) {

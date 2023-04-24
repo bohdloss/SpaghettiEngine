@@ -12,6 +12,7 @@ import com.spaghetti.networking.ConnectionEndpoint;
 import com.spaghetti.networking.NetworkBuffer;
 import com.spaghetti.networking.Opcode;
 import com.spaghetti.utils.HashUtil;
+import com.spaghetti.utils.Logger;
 import com.spaghetti.utils.StreamUtil;
 
 public class TCPConnection extends ConnectionEndpoint {
@@ -44,6 +45,7 @@ public class TCPConnection extends ConnectionEndpoint {
 		if(timeout_option == null || timeout_option == 0) {
 			throw new EndpointException("The engine option for timeout time is missing or invalid");
 		}
+		timeout = timeout_option;
 	}
 
 	@Override
@@ -52,12 +54,12 @@ public class TCPConnection extends ConnectionEndpoint {
 			SocketChannel socket = SocketChannel.open();
 			socket.connect(new InetSocketAddress(ip, port));
 			socket.configureBlocking(false);
+			connect(socket);
 		} catch(UnknownHostException e) {
 			throw new EndpointException("Unknown host \"" + ip + ":" + port + "\"", e);
 		} catch(IOException e ) {
 			throw new EndpointException("Input / Output error occurred Swhile connecting", e);
 		}
-		connect(socket);
 	}
 
 	@Override

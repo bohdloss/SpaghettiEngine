@@ -17,7 +17,7 @@ import com.spaghetti.networking.ServerComponent;
 import com.spaghetti.render.Camera;
 import com.spaghetti.render.RendererComponent;
 import com.spaghetti.utils.FunctionDispatcher;
-import com.spaghetti.utils.GameSettings;
+import com.spaghetti.utils.settings.GameSettings;
 import com.spaghetti.utils.Logger;
 import com.spaghetti.utils.ThreadUtil;
 import com.spaghetti.world.GameObject;

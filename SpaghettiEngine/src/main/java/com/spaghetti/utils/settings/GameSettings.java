@@ -1,4 +1,4 @@
-package com.spaghetti.utils;
+package com.spaghetti.utils.settings;
 
 import java.awt.Dimension;
 import java.awt.Toolkit;
@@ -6,6 +6,9 @@ import java.util.HashMap;
 
 import com.spaghetti.physics.d2.jbox2d.JBox2DPhysics;
 import com.spaghetti.physics.d2.jbox2d.JBox2DRigidBody;
+import com.spaghetti.utils.Logger;
+import com.spaghetti.utils.settings.SettingChangeRequestEvent;
+import com.spaghetti.utils.settings.SettingChangedEvent;
 import org.joml.Vector2i;
 
 import com.spaghetti.core.Game;

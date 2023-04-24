@@ -136,7 +136,7 @@ public final class GameWindow {
 						return null;
 					};
 
-					source.getPrimaryDispatcher().queue(queue);
+					source.getPrimaryDispatcher().queue(queue, true);
 
 				}
 			});

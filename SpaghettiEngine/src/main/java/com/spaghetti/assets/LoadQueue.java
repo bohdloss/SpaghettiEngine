@@ -42,10 +42,12 @@ public class LoadQueue {
         }
         while(!thread.isIdle()) {
             ThreadUtil.sleep(1);
+            ThreadUtil.yield();
         }
         thread.setRemainingTime(0);
         while(thread.isAlive()) {
             ThreadUtil.sleep(1);
+            ThreadUtil.yield();
         }
     }
 

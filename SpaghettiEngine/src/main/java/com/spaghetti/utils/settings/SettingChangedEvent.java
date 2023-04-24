@@ -1,14 +1,14 @@
-package com.spaghetti.utils;
+package com.spaghetti.utils.settings;
 
 import com.spaghetti.events.GameEvent;
 
-public class SettingChangeRequestEvent extends GameEvent {
+public class SettingChangedEvent extends GameEvent {
 
     protected String settingName;
     protected final Object oldValue;
     protected Object newValue;
 
-    public SettingChangeRequestEvent(String settingName, Object oldValue, Object newValue) {
+    public SettingChangedEvent(String settingName, Object oldValue, Object newValue) {
         this.settingName = settingName;
         this.oldValue = oldValue;
         this.newValue = newValue;
@@ -23,10 +23,6 @@ public class SettingChangeRequestEvent extends GameEvent {
 
     public <T> T getNewValue() {
         return (T) newValue;
-    }
-
-    public void setNewValue(Object newValue) {
-        this.newValue = newValue;
     }
 
 }

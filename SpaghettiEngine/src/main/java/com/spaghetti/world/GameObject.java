@@ -21,7 +21,7 @@ public class GameObject implements Updatable, Renderable, Replicable {
 	// Hierarchy and utility
 
 	private static final Field c_owner = ReflectionUtil.getPrivateField(GameComponent.class, "owner");
-	private static final Method c_setflag = ReflectionUtil.getPrivateMethod(GameComponent.class, "internal_setflag", int.class,
+	private static final Method c_setflag = ReflectionUtil.getPrivateMethod(GameComponent.class, "setFlag", int.class,
 			boolean.class);
 
 	// Instance methods and fields

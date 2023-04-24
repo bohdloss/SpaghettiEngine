@@ -39,7 +39,7 @@ public class SingleplayerDemo {
 		// Initialize
 		game.beginAsync();
 
-		Game.idle();
+        Game.idle();
 	}
 
 }

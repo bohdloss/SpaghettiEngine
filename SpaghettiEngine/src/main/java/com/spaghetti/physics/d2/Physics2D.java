@@ -1,7 +1,6 @@
 package com.spaghetti.physics.d2;
 
-import com.spaghetti.physics.RigidBody;
-import com.spaghetti.utils.GameSettings;
+import com.spaghetti.utils.settings.GameSettings;
 import org.joml.Vector2f;
 
 import com.spaghetti.physics.Physics;

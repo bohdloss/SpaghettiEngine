@@ -9,7 +9,7 @@ import com.spaghetti.networking.ServerComponent;
 import com.spaghetti.networking.tcp.TCPClient;
 import com.spaghetti.networking.tcp.TCPServer;
 import com.spaghetti.render.RendererComponent;
-import com.spaghetti.utils.GameSettings;
+import com.spaghetti.utils.settings.GameSettings;
 import com.spaghetti.utils.Logger;
 import com.spaghetti.world.GameState;
 
