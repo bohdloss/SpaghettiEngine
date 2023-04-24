@@ -86,6 +86,7 @@ public final class ShaderProgram extends Asset {
 
 	@Override
 	protected void load0() {
+		ExceptionUtil.glConsumeError();
 		// Get a usable id for this s-program
 		this.id = GL20.glCreateProgram();
 		ExceptionUtil.glError();
@@ -156,6 +157,7 @@ public final class ShaderProgram extends Asset {
 
 	@Override
 	protected void unload0() {
+		ExceptionUtil.glConsumeError();
 		GL20.glDeleteProgram(id);
 		ExceptionUtil.glError();
 		locations.clear();

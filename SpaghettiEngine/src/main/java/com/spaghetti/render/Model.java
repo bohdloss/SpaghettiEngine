@@ -59,6 +59,7 @@ public class Model extends Asset {
 
 	@Override
 	protected void load0() {
+		ExceptionUtil.glConsumeError();
 		if (!isFilled()) {
 			throw new IllegalStateException("Invalid data provided for model");
 		}
@@ -145,6 +146,7 @@ public class Model extends Asset {
 
 	@Override
 	protected void unload0() {
+		ExceptionUtil.glConsumeError();
 		GL15.glDeleteBuffers(v_id);
 		ExceptionUtil.glError();
 		GL15.glDeleteBuffers(t_id);

@@ -44,7 +44,7 @@ public class RenderBuffer extends Asset {
 
 	@Override
 	protected void load0() {
-
+		ExceptionUtil.glConsumeError();
 		// Generate valid id
 
 		id = GL30.glGenRenderbuffers();
@@ -79,6 +79,7 @@ public class RenderBuffer extends Asset {
 
 	@Override
 	protected void unload0() {
+		ExceptionUtil.glConsumeError();
 		GL30.glDeleteRenderbuffers(id);
 		ExceptionUtil.glError();
 	}

@@ -60,6 +60,7 @@ public abstract class Shader extends Asset {
 
 	@Override
 	protected void load0() {
+		ExceptionUtil.glConsumeError();
 		if (!validateType(type) || source == null) {
 			throw new IllegalArgumentException("Invalid type or null source");
 		}
@@ -92,6 +93,7 @@ public abstract class Shader extends Asset {
 
 	@Override
 	protected void unload0() {
+		ExceptionUtil.glConsumeError();
 		GL20.glDeleteShader(id);
 		ExceptionUtil.glError();
 	}

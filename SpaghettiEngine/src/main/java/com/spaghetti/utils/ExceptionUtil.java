@@ -73,6 +73,10 @@ public final class ExceptionUtil {
 		num++;
 	}
 
+	public static void glConsumeError() {
+		GL11.glGetError();
+	}
+
 	/**
 	 * Retrieves the last OpenALC error in the {@code deviceHandle} device and
 	 * prints the stack trace in the console

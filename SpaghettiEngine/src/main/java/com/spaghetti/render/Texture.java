@@ -105,6 +105,7 @@ public class Texture extends Asset {
 
 	@Override
 	protected void load0() {
+		ExceptionUtil.glConsumeError();
 		// Generate a valid id for this texture
 		id = GL11.glGenTextures();
 		ExceptionUtil.glError();
@@ -138,6 +139,7 @@ public class Texture extends Asset {
 
 	@Override
 	protected void unload0() {
+		ExceptionUtil.glConsumeError();
 		GL11.glDeleteTextures(id);
 		ExceptionUtil.glError();
 	}

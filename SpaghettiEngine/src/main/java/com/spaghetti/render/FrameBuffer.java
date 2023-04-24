@@ -54,6 +54,7 @@ public class FrameBuffer extends Asset {
 
 	@Override
 	protected void load0() {
+		ExceptionUtil.glConsumeError();
 
 		// Create frame buffer
 		id = GL30.glGenFramebuffers();
@@ -160,7 +161,7 @@ public class FrameBuffer extends Asset {
 
 	@Override
 	protected void unload0() {
-		GL11.glGetError();
+		ExceptionUtil.glConsumeError();
 		GL30.glDeleteFramebuffers(id);
 		ExceptionUtil.glError();
 	}
