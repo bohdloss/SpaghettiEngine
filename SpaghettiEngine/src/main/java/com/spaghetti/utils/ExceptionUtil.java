@@ -6,10 +6,7 @@ import org.lwjgl.assimp.Assimp;
 import org.lwjgl.openal.AL;
 import org.lwjgl.openal.AL10;
 import org.lwjgl.openal.ALC10;
-import org.lwjgl.opengl.GL;
-import org.lwjgl.opengl.GL11;
-import org.lwjgl.opengl.GL30;
-import org.lwjgl.opengl.GL45;
+import org.lwjgl.opengl.*;
 
 import java.nio.ByteBuffer;
 
@@ -43,24 +40,24 @@ public final class ExceptionUtil {
 		}
 		String error_str = "OpenAL error detected: ";
 		switch (error) {
-		case AL10.AL_INVALID_OPERATION:
-			error_str += "AL_INVALID_OPERATION";
-			break;
-		case AL10.AL_INVALID_ENUM:
-			error_str += "AL_INVALID_ENUM";
-			break;
-		case AL10.AL_INVALID_NAME:
-			error_str += "AL_INVALID_NAME";
-			break;
-		case AL10.AL_INVALID_VALUE:
-			error_str += "AL_INVALID_VALUE";
-			break;
-		case AL10.AL_OUT_OF_MEMORY:
-			error_str += "AL_OUT_OF_MEMORY";
-			break;
-		default:
-			error_str += "Unknown error";
-			break;
+			case AL10.AL_INVALID_OPERATION:
+				error_str += "AL_INVALID_OPERATION";
+				break;
+			case AL10.AL_INVALID_ENUM:
+				error_str += "AL_INVALID_ENUM";
+				break;
+			case AL10.AL_INVALID_NAME:
+				error_str += "AL_INVALID_NAME";
+				break;
+			case AL10.AL_INVALID_VALUE:
+				error_str += "AL_INVALID_VALUE";
+				break;
+			case AL10.AL_OUT_OF_MEMORY:
+				error_str += "AL_OUT_OF_MEMORY";
+				break;
+			default:
+				error_str += "Unknown error";
+				break;
 		}
 		error_str += "\n";
 		try {
@@ -96,24 +93,24 @@ public final class ExceptionUtil {
 		}
 		String error_str = "OpenALC error detected: ";
 		switch (error) {
-		case ALC10.ALC_INVALID_CONTEXT:
-			error_str += "ALC_INVALID_CONTEXT";
-			break;
-		case ALC10.ALC_INVALID_DEVICE:
-			error_str += "ALC_INVALID_DEVICE";
-			break;
-		case ALC10.ALC_INVALID_ENUM:
-			error_str += "ALC_INVALID_ENUM";
-			break;
-		case ALC10.ALC_INVALID_VALUE:
-			error_str += "ALC_INVALID_VALUE";
-			break;
-		case ALC10.ALC_OUT_OF_MEMORY:
-			error_str += "ALC_OUT_OF_MEMORY";
-			break;
-		default:
-			error_str += "Unknown error";
-			break;
+			case ALC10.ALC_INVALID_CONTEXT:
+				error_str += "ALC_INVALID_CONTEXT";
+				break;
+			case ALC10.ALC_INVALID_DEVICE:
+				error_str += "ALC_INVALID_DEVICE";
+				break;
+			case ALC10.ALC_INVALID_ENUM:
+				error_str += "ALC_INVALID_ENUM";
+				break;
+			case ALC10.ALC_INVALID_VALUE:
+				error_str += "ALC_INVALID_VALUE";
+				break;
+			case ALC10.ALC_OUT_OF_MEMORY:
+				error_str += "ALC_OUT_OF_MEMORY";
+				break;
+			default:
+				error_str += "Unknown error";
+				break;
 		}
 		error_str += "\n";
 		if (deviceHandle == 0) {
@@ -140,33 +137,33 @@ public final class ExceptionUtil {
 		}
 		String error_str = "OpenGL error detected: ";
 		switch (error) {
-		case GL11.GL_INVALID_ENUM:
-			error_str += "GL_INVALID_ENUM";
-			break;
-		case GL30.GL_INVALID_FRAMEBUFFER_OPERATION:
-			error_str += "GL_INVALID_FRAMEBUFFER_OPERATION";
-			break;
-		case GL11.GL_INVALID_OPERATION:
-			error_str += "GL_INVALID_OPERATION";
-			break;
-		case GL11.GL_INVALID_VALUE:
-			error_str += "GL_INVALID_VALUE";
-			break;
-		case GL11.GL_STACK_OVERFLOW:
-			error_str += "GL_STACK_OVERFLOW";
-			break;
-		case GL11.GL_STACK_UNDERFLOW:
-			error_str += "GL_STACK_UNDERFLOW";
-			break;
-		case GL11.GL_OUT_OF_MEMORY:
-			error_str += "GL_OUT_OF_MEMORY";
-			break;
-		case GL45.GL_CONTEXT_LOST:
-			error_str += "GL_CONTEXT_LOST";
-			break;
-		default:
-			error_str += "Unknown error";
-			break;
+			case GL11.GL_INVALID_ENUM:
+				error_str += "GL_INVALID_ENUM";
+				break;
+			case GL30.GL_INVALID_FRAMEBUFFER_OPERATION:
+				error_str += "GL_INVALID_FRAMEBUFFER_OPERATION";
+				break;
+			case GL11.GL_INVALID_OPERATION:
+				error_str += "GL_INVALID_OPERATION";
+				break;
+			case GL11.GL_INVALID_VALUE:
+				error_str += "GL_INVALID_VALUE";
+				break;
+			case GL11.GL_STACK_OVERFLOW:
+				error_str += "GL_STACK_OVERFLOW";
+				break;
+			case GL11.GL_STACK_UNDERFLOW:
+				error_str += "GL_STACK_UNDERFLOW";
+				break;
+			case GL11.GL_OUT_OF_MEMORY:
+				error_str += "GL_OUT_OF_MEMORY";
+				break;
+			case GL45.GL_CONTEXT_LOST:
+				error_str += "GL_CONTEXT_LOST";
+				break;
+			default:
+				error_str += "Unknown error";
+				break;
 		}
 		error_str += "\n";
 		try {

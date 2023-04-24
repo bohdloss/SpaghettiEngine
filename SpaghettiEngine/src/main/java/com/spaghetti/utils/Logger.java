@@ -9,7 +9,7 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 
 import com.spaghetti.core.Game;
-import com.spaghetti.utils.settings.SettingChangedEvent;
+import com.spaghetti.settings.SettingChangedEvent;
 
 public class Logger {
 
@@ -74,10 +74,10 @@ public class Logger {
 
 				// Register setting change listener
 				game.getEventDispatcher().registerEventListener(SettingChangedEvent.class, (isClient, event) -> {
-					if(event.getSettingName().equals("log.printSeverity")) {
+					if(event.getEngineSettingName().equals("log.printSeverity")) {
 						printSeverity = event.getNewValue();
 					}
-					if(event.getSettingName().equals("log.logSeverity")) {
+					if(event.getEngineSettingName().equals("log.logSeverity")) {
 						logSeverity = event.getNewValue();
 					}
 				});

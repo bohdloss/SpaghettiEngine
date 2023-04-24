@@ -1,6 +1,6 @@
 package com.spaghetti.core;
 
-import com.spaghetti.utils.FunctionDispatcher;
+import com.spaghetti.dispatcher.FunctionDispatcher;
 import com.spaghetti.utils.Logger;
 import com.spaghetti.utils.ThreadUtil;
 
@@ -220,7 +220,7 @@ public abstract class GameThread {
 	}
 
 	private void _uncaught(Throwable t) {
-		Logger.error("Fatal uncaught error in game " + game.getIndex() + ":", t);
+		Logger.fatal("Fatal uncaught error in game " + game.getIndex() + ":", t);
 	}
 
 	public void addComponent(ThreadComponent component) {

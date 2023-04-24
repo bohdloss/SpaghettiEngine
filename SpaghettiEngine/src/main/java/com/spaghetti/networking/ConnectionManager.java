@@ -13,7 +13,7 @@ import com.spaghetti.world.GameObject;
 import com.spaghetti.world.Level;
 import com.spaghetti.events.EventDispatcher;
 import com.spaghetti.events.GameEvent;
-import com.spaghetti.utils.FunctionDispatcher;
+import com.spaghetti.dispatcher.FunctionDispatcher;
 import com.spaghetti.utils.Logger;
 
 public class ConnectionManager {

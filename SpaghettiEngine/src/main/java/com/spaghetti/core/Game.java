@@ -3,6 +3,7 @@ package com.spaghetti.core;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Objects;
 
 import com.spaghetti.assets.AssetManager;
 import com.spaghetti.core.events.GameStartedEvent;
@@ -16,8 +17,8 @@ import com.spaghetti.networking.NetworkComponent;
 import com.spaghetti.networking.ServerComponent;
 import com.spaghetti.render.Camera;
 import com.spaghetti.render.RendererComponent;
-import com.spaghetti.utils.FunctionDispatcher;
-import com.spaghetti.utils.settings.GameSettings;
+import com.spaghetti.dispatcher.FunctionDispatcher;
+import com.spaghetti.settings.GameSettings;
 import com.spaghetti.utils.Logger;
 import com.spaghetti.utils.ThreadUtil;
 import com.spaghetti.world.GameObject;
@@ -659,6 +660,16 @@ public final class Game {
 
 	public <T> T getSetting(String name) {
 		return settings.<T>getSetting(name);
+	}
+
+	@Override
+	public boolean equals(Object other) {
+		return other == this;
+	}
+
+	@Override
+	public int hashCode() {
+		return Integer.hashCode(index);
 	}
 
 }

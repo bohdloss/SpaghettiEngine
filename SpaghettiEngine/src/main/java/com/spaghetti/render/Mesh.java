@@ -1,6 +1,8 @@
 package com.spaghetti.render;
 
+import com.spaghetti.core.Game;
 import com.spaghetti.networking.ConnectionManager;
+import com.spaghetti.settings.GameSettings;
 import com.spaghetti.utils.Logger;
 import org.joml.Matrix4f;
 

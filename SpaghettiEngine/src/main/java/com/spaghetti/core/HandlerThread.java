@@ -1,12 +1,5 @@
 package com.spaghetti.core;
 
-import java.awt.GraphicsEnvironment;
-
-import com.spaghetti.utils.Logger;
-import org.lwjgl.glfw.GLFW;
-
-import com.spaghetti.exceptions.GLFWException;
-import com.spaghetti.utils.FunctionDispatcher;
 import com.spaghetti.utils.ThreadUtil;
 
 public final class HandlerThread extends Thread {

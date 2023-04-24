@@ -475,4 +475,30 @@ public final class MathUtil {
 		return diff(a, b) <= error;
 	}
 
+	/**
+	 * Checks if two floating point values are equal
+	 * within the given tolerance, or if a is higher than b
+	 *
+	 * @param a The first value
+	 * @param b The second value
+	 * @param error The tolerance
+	 * @return Whether the difference between the two values is lower than the error
+	 */
+	public static boolean equalOrHigher(float a, float b, float error) {
+		return a > b || diff(a, b) <= error;
+	}
+
+	/**
+	 * Checks if two floating point values are equal
+	 * within the given tolerance, or if a is lower than b
+	 *
+	 * @param a The first value
+	 * @param b The second value
+	 * @param error The tolerance
+	 * @return Whether the difference between the two values is lower than the error
+	 */
+	public static boolean equalOrLower(float a, float b, float error) {
+		return a < b || diff(a, b) <= error;
+	}
+
 }

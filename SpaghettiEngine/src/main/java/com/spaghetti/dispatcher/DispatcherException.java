@@ -1,4 +1,4 @@
-package com.spaghetti.utils;
+package com.spaghetti.dispatcher;
 
 public class DispatcherException extends RuntimeException {
 

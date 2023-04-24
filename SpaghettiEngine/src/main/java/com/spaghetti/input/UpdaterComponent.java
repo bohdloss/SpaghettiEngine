@@ -14,21 +14,12 @@ public class UpdaterComponent implements ThreadComponent {
 
 	@Override
 	public void loop(float delta) throws Throwable {
-		try {
-			if (!game.isHeadless()) {
-				game.getInputDispatcher().update();
-			}
-		} catch (Throwable t) {
-			Logger.error("Updater error:", t);
+		if (!game.isHeadless()) {
+			game.getInputDispatcher().update();
 		}
 
-		try {
-			game.getGameState().update(delta);
-		} catch (Throwable t) {
-			Logger.error("Level generated an exception:", t);
-			// Prevent exception spam (exceptions too fast may prevent the stacktrace from generating)
-			ThreadUtil.sleep(100);
-		}
+		game.getGameState().update(delta);
+
 		fps++;
 		if (System.currentTimeMillis() >= lastCheck + 1000) {
 			Logger.info(fps + " UPS");

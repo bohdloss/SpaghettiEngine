@@ -2,6 +2,7 @@ package com.spaghetti.utils;
 
 import com.spaghetti.core.Game;
 import com.spaghetti.core.GameThread;
+import com.spaghetti.dispatcher.FunctionDispatcher;
 
 /**
  * ThreadUtil is a namespace for common useful thread functions

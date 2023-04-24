@@ -1,6 +1,6 @@
 package com.spaghetti.physics.d2;
 
-import com.spaghetti.utils.settings.GameSettings;
+import com.spaghetti.settings.GameSettings;
 import org.joml.Vector2f;
 
 import com.spaghetti.physics.Physics;

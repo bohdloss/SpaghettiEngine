@@ -1,4 +1,4 @@
-package com.spaghetti.utils;
+package com.spaghetti.dispatcher;
 
 public interface VoidFunction extends Function {
 

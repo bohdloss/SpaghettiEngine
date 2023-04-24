@@ -8,8 +8,8 @@ import com.spaghetti.core.Game;
 import com.spaghetti.core.ThreadComponent;
 import com.spaghetti.core.events.ExitRequestedEvent;
 import com.spaghetti.utils.*;
-import com.spaghetti.utils.settings.GameSettings;
-import com.spaghetti.utils.settings.SettingChangedEvent;
+import com.spaghetti.settings.GameSettings;
+import com.spaghetti.settings.SettingChangedEvent;
 import org.joml.Matrix4d;
 import org.joml.Vector3f;
 import org.lwjgl.openal.AL;
@@ -27,6 +27,7 @@ import org.lwjgl.system.MemoryUtil;
 import com.spaghetti.assets.AssetManager;
 import com.spaghetti.core.GameWindow;
 import com.spaghetti.exceptions.GLException;
+import sun.rmi.runtime.Log;
 
 public class RendererComponent implements ThreadComponent {
 
@@ -40,7 +41,7 @@ public class RendererComponent implements ThreadComponent {
 	protected AssetManager assetManager;
 
 	// Options
-	protected boolean openal = true;
+	protected boolean openal, opengl;
 
 	// Cache
 	protected Camera lastCamera;
@@ -66,10 +67,16 @@ public class RendererComponent implements ThreadComponent {
 
 		// Find out if openal needs to be enabled or not
 		openal = GameSettings.sgetEngineSetting("openal.enable");
+		opengl = GameSettings.sgetEngineSetting("opengl.enable");
+
 		game.getEventDispatcher().registerEventListener(SettingChangedEvent.class, (isClient, event) -> {
-			if(event.getSettingName().equals("openal.enable")) {
+			if(event.getEngineSettingName().equals("openal.enable")) {
 				openal = event.getNewValue();
 				updateOpenAL();
+			}
+			if(event.getEngineSettingName().equals("opengl.enable")) {
+				opengl = event.getNewValue();
+				updateOpenGL();
 			}
 		});
 
@@ -80,8 +87,47 @@ public class RendererComponent implements ThreadComponent {
 
 		// Initializes OpenGL
 		window.makeContextCurrent();
+
+		updateOpenGL();
+		updateOpenAL();
+
+		// Load asset sheets
+		assetManager.loadAssetSheet(game.getEngineSetting("assets.internalSheet"));
+		assetManager.loadAssetSheet(game.getEngineSetting("assets.assetSheet"));
+
+		GL11.glEnable(GL11.GL_TEXTURE_2D);
+		GL11.glEnable(GL11.GL_BLEND);
+		GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
+		GL11.glEnable(GL11.GL_CULL_FACE);
+		GL11.glEnable(GL11.GL_DEPTH_TEST);
+		GL11.glDepthFunc(GL11.GL_LEQUAL);
+		GL11.glDisable(GL11.GL_LIGHTING);
+
+		// Requires OpenGL context
+		window.setVSync(game.getEngineSetting("window.vsync"));
+
+		sceneRenderer = new Model(new float[] { -1f, 1f, 0f, 1f, 1f, 0f, 1f, -1f, 0f, -1f, -1f, 0 },
+				new float[] { 0f, 0f, 1f, 0f, 1f, 1f, 0f, 1f }, new float[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
+				new int[] { 0, 1, 2, 2, 3, 0 });
+
+		defaultShader = ShaderProgram.require("rendererSP");
+	}
+
+	protected void updateOpenGL() {
+		if(opengl && glCapabilities == null) {
+			Logger.info("Enabling OpenGL");
+			initOpenGL();
+		} else if(!opengl && glCapabilities != null) {
+			Logger.info("Disabling OpenGL");
+			destroyOpenGL();
+		}
+	}
+
+	protected void initOpenGL() {
 		glCapabilities = GL.createCapabilities();
-		if(GameSettings.sgetEngineSetting("window.debugContext")) {
+		GLUtil.discoverVersion();
+		if(GameSettings.<Boolean>sgetEngineSetting("window.debugContext") && GLUtil.isAtleast(4.3)) {
+			Logger.info("Initializing debug message callback");
 			GL43.glDebugMessageCallback((source, type, id, severity, length, message, userParam) -> {
 				String message_str = MemoryUtil.memUTF8(message, length);
 				if (severity <= GL43.GL_DEBUG_SEVERITY_NOTIFICATION) {
@@ -119,37 +165,18 @@ public class RendererComponent implements ThreadComponent {
 		assetManager.registerAssetLoader("ShaderProgram", new ShaderProgramLoader());
 		assetManager.registerAssetLoader("Texture", new TextureLoader());
 		assetManager.registerAssetLoader("Material", new MaterialLoader());
+	}
 
-		if (openal) {
-			initOpenAL();
-		}
-
-		// Load asset sheets
-		assetManager.loadAssetSheet(game.getEngineSetting("assets.internalSheet"));
-		assetManager.loadAssetSheet(game.getEngineSetting("assets.assetSheet"));
-
-		GL11.glEnable(GL11.GL_TEXTURE_2D);
-		GL11.glEnable(GL11.GL_BLEND);
-		GL11.glBlendFunc(GL11.GL_SRC_ALPHA, GL11.GL_ONE_MINUS_SRC_ALPHA);
-		GL11.glEnable(GL11.GL_CULL_FACE);
-		GL11.glEnable(GL11.GL_DEPTH_TEST);
-		GL11.glDepthFunc(GL11.GL_LEQUAL);
-		GL11.glDisable(GL11.GL_LIGHTING);
-
-		// Requires OpenGL context
-		window.setVSync(game.getEngineSetting("window.vsync"));
-
-		sceneRenderer = new Model(new float[] { -1f, 1f, 0f, 1f, 1f, 0f, 1f, -1f, 0f, -1f, -1f, 0 },
-				new float[] { 0f, 0f, 1f, 0f, 1f, 1f, 0f, 1f }, new float[] { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 },
-				new int[] { 0, 1, 2, 2, 3, 0 });
-
-		defaultShader = ShaderProgram.require("rendererSP");
+	protected void destroyOpenGL() {
+		GLUtil.forgetVersion();
 	}
 
 	protected void updateOpenAL() {
 		if(openal && alContext == 0) {
+			Logger.info("Enabling OpenAL");
 			initOpenAL();
 		} else if(!openal && alContext != 0) {
+			Logger.info("Disabling OpenAL");
 			destroyOpenAL();
 		}
 	}
@@ -200,9 +227,10 @@ public class RendererComponent implements ThreadComponent {
 
 	@Override
 	public void terminate() throws Throwable {
-		if (openal) {
-			destroyOpenAL();
-		}
+		openal = false;
+		updateOpenAL();
+		opengl = false;
+		updateOpenGL();
 
 		// Terminates OpenGL
 		window.setAsync(true);
@@ -211,34 +239,30 @@ public class RendererComponent implements ThreadComponent {
 
 	@Override
 	public void loop(float delta) throws Throwable {
-		try {
-			// Clear screen
-			GL11.glGetError();
-			GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_STENCIL_BUFFER_BIT);
+		// Clear screen
+		GL11.glGetError();
+		GL11.glClear(GL11.GL_COLOR_BUFFER_BIT | GL11.GL_DEPTH_BUFFER_BIT | GL11.GL_STENCIL_BUFFER_BIT);
 
-			// Check if the window should be closed
-			if (window.shouldClose()) {
-				ExitRequestedEvent event = new ExitRequestedEvent();
-				game.getEventDispatcher().raiseEvent(event);
+		// Check if the window should be closed
+		if (window.shouldClose()) {
+			ExitRequestedEvent event = new ExitRequestedEvent();
+			game.getEventDispatcher().raiseEvent(event);
 
-				// Event cancelled, do not close the window
-				window.setShouldClose(false);
-				if(!event.isCancelled()) {
-					game.stopAsync();
-				}
+			// Event cancelled, do not close the window
+			window.setShouldClose(false);
+			if(!event.isCancelled()) {
+				game.stopAsync();
 			}
-
-			// Render the world
-			Camera camera = game.getLocalCamera();
-			if (camera != null) {
-				renderCamera(delta, camera);
-			}
-			window.swap();
-
-			fps++;
-		} catch (Throwable t) {
-			Logger.error("Rendering generated an exception", t);
 		}
+
+		// Render the world
+		Camera camera = game.getLocalCamera();
+		if (camera != null) {
+			renderCamera(delta, camera);
+		}
+		window.swap();
+
+		fps++;
 
 		if (System.currentTimeMillis() >= lastCheck + 1000) {
 			Logger.info(fps + " FPS");
@@ -304,8 +328,16 @@ public class RendererComponent implements ThreadComponent {
 		return openal;
 	}
 
+	public boolean isOpenGLEnabled() {
+		return opengl;
+	}
+
 	public void setOpenALEnabled(boolean value) {
 		GameSettings.ssetEngineSetting("openal.enable", value);
+	}
+
+	public void setOpenGLEnabled(boolean value) {
+		GameSettings.ssetEngineSetting("opengl.enable", value);
 	}
 
 }

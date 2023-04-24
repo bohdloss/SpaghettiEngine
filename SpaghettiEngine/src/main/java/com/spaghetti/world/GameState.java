@@ -12,6 +12,7 @@ import com.spaghetti.networking.Replicable;
 import com.spaghetti.networking.ConnectionManager;
 import com.spaghetti.networking.NetworkBuffer;
 import com.spaghetti.utils.ExceptionUtil;
+import com.spaghetti.utils.Logger;
 import com.spaghetti.utils.ReflectionUtil;
 import com.spaghetti.utils.ThreadUtil;
 
@@ -58,7 +59,15 @@ public class GameState implements Updatable, Replicable {
 
 	@Override
 	public void update(float delta) {
-		gameMode.initialize();
+		if(!gameMode.isInitialized()) {
+			try {
+				gameMode.initialize();
+			} catch(Throwable t) {
+				Logger.error("Error while initializing game mode " + gameMode.getClass().getSimpleName() +
+						", using fallback dummy game mode", t);
+				setGameMode(new EmptyMode());
+			}
+		}
 		gameMode.update(delta);
 
 		for (Level level : levels.values()) {
@@ -243,12 +252,12 @@ public class GameState implements Updatable, Replicable {
 
 	@Override
 	public void writeDataServer(ConnectionManager manager, NetworkBuffer dataBuffer) {
-		
+
 	}
 
 	@Override
 	public void readDataClient(ConnectionManager manager, NetworkBuffer dataBuffer) {
-		
+
 	}
 
 	@Override

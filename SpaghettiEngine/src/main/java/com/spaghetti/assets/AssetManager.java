@@ -9,6 +9,7 @@ import com.spaghetti.core.Game;
 import com.spaghetti.core.GameBuilder;
 import com.spaghetti.core.events.GameStoppingEvent;
 import com.spaghetti.utils.*;
+import com.spaghetti.dispatcher.FunctionDispatcher;
 
 /**
  * A class that manages assets and their dependencies, including loading and

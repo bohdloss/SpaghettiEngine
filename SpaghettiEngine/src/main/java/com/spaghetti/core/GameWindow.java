@@ -6,6 +6,8 @@ import java.nio.ByteBuffer;
 
 import com.spaghetti.exceptions.GLFWException;
 import com.spaghetti.utils.*;
+import com.spaghetti.dispatcher.Function;
+import com.spaghetti.dispatcher.FunctionDispatcher;
 import org.joml.Vector2i;
 import org.lwjgl.glfw.GLFW;
 import org.lwjgl.glfw.GLFWImage;
