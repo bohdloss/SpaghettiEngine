@@ -12,7 +12,7 @@ public abstract class GameThread {
 	private Thread thread;
 	private boolean isMain;
 	private volatile Game game;
-	private final FunctionDispatcher functionDispatcher;
+	private FunctionDispatcher functionDispatcher;
 	private volatile boolean stop;
 	private volatile boolean init;
 	private volatile boolean allowRun;
@@ -21,20 +21,21 @@ public abstract class GameThread {
 	private volatile boolean requestChance;
 	private volatile long lastTime;
 	private volatile boolean run;
+	private String name;
 
 	private List<ThreadComponent> componentList = new ArrayList<>(4);
 
-	public GameThread() {
-		this(null);
-	}
-
-	public GameThread(Thread thread) {
+	public final void initializeThread(Thread thread) {
+		if(this.thread != null) {
+			return;
+		}
 		if(thread == null) {
 			thread = new Thread(() -> run());
 		} else {
 			isMain = true;
 		}
 		this.thread = thread;
+		this.thread.setName(name);
 		functionDispatcher = new FunctionDispatcher(thread);
 	}
 
@@ -263,7 +264,11 @@ public abstract class GameThread {
 	}
 
 	public final void setName(String name) {
-		thread.setName(name);
+		if(thread == null) {
+			this.name = name;
+		} else {
+			this.thread.setName(name);
+		}
 	}
 
     public Thread getThread() {

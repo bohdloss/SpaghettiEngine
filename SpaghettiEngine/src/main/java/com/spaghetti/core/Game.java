@@ -138,7 +138,6 @@ public final class Game {
 	protected ArrayList<Game> dependencies = new ArrayList<>();
 
 	// Cached booleans
-	private final boolean currentAsPrimary;
 	private final boolean isHeadless;
 	private final boolean isClient;
 	private final boolean isServer;
@@ -185,11 +184,9 @@ public final class Game {
 			throw new RuntimeException("Error initializing an object: constructor is private", e);
 		}
 
-		currentAsPrimary = settings.getEngineSetting("engine.useCurrentThreadAsPrimary");
-
 		// Initialize primary thread if an updater or renderer is present
 		if(updaterClass != null || rendererClass != null) {
-			primary = new GameThread(currentAsPrimary ? Thread.currentThread() : null) {
+			primary = new GameThread() {
 				@Override
 				protected GameThread provideSelf() {
 					return primary;
@@ -258,12 +255,10 @@ public final class Game {
 		if (primary != null) {
 			gameThreads.add(primary);
 			primary.setName("PRIMARY");
-			registerThread(primary.getThread());
 		}
 		if (auxiliary != null) {
 			gameThreads.add(auxiliary);
 			auxiliary.setName("AUXILIARY");
-			registerThread(auxiliary.getThread());
 		}
 
 		// Cache booleans
@@ -322,8 +317,16 @@ public final class Game {
 			return;
 		}
 
-		Logger.loading(this, "Allocating assets...");
 		starting = true;
+		boolean currentAsPrimary = settings.getEngineSetting("engine.useCurrentThreadAsPrimary");
+		for(GameThread thread : gameThreads) {
+			if(thread == primary) {
+				thread.initializeThread(currentAsPrimary ? Thread.currentThread() : null);
+			} else {
+				thread.initializeThread(null);
+			}
+			registerThread(thread.getThread());
+		}
 
 		// First start all threads
 		Logger.loading(this, "Telling threads to start...");

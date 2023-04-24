@@ -21,14 +21,21 @@ public final class GameWindow {
 	private static class GLFWThread extends Thread {
 
 		public static FunctionDispatcher dispatcher;
+		private static boolean initialized;
+		private static Thread initializedThread;
 
 		public static void initialize() {
 			if(!GraphicsEnvironment.isHeadless()) {
 				dispatcher = new FunctionDispatcher(Thread.currentThread());
-				GLFW.glfwInit();
-				GLFW.glfwSetErrorCallback((error, description) -> {
-					throw new GLFWException(error, description);
-				});
+				if(!initialized) {
+					if(GLFW.glfwInit()) {
+						initialized = true;
+						initializedThread = Thread.currentThread();
+						GLFW.glfwSetErrorCallback((error, description) -> {
+							throw new GLFWException(error, description);
+						});
+					}
+				}
 			}
 		}
 
@@ -37,7 +44,9 @@ public final class GameWindow {
 				// This makes sure windows can be interacted with
 				// In Windows this also unties the renderer from
 				// any window event
-				GLFW.glfwPollEvents();
+				if(initialized && Thread.currentThread() == initializedThread) {
+					GLFW.glfwPollEvents();
+				}
 				dispatcher.computeEvents();
 				ThreadUtil.sleep(1);
 			}
@@ -45,7 +54,10 @@ public final class GameWindow {
 
 		public static void terminate() {
 			if(!GraphicsEnvironment.isHeadless()) {
-				GLFW.glfwTerminate();
+				if(initialized && Thread.currentThread() == initializedThread) {
+					initialized = false;
+					GLFW.glfwTerminate();
+				}
 			}
 		}
 
